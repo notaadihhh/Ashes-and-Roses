@@ -12,28 +12,46 @@
             color: #e0e0e0;
         }
         #canvas-container { width: 100vw; height: 100vh; display: block; }
-        #ui-overlay {
-            position: absolute; top: 16px; left: 16px;
-            background: rgba(22, 22, 22, 0.9);
-            padding: 18px; border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.12);
-            width: 300px; z-index: 10;
-            max-height: 92vh; overflow-y: auto;
-        }
-        h1 { font-size: 17px; margin: 0 0 6px 0; color: #fff; }
-        p { font-size: 12px; margin: 0 0 12px 0; color: #aaa; line-height: 1.4; }
-        .control-group { margin-bottom: 12px; }
+        h1 { font-size: 17px; margin: 0; color: #fff; }
         label { display: block; font-size: 11px; margin-bottom: 4px; color: #ccc; font-weight: 600; }
         button {
-            background: #e50914; color: white; border: none; padding: 9px 14px;
-            border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px; width: 100%;
+            background: #2b2b2b; color: white; border: 1px solid #444; padding: 9px 14px;
+            border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 12px; font-family: inherit;
         }
-        button:hover { background: #f40612; }
-        .batch-btn { background: #2b2b2b; border: 1px solid #444; margin-bottom: 10px; }
-        .batch-btn:hover { background: #383838; }
+        button:hover { background: #383838; }
+        button.on { background: #16a34a; border-color: #16a34a; }
         input[type="range"] { width: 100%; accent-color: #e50914; }
+
+        /* top-left: title only */
+        /* liquid-glass look shared by the title, the panel-images button and the bottom bar */
+        #title-card, #imagesBtn, #bottom-bar, #imagesPanel, .popup-glass {
+            background: linear-gradient(135deg, rgba(52, 58, 76, 0.46), rgba(18, 20, 28, 0.30));
+            -webkit-backdrop-filter: blur(10px) saturate(170%);
+            backdrop-filter: blur(10px) saturate(170%);
+            border: 1px solid rgba(255, 255, 255, 0.28);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.40), inset 0 -1px 0 rgba(255,255,255,0.06), 0 8px 28px rgba(0,0,0,0.28);
+        }
+        #title-card { position: absolute; top: 16px; left: 16px; z-index: 10; padding: 10px 18px; border-radius: 16px; }
+        #title-card h1 { text-shadow: 0 1px 3px rgba(0,0,0,0.45); }
+
+        /* top-right: panel images button + popup */
+        #imagesBtn { position: absolute; top: 16px; right: 16px; z-index: 11; padding: 10px 16px; border-radius: 16px; text-shadow: 0 1px 3px rgba(0,0,0,0.45); }
+        #imagesBtn:hover { background: linear-gradient(135deg, rgba(80, 88, 110, 0.55), rgba(30, 33, 44, 0.40)); }
+        #imagesBtn.on { background: linear-gradient(135deg, rgba(34, 197, 94, 0.55), rgba(21, 128, 61, 0.45)); }
+        #imagesPanel {
+            position: absolute; top: 66px; right: 16px; width: 320px; z-index: 11;
+            max-height: calc(100vh - 220px); overflow-y: auto;
+            padding: 14px; border-radius: 18px;
+            /* closed state (pops in / out from the top-right corner, under its button) */
+            transform-origin: top right; opacity: 0; visibility: hidden; pointer-events: none;
+            transform: translateY(-12px) scale(0.9);
+            transition: opacity 0.26s ease, transform 0.3s cubic-bezier(.4,0,.6,1), visibility 0s linear 0.3s;
+        }
+        #imagesPanel.open {
+            opacity: 1; visibility: visible; pointer-events: auto; transform: none;
+            transition: opacity 0.3s ease, transform 0.42s cubic-bezier(.2,.9,.3,1.18), visibility 0s;
+        }
+        .batch-btn { width: 100%; margin-bottom: 10px; }
         .file-row {
             display: flex; align-items: center; justify-content: space-between;
             background: rgba(255,255,255,0.04); padding: 6px 8px;
@@ -42,35 +60,70 @@
         .file-row span { color: #ddd; font-weight: 500; }
         .file-row input[type="file"] { width: 145px; font-size: 10px; color: #aaa; }
         .status { font-size: 11px; color: #4ade80; margin-bottom: 10px; min-height: 14px; }
-        .instructions { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); font-size: 11px; color: #888; }
+
+        /* bottom bar: one thin glass row, everything side by side */
+        #bottom-bar {
+            position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); z-index: 10;
+            display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: nowrap;
+            padding: 4px 10px; border-radius: 18px;
+        }
+        @media (max-width: 900px) { #bottom-bar { flex-wrap: wrap; max-width: calc(100vw - 20px); } }
+        #bottom-bar > button, #bottom-bar .bar-item > button {
+            padding: 5px 10px; font-size: 11px; white-space: nowrap; border-radius: 10px;
+            background: rgba(255,255,255,0.10); border: 1px solid rgba(255,255,255,0.22);
+            text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+        }
+        #bottom-bar > button:hover, #bottom-bar .bar-item > button:hover { background: rgba(255,255,255,0.22); }
+        #bottom-bar > button.on, #bottom-bar .bar-item > button.on { background: rgba(22,163,74,0.65); border-color: rgba(74,222,128,0.6); }
+        .bar-item { position: relative; display: flex; align-items: center; gap: 0; }
+        /* sliders that slide out to the right of a button; the bar grows / shrinks smoothly with them */
+        .reveal { width: 0; opacity: 0; overflow: hidden; flex-shrink: 0; transition: width 0.4s cubic-bezier(.4,0,.2,1), opacity 0.3s ease; }
+        .reveal.open { width: 128px; opacity: 1; }
+        .rv-inner { display: flex; align-items: center; gap: 6px; padding-left: 8px; white-space: nowrap; }
+        .rv-label { font-size: 10px; color: #eee; min-width: 34px; text-shadow: 0 1px 2px rgba(0,0,0,0.4); }
+        .rv-inner .mini-slider { width: 72px; flex: 0 0 72px; margin: 0; }
+        .dot { display: inline-block; width: 11px; height: 11px; border-radius: 50%; border: 1px solid #fff; vertical-align: -1px; margin-left: 4px; }
+        /* popups above the bar: liquid glass too (they live outside the bar so the blur can see the scene) */
+        .popup-glass {
+            position: fixed; z-index: 12;
+            padding: 12px 14px; border-radius: 16px;
+            font-size: 11px; color: #f2f2f2; white-space: nowrap; text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+            /* closed state: pops in / out from just above its button */
+            transform-origin: bottom center; opacity: 0; visibility: hidden; pointer-events: none;
+            transform: translateX(-50%) translateY(12px) scale(0.9);
+            transition: opacity 0.26s ease, transform 0.3s cubic-bezier(.4,0,.6,1), visibility 0s linear 0.3s;
+        }
+        .popup-glass.open {
+            opacity: 1; visibility: visible; pointer-events: auto; transform: translateX(-50%);
+            transition: opacity 0.3s ease, transform 0.42s cubic-bezier(.2,.9,.3,1.18), visibility 0s;
+        }
+        .popup-glass label { color: #eee; }
+        #controlsPopup { line-height: 1.7; }
+        #controlsPopup b { color: #fff; }
+        #paletteGrid { display: grid; grid-template-columns: repeat(6, 26px); gap: 7px; margin: 8px 0 0; }
+        .pal-swatch { width: 26px; height: 26px; min-width: 26px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.35); padding: 0; cursor: pointer; }
+        .pal-swatch:hover { border-color: #fff; }
+        .pal-swatch.sel { border-color: #e50914; box-shadow: 0 0 0 2px rgba(229,9,20,0.4); }
+        .clock-item { gap: 5px; }
+        #clockSvg { cursor: grab; touch-action: none; user-select: none; display: block; }
+        #clockSvg:active { cursor: grabbing; }
+        #clockText { font-size: 11px; color: #fff; font-weight: 600; min-width: 54px; text-shadow: 0 1px 2px rgba(0,0,0,0.4); }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 </head>
 <body>
 
-    <div id="ui-overlay">
-        <h1>Roses and Ashes</h1>
-        <p>Corrected Mirror Dieline Mockup</p>
+    <!-- Top-left: title only -->
+    <div id="title-card"><h1>Roses and Ashes</h1></div>
 
-        <div class="control-group">
-            <button class="batch-btn" onclick="document.getElementById('batchInput').click()">
-                📁 Select All 11 Images at Once
-            </button>
-            <input type="file" id="batchInput" multiple accept="image/*" style="display:none">
-            <div class="status" id="statusText">Waiting for images...</div>
-        </div>
-
-        <div class="control-group">
-            <button id="toggleLidBtn">Open / Close Lid</button>
-        </div>
-
-        <div class="control-group">
-            <label for="lidSlider">Lid Hinge Angle: <span id="angleVal">0</span>°</label>
-            <input type="range" id="lidSlider" min="0" max="75" value="0" step="1">
-        </div>
-
-        <label style="margin-top:12px;">Individual Panel Overrides:</label>
+    <!-- Top-right: panel image uploads -->
+    <button id="imagesBtn">🖼 Panel Images</button>
+    <div id="imagesPanel">
+        <button class="batch-btn" onclick="document.getElementById('batchInput').click()">📁 Select All 13 Images at Once</button>
+        <input type="file" id="batchInput" multiple accept="image/*" style="display:none">
+        <div class="status" id="statusText">Waiting for images...</div>
+        <label>Individual Panel Overrides:</label>
         <div class="file-row"><span>Front</span><input type="file" accept="image/*" data-panel="front"></div>
         <div class="file-row"><span>Lid Front</span><input type="file" accept="image/*" data-panel="lidFront"></div>
         <div class="file-row"><span>Top</span><input type="file" accept="image/*" data-panel="top"></div>
@@ -82,19 +135,115 @@
         <div class="file-row"><span>Side 1 Triangle</span><input type="file" accept="image/*" data-panel="side1Triangle"></div>
         <div class="file-row"><span>Side 2 Trapezoid (lid)</span><input type="file" accept="image/*" data-panel="side2Trapezoid"></div>
         <div class="file-row"><span>Side 2 Triangle</span><input type="file" accept="image/*" data-panel="side2Triangle"></div>
+        <div class="file-row"><span>Inner Sides (innerside)</span><input type="file" accept="image/*" data-panel="innerSide"></div>
+        <div class="file-row"><span>Inner Curve (inner)</span><input type="file" accept="image/*" data-panel="inner"></div>
+    </div>
 
-        <div class="instructions">
-            • Left-click + drag to rotate<br>
-            • Scroll to zoom • Right-click to pan
+    <!-- Bottom bar: one thin glass row. Sliders slide out to the right of their button -->
+    <div id="bottom-bar">
+        <div class="bar-item">
+            <button id="toggleLidBtn">Open / Close Lid</button>
+            <div class="reveal" id="lidReveal"><div class="rv-inner">
+                <input type="range" id="lidSlider" class="mini-slider" min="0" max="75" value="0" step="1" title="Lid hinge angle">
+                <span class="rv-label"><span id="angleVal">0</span>°</span>
+            </div></div>
         </div>
+
+        <div class="bar-item">
+            <button id="turntableBtn">⟳ Turntable: OFF</button>
+            <div class="reveal" id="turntableReveal"><div class="rv-inner">
+                <input type="range" id="turntableSpeedSlider" class="mini-slider" min="5" max="180" value="30" step="5" title="Turntable speed">
+                <span class="rv-label"><span id="turntableSpeedVal">30</span>°/s</span>
+            </div></div>
+        </div>
+
+        <button id="groundBtn">🎨 Ground<span class="dot" id="groundDot"></span></button>
+
+        <div class="bar-item clock-item">
+            <svg id="clockSvg" viewBox="-50 -50 100 100" width="42" height="42">
+                <circle r="48" fill="#141a2e" stroke="#555" stroke-width="2"/>
+                <path d="M -48 0 A 48 48 0 0 1 48 0 Z" fill="#4a90c8" opacity="0.38"/>
+                <g stroke="#888" stroke-width="2">
+                    <line x1="0" y1="-48" x2="0" y2="-41"/><line x1="0" y1="48" x2="0" y2="41"/>
+                    <line x1="-48" y1="0" x2="-41" y2="0"/><line x1="48" y1="0" x2="41" y2="0"/>
+                </g>
+                <g font-size="15" fill="#ddd" text-anchor="middle" font-family="sans-serif">
+                    <text x="0" y="-22">12</text><text x="0" y="34">0</text>
+                    <text x="-27" y="5">6</text><text x="27" y="5">18</text>
+                </g>
+                <g id="clockHand" transform="rotate(0)">
+                    <line x1="0" y1="0" x2="0" y2="-32" stroke="#fff" stroke-width="6" stroke-linecap="round"/>
+                    <circle cx="0" cy="-34" r="13" fill="#e50914" stroke="#fff" stroke-width="3"/>
+                </g>
+                <circle r="4" fill="#fff"/>
+            </svg>
+            <div id="clockText">13:20</div>
+        </div>
+
+        <div class="bar-item">
+            <button id="cycleBtn" title="Play a full day and night">⏱ Cycle: OFF</button>
+            <div class="reveal" id="cycleReveal"><div class="rv-inner">
+                <input type="range" id="cycleLenSlider" class="mini-slider" min="10" max="120" value="40" step="5" title="Cycle length (seconds)">
+                <span class="rv-label"><span id="cycleLenVal">40</span> s</span>
+            </div></div>
+        </div>
+
+        <button id="dustBtn" class="on" title="Show / hide the glittering dust particles">✨ Dust: ON</button>
+        <button id="snapshotBtn" title="Save the current view as an image">📷 Snapshot</button>
+        <button id="controlsBtn">ℹ Controls</button>
+    </div>
+
+    <!-- Glass popups that open above their button (kept outside the bar so their blur works) -->
+    <div id="palettePopup" class="popup-glass">
+        <label>Ground colour</label>
+        <div id="paletteGrid"></div>
+    </div>
+    <div id="controlsPopup" class="popup-glass">
+        • <b>Left-click + drag</b>: rotate the view<br>
+        • <b>Scroll</b>: zoom • <b>Right-click + drag</b>: pan<br>
+        • <b>Click the lid</b> (or the lid button): open / close it, a hinge slider slides out<br>
+        • <b>Turntable</b>: spins the box, a speed slider slides out<br>
+        • <b>Drag the clock hand</b>: set the time (sun by day, moon by night)<br>
+        • <b>Cycle</b>: plays a full day, then a night; a length slider slides out<br>
+        • <b>Ground</b>: pick the surface colour<br>
+        • <b>Dust</b>: turns the glittering dust particles on / off<br>
+        • <b>Snapshot</b>: downloads the current view as a PNG<br>
+        • Click anywhere else on the page to close an open box
     </div>
 
     <div id="canvas-container"></div>
 
     <script>
         const container = document.getElementById('canvas-container');
+        // ================= ENVIRONMENT SETTINGS (edit these) =================
+        const SKY_COLOR = 0x87ceeb;        // sky colour (sky blue). Any hex, e.g. 0xff9966 for a sunset
+        const GROUND_COLOR = 0x9a9da1;     // starting colour of the flat surface (concrete, same as the palette swatch). Any hex, e.g. 0xffffff for white
+        const CIGARETTE_COLOR = 0xff8c1a;  // colour of the cigarettes (orange). Any hex, e.g. 0xf4efe6 for the old cream
+        const INTERIOR_COLOR = 0xffffff;   // colour of the inside of the box and lid (white). Any hex
+        const NIGHT_SKY_COLOR = 0x070b1f;  // night sky colour (deep navy). Any hex
+        const SUNRISE_SUNSET_SKY = 0xf0916a; // sky colour when the sun / moon is on the horizon (dawn & dusk)
+        const MOON_COLOR = 0xb8c6ff;       // moonlight colour
+        const START_TIME_HOURS = 13.3;     // time of day when the page opens (0-24). 6 = sunrise, 12 = noon, 18 = sunset, 0 = midnight
+        const CYCLE_DURATION_SECONDS = 40; // length of one full day + night cycle
+        // Sunlight colour by height of the sun above the horizon (degrees, colour). Blended smoothly in between.
+        const SUN_COLOR_STOPS = [
+            [0,  0xff4d1a],  // sunrise / sunset: deep red-orange
+            [6,  0xff7a2e],
+            [15, 0xffb066],  // morning / evening: golden
+            [30, 0xffdba8],
+            [50, 0xfff3e0],
+            [90, 0xffffff]   // noon: white
+        ];
+        const CLOUDS_ON = true;            // moving clouds in the day sky
+        const CLOUD_COUNT = 30;            // how many clouds are spread around the sky
+        const CLOUD_SPEED = 1.4;           // how fast the clouds drift (degrees per second)
+        const TURNTABLE_SPEED = 30;        // degrees per second (30 = full 360 spin in 12 seconds)
+        const TURNTABLE_ON_START = false;  // true = turntable spins as soon as the page opens
+        // ====================================================================
+
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x181818);
+        scene.background = new THREE.Color(SKY_COLOR);
+        scene.fog = new THREE.Fog(SKY_COLOR, 25, 75); // far end of the ground melts into the sky
 
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
         camera.position.set(3.4, 2.6, 7.6);
@@ -107,32 +256,94 @@
 
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
+        controls.maxPolarAngle = Math.PI / 2 - 0.02; // camera can't go below the surface
+        controls.minDistance = 3;
+        controls.maxDistance = 30;
 
-        // Lighting
-        scene.add(new THREE.AmbientLight(0xffffff, 0.85));
-        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-        dirLight.position.set(5, 10, 7);
-        scene.add(dirLight);
+        // Shadows
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+        // Lighting: ambient + sun + moon (+ a weak fill). Their position / colour / strength are driven by updateEnvironment()
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
+        scene.add(ambientLight);
+        // Sky-coloured light from above, ground-coloured bounce light from below, and a coloured rim light on the far side
+        const hemiLight = new THREE.HemisphereLight(0xbfdcff, 0xffffff, 0.3);
+        scene.add(hemiLight);
+        const rimLight = new THREE.DirectionalLight(0xffffff, 0);
+        scene.add(rimLight);
+        function makeShadowLight(color, intensity) {
+            const l = new THREE.DirectionalLight(color, intensity);
+            l.position.set(5, 10, 7);
+            l.castShadow = true;
+            // The shadow map only has to cover the box itself (every shadow is cast by it), so a tight area
+            // gives much crisper shadows; the long far plane keeps long low-sun shadows from being cut off.
+            l.shadow.mapSize.set(3072, 3072);
+            l.shadow.camera.left = -4.2;
+            l.shadow.camera.right = 4.2;
+            l.shadow.camera.top = 4.2;
+            l.shadow.camera.bottom = -4.2;
+            l.shadow.camera.near = 1;
+            l.shadow.camera.far = 90;
+            l.shadow.bias = -0.0003;
+            l.shadow.normalBias = 0.02;   // removes speckles / acne on the box and cigarettes
+            scene.add(l);
+            return l;
+        }
+        const sunLight = makeShadowLight(0xffffff, 0.8);
+        const moonLight = makeShadowLight(MOON_COLOR, 0);
         const backLight = new THREE.DirectionalLight(0xffffff, 0.4);
         backLight.position.set(-5, -3, -6);
         scene.add(backLight);
 
         // Materials
         const materials = {
-            front: new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.35 }),
-            lidFront: new THREE.MeshStandardMaterial({ color: 0xdddddd, roughness: 0.35 }),
-            top: new THREE.MeshStandardMaterial({ color: 0xcccccc, roughness: 0.35 }),
-            back: new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.35 }),
-            bottom: new THREE.MeshStandardMaterial({ color: 0xcccccc, roughness: 0.35 }),
-            side1: new THREE.MeshStandardMaterial({ color: 0xe5e5e5, roughness: 0.35 }),
-            side2: new THREE.MeshStandardMaterial({ color: 0xe5e5e5, roughness: 0.35 }),
+            front: new THREE.MeshPhysicalMaterial({ color: 0xeeeeee, roughness: 0.35, clearcoat: 0.55, clearcoatRoughness: 0.22 }),
+            lidFront: new THREE.MeshPhysicalMaterial({ color: 0xdddddd, roughness: 0.35, clearcoat: 0.55, clearcoatRoughness: 0.22 }),
+            top: new THREE.MeshPhysicalMaterial({ color: 0xcccccc, roughness: 0.35, clearcoat: 0.55, clearcoatRoughness: 0.22 }),
+            back: new THREE.MeshPhysicalMaterial({ color: 0xeeeeee, roughness: 0.35, clearcoat: 0.55, clearcoatRoughness: 0.22 }),
+            bottom: new THREE.MeshPhysicalMaterial({ color: 0xcccccc, roughness: 0.35, clearcoat: 0.55, clearcoatRoughness: 0.22 }),
+            side1: new THREE.MeshPhysicalMaterial({ color: 0xe5e5e5, roughness: 0.35, clearcoat: 0.55, clearcoatRoughness: 0.22 }),
+            side2: new THREE.MeshPhysicalMaterial({ color: 0xe5e5e5, roughness: 0.35, clearcoat: 0.55, clearcoatRoughness: 0.22 }),
             // Lid side trapezoids (formerly the red placeholders) & lower side triangles (formerly the green placeholders).
             // alphaTest removes every transparent pixel so nothing invisible is drawn / sorted in 3D.
-            side1Trapezoid: new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.4, alphaTest: 0.5 }),
-            side2Trapezoid: new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.4, alphaTest: 0.5 }),
-            side1Triangle:  new THREE.MeshStandardMaterial({ color: 0x16a34a, roughness: 0.4, alphaTest: 0.5 }),
-            side2Triangle:  new THREE.MeshStandardMaterial({ color: 0x16a34a, roughness: 0.4, alphaTest: 0.5 })
+            side1Trapezoid: new THREE.MeshPhysicalMaterial({ color: 0xdc2626, roughness: 0.4, alphaTest: 0.5, clearcoat: 0.45, clearcoatRoughness: 0.25 }),
+            side2Trapezoid: new THREE.MeshPhysicalMaterial({ color: 0xdc2626, roughness: 0.4, alphaTest: 0.5, clearcoat: 0.45, clearcoatRoughness: 0.25 }),
+            side1Triangle:  new THREE.MeshPhysicalMaterial({ color: 0x16a34a, roughness: 0.4, alphaTest: 0.5, clearcoat: 0.45, clearcoatRoughness: 0.25 }),
+            side2Triangle:  new THREE.MeshPhysicalMaterial({ color: 0x16a34a, roughness: 0.4, alphaTest: 0.5, clearcoat: 0.45, clearcoatRoughness: 0.25 }),
+            // White inner liner (innerside.png on both side walls, inner.png on the curved front).
+            // alphaTest cuts every transparent pixel away, so the curved edges are real cut-outs.
+            innerSide: new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, metalness: 0, side: THREE.DoubleSide, alphaTest: 0.5 }),
+            inner:     new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, metalness: 0, side: THREE.DoubleSide, alphaTest: 0.5 })
         };
+        const LINER_KEYS = new Set(['innerSide', 'inner']); // already white & two-sided: no extra interior copy needed
+        const LINER_DARK_CUTOFF = 45;   // 0-255: liner pixels darker than this (black) are treated as transparent too. 0 = off
+        const LINER_ALPHA_CUTOFF = 200; // 0-255: liner pixels less opaque than this are removed completely (raise it to cut more)
+        // Shadows must also ignore the transparent parts, so each liner piece gets a depth material that honours the picture's alpha
+        const linerDepthMats = {
+            innerSide: new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, alphaTest: 0.5, side: THREE.DoubleSide }),
+            inner:     new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, alphaTest: 0.5, side: THREE.DoubleSide })
+        };
+        // Inside faces: every panel is one-sided, so from inside the box it would be see-through.
+        // Each panel gets a matching INTERIOR_COLOR back face. For the trapezoid/triangle pieces it
+        // follows the picture's transparency, so their cut-out corners stay cut out inside as well.
+        const innerMaterials = {};
+        for (const key in materials) {
+            if (LINER_KEYS.has(key)) continue;
+            const m = new THREE.MeshStandardMaterial({
+                color: INTERIOR_COLOR, roughness: 1, metalness: 0, side: THREE.BackSide,
+                alphaTest: materials[key].alphaTest
+            });
+            m.onBeforeCompile = (shader) => {
+                // keep only the picture's alpha, ignore its colour
+                shader.fragmentShader = shader.fragmentShader.replace(
+                    '#include <map_fragment>',
+                    '#ifdef USE_MAP\n diffuseColor.a *= texture2D( map, vUv ).a;\n#endif'
+                );
+            };
+            m.customProgramCacheKey = () => 'interior-alpha-only';
+            innerMaterials[key] = m;
+        }
         // Panels whose images contain transparent areas that must be cut away
         const TRIM_PANELS = new Set(['side1Trapezoid', 'side2Trapezoid', 'side1Triangle', 'side2Triangle']);
 
@@ -161,9 +372,22 @@
         const masterGroup = new THREE.Group();
         scene.add(masterGroup);
 
-        // --- CONTINUOUS BACK PANEL ---
-        const backMesh = new THREE.Mesh(new THREE.PlaneGeometry(boxWidth, boxHeight), materials.back);
-        backMesh.position.set(0, 0, -boxDepth / 2);
+        // --- BACK PANEL (split in two, cut from the SAME back.png so nothing is stretched or squashed) ---
+        // Remaps a plane's UVs so it shows only the vertical slice v0..v1 of the picture (0 = bottom, 1 = top)
+        function cropPlaneV(geometry, v0, v1) {
+            const uv = geometry.attributes.uv;
+            for (let i = 0; i < uv.count; i++) uv.setY(i, v0 + uv.getY(i) * (v1 - v0));
+            uv.needsUpdate = true;
+            return geometry;
+        }
+        const backSplitV = (boxHeight - lidBackHeight) / boxHeight; // where the lid strip begins in back.png
+
+        // Main (fixed) part of the back: everything except the strip at the top
+        const backMesh = new THREE.Mesh(
+            cropPlaneV(new THREE.PlaneGeometry(boxWidth, boxHeight - lidBackHeight), 0, backSplitV),
+            materials.back
+        );
+        backMesh.position.set(0, -lidBackHeight / 2, -boxDepth / 2);
         backMesh.rotation.y = Math.PI;
         masterGroup.add(backMesh);
 
@@ -171,25 +395,58 @@
         const lowerBodyGroup = new THREE.Group();
         masterGroup.add(lowerBodyGroup);
 
-        // Inner charcoal collar & cigarettes
-        const collar = new THREE.Mesh(
-            new THREE.BoxGeometry(boxWidth - 0.06, 0.7, boxDepth - 0.06),
-            new THREE.MeshStandardMaterial({ color: 0x1e1e1e, roughness: 0.85 })
-        );
-        collar.position.set(0, boxHeight / 2 - lidFrontHeight - 0.1, 0);
-        lowerBodyGroup.add(collar);
+        // --- WHITE INNER LINER (the curved white piece inside the pack) ---
+        // Sizes come from the picture aspect ratios:
+        //   innerside.png 1920x4434 -> as wide as the box depth (minus a small gap), height from the ratio
+        //   inner.png     1117x842  -> as wide as the box width (minus a small gap), height from the ratio
+        const LINER_GAP = 0.03;                 // distance between the liner and the box walls
+        const LINER_SINK = 0.5;                 // how far the liner reaches down into the lower body
+        const linerSideW = boxDepth - 2 * LINER_GAP;
+        const linerSideH = linerSideW * 4434 / 1920;
+        const linerFrontW = boxWidth - 2 * LINER_GAP;
+        const linerFrontH = linerFrontW * 842 / 1117;
+        const bodyTopY = boxHeight / 2 - lidFrontHeight;
+        const linerBottomY = bodyTopY - LINER_SINK;
 
-        for (let r = 0; r < 2; r++) {
-            for (let c = 0; c < 10; c++) {
+        // Side walls (same picture on both), facing inwards
+        [-1, 1].forEach(dir => {
+            const wall = new THREE.Mesh(new THREE.PlaneGeometry(linerSideW, linerSideH), materials.innerSide);
+            wall.position.set(dir * (boxWidth / 2 - LINER_GAP), linerBottomY + linerSideH / 2, 0);
+            wall.rotation.y = -dir * Math.PI / 2;
+            wall.customDepthMaterial = linerDepthMats.innerSide;
+            wall.receiveShadow = true;
+            lowerBodyGroup.add(wall);
+        });
+
+        // Curved front piece, facing inwards (towards the back)
+        const linerFront = new THREE.Mesh(new THREE.PlaneGeometry(linerFrontW, linerFrontH), materials.inner);
+        linerFront.position.set(0, linerBottomY + linerFrontH / 2, boxDepth / 2 - LINER_GAP);
+        linerFront.rotation.y = Math.PI;
+        linerFront.customDepthMaterial = linerDepthMats.inner;
+        linerFront.receiveShadow = true;
+        lowerBodyGroup.add(linerFront);
+
+        // --- CIGARETTES: sit freely in the pack, packed tightly (2 rows) ---
+        const CIGS_PER_ROW = 6;
+        const CIGS_ROWS = 2;
+        const PACK_LENGTH_MM = 94;       // = back.png length (the full box height)
+        const CIGARETTE_LENGTH_MM = 84;  // cigarette length
+        const cigHeight = boxHeight * CIGARETTE_LENGTH_MM / PACK_LENGTH_MM;
+        // Largest radius that still fits both across the width and across the depth of the liner
+        const cigRadius = Math.min(linerFrontW / (2 * CIGS_PER_ROW), linerSideW / (2 * CIGS_ROWS));
+        const cigBaseY = -boxHeight / 2 + 0.005; // resting on the inside bottom of the box
+        for (let r = 0; r < CIGS_ROWS; r++) {
+            for (let c = 0; c < CIGS_PER_ROW; c++) {
                 const cig = new THREE.Mesh(
-                    new THREE.CylinderGeometry(0.085, 0.085, 0.5, 12),
-                    new THREE.MeshStandardMaterial({ color: 0xf4efe6, roughness: 0.6 })
+                    new THREE.CylinderGeometry(cigRadius, cigRadius, cigHeight, 24),
+                    new THREE.MeshStandardMaterial({ color: CIGARETTE_COLOR, roughness: 0.6, metalness: 0 })
                 );
                 cig.position.set(
-                    -boxWidth / 2 + 0.22 + c * 0.195,
-                    boxHeight / 2 - lidFrontHeight + 0.18,
-                    (r === 0 ? -0.18 : 0.18)
+                    (c - (CIGS_PER_ROW - 1) / 2) * 2 * cigRadius,
+                    cigBaseY + cigHeight / 2,
+                    (r - (CIGS_ROWS - 1) / 2) * 2 * cigRadius
                 );
+                cig.receiveShadow = true;
                 lowerBodyGroup.add(cig);
             }
         }
@@ -250,6 +507,16 @@
         lidGroup.position.set(0, boxHeight / 2 - lidBackHeight, -boxDepth / 2);
         masterGroup.add(lidGroup);
 
+        // Top strip of the back panel: the rectangle next to the trapezoid's short side.
+        // It belongs to the lid, so it swings open together with it, right at the hinge.
+        const backLidStrip = new THREE.Mesh(
+            cropPlaneV(new THREE.PlaneGeometry(boxWidth, lidBackHeight), backSplitV, 1),
+            materials.back
+        );
+        backLidStrip.position.set(0, lidBackHeight / 2, 0);
+        backLidStrip.rotation.y = Math.PI;
+        lidGroup.add(backLidStrip);
+
         const lidContents = new THREE.Group();
         lidContents.position.set(0, 0, boxDepth / 2);
         lidGroup.add(lidContents);
@@ -292,6 +559,24 @@
 
 
         // --- IMAGE LOADER ---
+        // Liner pictures: wipe out every transparent / faint pixel completely and give those pixels a white
+        // colour, so no black (or dark fringe) can ever show where the picture is meant to be see-through.
+        function cleanLinerImage(img) {
+            const c = document.createElement('canvas');
+            c.width = img.naturalWidth; c.height = img.naturalHeight;
+            const ctx = c.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            const data = ctx.getImageData(0, 0, c.width, c.height);
+            const d = data.data;
+            for (let i = 0; i < d.length; i += 4) {
+                const isDark = Math.max(d[i], d[i + 1], d[i + 2]) < LINER_DARK_CUTOFF;
+                if (d[i + 3] < LINER_ALPHA_CUTOFF || isDark) { d[i] = 255; d[i + 1] = 255; d[i + 2] = 255; d[i + 3] = 0; }
+                else d[i + 3] = 255;
+            }
+            ctx.putImageData(data, 0, 0);
+            return c;
+        }
+
         // Crops away fully transparent borders so the picture fits the 3D shape exactly
         function trimTransparent(img) {
             const c = document.createElement('canvas');
@@ -316,6 +601,20 @@
             return out;
         }
 
+        // When all 13 pictures are loaded the "Panel Images" box closes itself (animated)
+        const ALL_PANEL_KEYS = ['front', 'lidFront', 'top', 'back', 'bottom', 'side1', 'side2',
+            'side1Trapezoid', 'side1Triangle', 'side2Trapezoid', 'side2Triangle', 'innerSide', 'inner'];
+        const loadedPanelKeys = new Set();
+        let allPanelsHandled = false;
+        function onPanelImageLoaded(key) {
+            loadedPanelKeys.add(key);
+            if (!allPanelsHandled && ALL_PANEL_KEYS.every(k => loadedPanelKeys.has(k))) {
+                allPanelsHandled = true;
+                document.getElementById('statusText').innerText = `All ${ALL_PANEL_KEYS.length} images loaded ✔`;
+                setTimeout(closeImagesPanel, 900);
+            }
+        }
+
         function applyImageFile(panelKey, file) {
             if (!file || !materials[panelKey]) return;
             const reader = new FileReader();
@@ -324,6 +623,7 @@
                 img.onload = function() {
                     let source = img;
                     if (TRIM_PANELS.has(panelKey)) source = trimTransparent(img);
+                    if (LINER_KEYS.has(panelKey)) source = cleanLinerImage(img);
                     const tex = new THREE.Texture(source);
                     tex.encoding = THREE.sRGBEncoding;
                     tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
@@ -332,6 +632,16 @@
                     materials[panelKey].map = tex;
                     materials[panelKey].color.setHex(0xffffff);
                     materials[panelKey].needsUpdate = true;
+                    onPanelImageLoaded(panelKey);
+
+                    if (LINER_KEYS.has(panelKey)) {
+                        linerDepthMats[panelKey].map = tex; // transparent parts cast no shadow
+                        linerDepthMats[panelKey].needsUpdate = true;
+                    }
+                    if (TRIM_PANELS.has(panelKey)) {
+                        innerMaterials[panelKey].map = tex; // so the inside keeps the same cut-out shape
+                        innerMaterials[panelKey].needsUpdate = true;
+                    }
                 };
                 img.src = e.target.result;
             };
@@ -353,7 +663,9 @@
             files.forEach(file => {
                 const name = file.name.toLowerCase().replace(/[\s_-]/g, '');
                 let key = null;
-                if (name.includes('side1trapezoid')) key = 'side1Trapezoid';
+                if (name.includes('innerside')) key = 'innerSide';
+                else if (name.includes('inner')) key = 'inner';
+                else if (name.includes('side1trapezoid')) key = 'side1Trapezoid';
                 else if (name.includes('side1triangle')) key = 'side1Triangle';
                 else if (name.includes('side2trapezoid')) key = 'side2Trapezoid';
                 else if (name.includes('side2triangle')) key = 'side2Triangle';
@@ -373,19 +685,544 @@
             document.getElementById('statusText').innerText = `Loaded ${matched} of ${files.length} images!`;
         });
 
+        // --- GROUND (flat surface under the box) ---
+        // Procedural, seamlessly tiling grain texture (soft blotches + fine speckle); also used as a bump map
+        function makeGroundTexture(size) {
+            const c = document.createElement('canvas');
+            c.width = c.height = size;
+            const ctx = c.getContext('2d');
+            const img = ctx.createImageData(size, size);
+            let sd = 987654321;
+            const r01 = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+            const octaves = [[6, 0.45], [12, 0.28], [24, 0.17], [48, 0.10]];
+            const grids = octaves.map(([n]) => { const g = new Float32Array(n * n); for (let i = 0; i < g.length; i++) g[i] = r01(); return g; });
+            const sample = (g, n, x, y) => {
+                const fx = x * n, fy = y * n, ix = Math.floor(fx), iy = Math.floor(fy);
+                let tx = fx - ix, ty = fy - iy;
+                tx = tx * tx * (3 - 2 * tx); ty = ty * ty * (3 - 2 * ty);
+                const x0 = ix % n, x1 = (ix + 1) % n, y0 = iy % n, y1 = (iy + 1) % n;
+                const a = g[y0 * n + x0] + (g[y0 * n + x1] - g[y0 * n + x0]) * tx;
+                const b = g[y1 * n + x0] + (g[y1 * n + x1] - g[y1 * n + x0]) * tx;
+                return a + (b - a) * ty;
+            };
+            for (let y = 0; y < size; y++) {
+                for (let x = 0; x < size; x++) {
+                    let v = 0;
+                    for (let o = 0; o < octaves.length; o++) v += octaves[o][1] * sample(grids[o], octaves[o][0], x / size, y / size);
+                    let b = 0.78 + 0.22 * Math.min(1, Math.max(0, v));   // mostly light, so any ground colour still reads clearly
+                    b += (r01() - 0.5) * 0.07;                            // fine grain
+                    if (r01() < 0.012) b -= 0.14;                         // tiny dark specks
+                    const g = Math.max(0, Math.min(255, Math.round(b * 255)));
+                    const i = (y * size + x) * 4;
+                    img.data[i] = img.data[i + 1] = img.data[i + 2] = g; img.data[i + 3] = 255;
+                }
+            }
+            ctx.putImageData(img, 0, 0);
+            const tex = new THREE.CanvasTexture(c);
+            tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+            tex.repeat.set(48, 48);
+            tex.encoding = THREE.sRGBEncoding;
+            tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+            return tex;
+        }
+        const groundTex = makeGroundTexture(512);
+        const ground = new THREE.Mesh(
+            new THREE.CircleGeometry(90, 64),
+            new THREE.MeshStandardMaterial({ color: GROUND_COLOR, roughness: 1, metalness: 0, map: groundTex, bumpMap: groundTex, bumpScale: 0.9 })
+        );
+        ground.rotation.x = -Math.PI / 2;
+        ground.position.y = -boxHeight / 2 - 0.002; // sits just under the bottom of the box
+        ground.receiveShadow = true;
+        scene.add(ground);
+
+        // Soft contact shadow: a dark, feathered patch right under the box so it sits on the ground (turns with the box)
+        function makeContactTexture() {
+            const c = document.createElement('canvas'); c.width = c.height = 256;
+            const ctx = c.getContext('2d');
+            const rr = (x, y, w, h, r) => { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); };
+            for (let i = 0; i < 30; i++) {          // stacked rounded rectangles: dark core, feathered edge
+                const inset = 4 + i * 3.6;
+                ctx.fillStyle = 'rgba(0,0,0,0.045)';
+                rr(inset, inset, 256 - 2 * inset, 256 - 2 * inset, 40 - i);
+                ctx.fill();
+            }
+            return new THREE.CanvasTexture(c);
+        }
+        const contactMat = new THREE.MeshBasicMaterial({ map: makeContactTexture(), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+        const contactShadow = new THREE.Mesh(new THREE.PlaneGeometry(boxWidth + 1.3, boxDepth + 1.3), contactMat);
+        contactShadow.rotation.x = -Math.PI / 2;
+        const contactGroup = new THREE.Group();
+        contactGroup.position.y = -boxHeight / 2 - 0.001;
+        contactGroup.add(contactShadow);
+        scene.add(contactGroup);
+
+        // White interior: add a back-face-only copy of every panel
+        const panelMeshes = [];
+        masterGroup.traverse(o => { if (o.isMesh) panelMeshes.push(o); });
+        panelMeshes.forEach(mesh => {
+            const key = Object.keys(materials).find(k => materials[k] === mesh.material);
+            if (key && innerMaterials[key]) {
+                const inner = new THREE.Mesh(mesh.geometry, innerMaterials[key]);
+                mesh.add(inner);
+            }
+        });
+
+        // Box casts shadows on the ground (double-sided so thin panels shadow properly)
+        masterGroup.traverse(o => {
+            if (o.isMesh) {
+                o.castShadow = true;
+                if (o.material) o.material.shadowSide = THREE.DoubleSide;
+            }
+        });
+        for (const k in materials) materials[k].shadowSide = THREE.DoubleSide;
+
+        // =============== SUN / MOON / SKY / DAY-NIGHT ===============
+        const env = {
+            time: START_TIME_HOURS, // hours, 0..24. 6-18 = day (sun), 18-6 = night (moon)
+            isNight: false,
+            sunAngle: 110,
+            moonAngle: 90,
+            dayF: 1,              // 1 = full day, 0 = full night (eased, so every change is gradual)
+            cycleOn: false,
+            cycleLen: CYCLE_DURATION_SECONDS
+        };
+        const smooth = (a, b, x) => THREE.MathUtils.smoothstep(x, a, b);
+        const ARC_Z = 0.55; // the sun / moon path leans towards the front so the artwork stays lit
+        function arcDirection(angleDeg, out) {
+            const a = THREE.MathUtils.degToRad(angleDeg);
+            return out.set(-Math.cos(a), Math.sin(a), ARC_Z).normalize();
+        }
+        function colorFromStops(stops, v, out) {
+            if (v <= stops[0][0]) return out.setHex(stops[0][1]);
+            for (let i = 1; i < stops.length; i++) {
+                if (v <= stops[i][0]) {
+                    const t = (v - stops[i - 1][0]) / (stops[i][0] - stops[i - 1][0]);
+                    return out.setHex(stops[i - 1][1]).lerp(_tmpColor.setHex(stops[i][1]), t);
+                }
+            }
+            return out.setHex(stops[stops.length - 1][1]);
+        }
+        const _tmpColor = new THREE.Color();
+        const _dir = new THREE.Vector3();
+        const _skyDay = new THREE.Color(), _skyNight = new THREE.Color();
+        const NIGHT_AMBIENT = new THREE.Color(0x8190c8);
+        const WHITE = new THREE.Color(0xffffff);
+
+        // Visible sun & moon discs
+        const sunDisc = new THREE.Mesh(new THREE.SphereGeometry(4, 24, 16), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, fog: false }));
+        const moonDisc = new THREE.Mesh(new THREE.SphereGeometry(3.2, 24, 16), new THREE.MeshBasicMaterial({ color: MOON_COLOR, transparent: true, fog: false }));
+        scene.add(sunDisc); scene.add(moonDisc);
+
+        // Stars (fade in at night)
+        const starCount = 500, starPos = new Float32Array(starCount * 3);
+        let seed = 12345;
+        const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+        for (let i = 0; i < starCount; i++) {
+            const th = rnd() * Math.PI * 2, y = 0.06 + rnd() * 0.94, r = Math.sqrt(1 - y * y);
+            starPos[i * 3] = 150 * r * Math.cos(th);
+            starPos[i * 3 + 1] = 150 * y;
+            starPos[i * 3 + 2] = 150 * r * Math.sin(th);
+        }
+        const starGeo = new THREE.BufferGeometry();
+        starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+        const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({
+            color: 0xffffff, size: 2, sizeAttenuation: false, transparent: true, opacity: 0, fog: false, depthWrite: false
+        }));
+        stars.frustumCulled = false;
+        scene.add(stars);
+
+        // Soft glow around the sun / moon, and tiny dust motes that glitter in the light around the box
+        function makeGlowTexture() {
+            const c = document.createElement('canvas'); c.width = c.height = 256;
+            const ctx = c.getContext('2d');
+            const g = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
+            g.addColorStop(0, 'rgba(255,255,255,1)');
+            g.addColorStop(0.18, 'rgba(255,255,255,0.55)');
+            g.addColorStop(0.5, 'rgba(255,255,255,0.14)');
+            g.addColorStop(1, 'rgba(255,255,255,0)');
+            ctx.fillStyle = g; ctx.fillRect(0, 0, 256, 256);
+            return new THREE.CanvasTexture(c);
+        }
+        const glowTex = makeGlowTexture();
+        const glowMat = () => new THREE.SpriteMaterial({ map: glowTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false, opacity: 0 });
+        const sunHalo = new THREE.Sprite(glowMat()), moonHalo = new THREE.Sprite(glowMat());
+        scene.add(sunHalo); scene.add(moonHalo);
+
+        const DUST_COUNT = 90;
+        const dustBase = new Float32Array(DUST_COUNT * 4);   // x, z, phase, speed
+        const dustPos = new Float32Array(DUST_COUNT * 3);
+        for (let i = 0; i < DUST_COUNT; i++) {
+            const a = rnd() * Math.PI * 2, rr = 0.9 + Math.sqrt(rnd()) * 3.4;
+            dustBase[i * 4] = Math.cos(a) * rr; dustBase[i * 4 + 1] = Math.sin(a) * rr;
+            dustBase[i * 4 + 2] = rnd(); dustBase[i * 4 + 3] = 0.012 + rnd() * 0.02;
+        }
+        const dustGeo = new THREE.BufferGeometry();
+        dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPos, 3));
+        const dust = new THREE.Points(dustGeo, new THREE.PointsMaterial({
+            map: glowTex, color: 0xffffff, size: 9, sizeAttenuation: false, transparent: true, opacity: 0,
+            blending: THREE.AdditiveBlending, depthWrite: false, fog: false
+        }));
+        dust.frustumCulled = false;
+        scene.add(dust);
+        let envTime = 0;
+        let dustOn = true;
+
+        // Clouds: soft procedural puffs on camera-facing sprites that slowly drift around the sky
+        function makeCloudTexture(variant) {
+            const w = 512, h = 256;
+            const c = document.createElement('canvas'); c.width = w; c.height = h;
+            const ctx = c.getContext('2d');
+            let sd = 1357 + variant * 7919;
+            const r01 = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+            for (let i = 0; i < 18; i++) {
+                const x = w * (0.14 + 0.72 * r01());
+                const edge = 1 - Math.abs(x / w - 0.5) * 1.5;            // puffs get smaller towards the ends
+                const rad = h * (0.13 + 0.17 * r01()) * Math.max(0.45, edge);
+                const y = h * 0.64 - rad * (0.2 + 0.9 * r01()) * edge;
+                const g = ctx.createRadialGradient(x, y, 0, x, y, rad);
+                g.addColorStop(0, 'rgba(255,255,255,0.95)');
+                g.addColorStop(0.55, 'rgba(255,255,255,0.55)');
+                g.addColorStop(1, 'rgba(255,255,255,0)');
+                ctx.fillStyle = g;
+                ctx.beginPath(); ctx.arc(x, y, rad, 0, Math.PI * 2); ctx.fill();
+            }
+            // soft grey-blue shading under the cloud, only where the cloud is
+            ctx.globalCompositeOperation = 'source-atop';
+            const sh = ctx.createLinearGradient(0, h * 0.42, 0, h * 0.78);
+            sh.addColorStop(0, 'rgba(180,195,220,0)');
+            sh.addColorStop(1, 'rgba(160,178,208,0.6)');
+            ctx.fillStyle = sh; ctx.fillRect(0, 0, w, h);
+            const tex = new THREE.CanvasTexture(c);
+            tex.encoding = THREE.sRGBEncoding;
+            return tex;
+        }
+        const cloudGroup = new THREE.Group();
+        const cloudMats = [0, 1, 2].map(v => new THREE.SpriteMaterial({ map: makeCloudTexture(v), transparent: true, depthWrite: false, fog: false, opacity: 0 }));
+        {
+            let cs = 24680;
+            const cr = () => (cs = (cs * 16807) % 2147483647) / 2147483647;
+            for (let i = 0; i < CLOUD_COUNT; i++) {
+                const az = (i / CLOUD_COUNT + (cr() - 0.5) * 0.6 / CLOUD_COUNT) * Math.PI * 2;
+                const el = THREE.MathUtils.degToRad(6 + Math.pow(cr(), 1.3) * 40);
+                const dist = 112;
+                const sprite = new THREE.Sprite(cloudMats[i % 3]);
+                sprite.position.set(dist * Math.cos(el) * Math.cos(az), dist * Math.sin(el), dist * Math.cos(el) * Math.sin(az));
+                const wdt = 80 + cr() * 80;
+                sprite.scale.set(wdt, wdt * 0.5, 1);
+                cloudGroup.add(sprite);
+            }
+        }
+        cloudGroup.visible = CLOUDS_ON;
+        scene.add(cloudGroup);
+
+        // --- UI: ground colour, clock, cycle, popups ---
+        const groundBtn = document.getElementById('groundBtn');
+        const groundDot = document.getElementById('groundDot');
+        const palettePopup = document.getElementById('palettePopup');
+        const paletteGrid = document.getElementById('paletteGrid');
+        const GROUND_PRESETS = [
+            ['White', '#ffffff'], ['Snow', '#eef3f8'], ['Light grey', '#cfd2d6'], ['Concrete', '#9a9da1'], ['Asphalt', '#3b3d42'], ['Black', '#141414'],
+            ['Sand', '#e3d2a6'], ['Wood', '#a8743f'], ['Dark wood', '#5a3a21'], ['Grass', '#6fae4e'], ['Forest', '#2f6b3a'], ['Sky', '#8fc8ee']
+        ];
+        const paletteSwatches = [];
+        function setGroundColor(hex) {
+            ground.material.color.set(hex);
+            groundDot.style.background = hex;
+            paletteSwatches.forEach(sw => sw.classList.toggle('sel', sw.dataset.hex.toLowerCase() === hex.toLowerCase()));
+        }
+        GROUND_PRESETS.forEach(([name, hex]) => {
+            const sw = document.createElement('button');
+            sw.className = 'pal-swatch'; sw.title = name; sw.dataset.hex = hex; sw.style.background = hex;
+            sw.addEventListener('click', () => { setGroundColor(hex); setPopupOpen(popups[0], false); }); // picking a colour closes the palette
+            paletteGrid.appendChild(sw);
+            paletteSwatches.push(sw);
+        });
+        setGroundColor('#' + new THREE.Color(GROUND_COLOR).getHexString());
+
+        // Glass popups sit above their button; only one (palette / controls) is open at a time
+        const barEl = document.getElementById('bottom-bar');
+        function placePopup(popup, btn) {
+            const r = btn.getBoundingClientRect();
+            const half = popup.offsetWidth / 2;
+            const cx = Math.min(Math.max(r.left + r.width / 2, half + 8), window.innerWidth - half - 8);
+            popup.style.left = cx + 'px';
+            popup.style.bottom = (window.innerHeight - barEl.getBoundingClientRect().top + 10) + 'px';
+        }
+        function placeOpenPopups() { // keeps them glued above their button while the bar grows / shrinks
+            if (palettePopup.classList.contains('open')) placePopup(palettePopup, groundBtn);
+            if (controlsPopup.classList.contains('open')) placePopup(controlsPopup, controlsBtn);
+        }
+
+        // Interactive 24h clock: top = noon, bottom = midnight, left = 6:00 (sunrise), right = 18:00 (sunset)
+        const clockSvg = document.getElementById('clockSvg');
+        const clockHand = document.getElementById('clockHand');
+        const clockText = document.getElementById('clockText');
+        function fmtTime(t) {
+            const hh = Math.floor(t) % 24, mm = Math.floor((t - Math.floor(t)) * 60);
+            return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+        }
+        let lastClockKey = -1;
+        function updateClockUI() {
+            const key = Math.round(env.time * 60);
+            if (key === lastClockKey) return;
+            lastClockKey = key;
+            clockHand.setAttribute('transform', `rotate(${(env.time - 12) * 15})`);
+            clockText.innerText = `${env.isNight ? '🌙' : '☀'} ${fmtTime(env.time)}`;
+        }
+        let draggingClock = false;
+        function setTimeFromPointer(ev) {
+            const r = clockSvg.getBoundingClientRect();
+            const dx = ev.clientX - (r.left + r.width / 2), dy = ev.clientY - (r.top + r.height / 2);
+            if (Math.hypot(dx, dy) < 4) return;
+            const deg = (Math.atan2(dx, -dy) * 180 / Math.PI + 360) % 360;
+            env.time = (12 + deg / 15) % 24;
+        }
+        clockSvg.addEventListener('pointerdown', (ev) => {
+            draggingClock = true;
+            clockSvg.setPointerCapture(ev.pointerId);
+            setTimeFromPointer(ev);
+            ev.preventDefault();
+        });
+        clockSvg.addEventListener('pointermove', (ev) => { if (draggingClock) setTimeFromPointer(ev); });
+        ['pointerup', 'pointercancel'].forEach(t => clockSvg.addEventListener(t, () => { draggingClock = false; }));
+
+        // Day/night cycle button (+ length slider that slides out to its right while the cycle runs)
+        const cycleBtn = document.getElementById('cycleBtn');
+        const cycleReveal = document.getElementById('cycleReveal');
+        const cycleLenSlider = document.getElementById('cycleLenSlider');
+        const cycleLenVal = document.getElementById('cycleLenVal');
+        cycleBtn.addEventListener('click', () => {
+            env.cycleOn = !env.cycleOn;
+            cycleBtn.innerText = env.cycleOn ? '⏱ Cycle: ON' : '⏱ Cycle: OFF';
+            cycleBtn.classList.toggle('on', env.cycleOn);
+            cycleReveal.classList.toggle('open', env.cycleOn);
+        });
+        cycleLenSlider.value = CYCLE_DURATION_SECONDS;
+        cycleLenVal.innerText = CYCLE_DURATION_SECONDS;
+        cycleLenSlider.addEventListener('input', (e) => {
+            env.cycleLen = +e.target.value;
+            cycleLenVal.innerText = env.cycleLen;
+        });
+
+        // Controls help box (above its button) and panel-images box (top-right)
+        const controlsBtn = document.getElementById('controlsBtn');
+        const controlsPopup = document.getElementById('controlsPopup');
+        const dustBtn = document.getElementById('dustBtn');
+        dustBtn.addEventListener('click', () => {
+            dustOn = !dustOn;
+            dustBtn.innerText = dustOn ? '✨ Dust: ON' : '✨ Dust: OFF';
+            dustBtn.classList.toggle('on', dustOn);
+        });
+
+        // Snapshot: render the current view once and download it as a PNG
+        const snapshotBtn = document.getElementById('snapshotBtn');
+        snapshotBtn.addEventListener('click', () => {
+            renderer.render(scene, camera);
+            const url = renderer.domElement.toDataURL('image/png');
+            const d = new Date(), pad = (n) => String(n).padStart(2, '0');
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `roses-and-ashes-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}.png`;
+            document.body.appendChild(a); a.click(); a.remove();
+            snapshotBtn.innerText = '✔ Saved';
+            setTimeout(() => { snapshotBtn.innerText = '📷 Snapshot'; }, 1400);
+        });
+        const imagesBtn = document.getElementById('imagesBtn');
+        const imagesPanel = document.getElementById('imagesPanel');
+
+        // The three boxes (palette, controls, panel images) share the same pop-in animation and behaviour:
+        // a button toggles its box, and clicking anywhere else on the page closes it.
+        const popups = [
+            { el: palettePopup,  btn: groundBtn,   floating: true },
+            { el: controlsPopup, btn: controlsBtn, floating: true },
+            { el: imagesPanel,   btn: imagesBtn,   floating: false }
+        ];
+        function setPopupOpen(pop, open) {
+            pop.el.classList.toggle('open', open);
+            pop.btn.classList.toggle('on', open);
+            if (open && pop.floating) placePopup(pop.el, pop.btn);
+        }
+        popups.forEach(pop => pop.btn.addEventListener('click', () => setPopupOpen(pop, !pop.el.classList.contains('open'))));
+        document.addEventListener('pointerdown', (ev) => {
+            popups.forEach(pop => {
+                if (pop.el.classList.contains('open') && !pop.el.contains(ev.target) && !pop.btn.contains(ev.target)) setPopupOpen(pop, false);
+            });
+        }, true);
+        function closeImagesPanel() { setPopupOpen(popups[2], false); }
+
+        function updateEnvironment(dt) {
+            // The clock decides everything: time -> sun / moon position, day or night
+            if (env.cycleOn) env.time = (env.time + Math.min(dt, 0.1) * 24 / env.cycleLen) % 24;
+            const t = env.time;
+            env.isNight = !(t >= 6 && t < 18);
+            env.sunAngle = THREE.MathUtils.clamp((t - 6) / 12 * 180, 0, 180);                         // 6:00 -> 0 deg, 12:00 -> 90, 18:00 -> 180
+            env.moonAngle = THREE.MathUtils.clamp((t >= 18 ? t - 18 : t + 6) / 12 * 180, 0, 180);     // 18:00 -> 0 deg ... 6:00 -> 180
+            updateClockUI();
+
+            // ease between day and night so toggling is gradual
+            env.dayF += ((env.isNight ? 0 : 1) - env.dayF) * (1 - Math.exp(-Math.min(dt, 0.1) * 3));
+            const dayF = env.dayF, nightF = 1 - dayF;
+
+            const eSun = Math.min(env.sunAngle, 180 - env.sunAngle);   // sun height above horizon (0..90)
+            const eMoon = Math.min(env.moonAngle, 180 - env.moonAngle);
+
+            // Sun: position, colour (red at horizon -> white at noon), strength
+            arcDirection(env.sunAngle, _dir);
+            sunLight.position.copy(_dir).multiplyScalar(20);
+            colorFromStops(SUN_COLOR_STOPS, eSun, sunLight.color);
+            sunLight.intensity = dayF * (0.12 + 0.68 * smooth(0, 30, eSun));
+            sunDisc.position.copy(_dir).multiplyScalar(130);
+            sunDisc.material.color.copy(sunLight.color);
+            sunDisc.material.opacity = dayF;
+            sunDisc.visible = dayF > 0.02;
+
+            // Moon
+            arcDirection(env.moonAngle, _dir);
+            moonLight.position.copy(_dir).multiplyScalar(20);
+            moonLight.intensity = nightF * (0.08 + 0.32 * smooth(0, 30, eMoon));
+            moonDisc.position.copy(_dir).multiplyScalar(130);
+            moonDisc.material.opacity = nightF;
+            moonDisc.visible = nightF > 0.02;
+
+            // Ambient + fill
+            const dayAmb = 0.50 + 0.25 * smooth(0, 30, eSun);
+            const nightAmb = 0.30 + 0.06 * smooth(0, 30, eMoon);
+            ambientLight.intensity = nightAmb + (dayAmb - nightAmb) * dayF;
+            ambientLight.color.copy(NIGHT_AMBIENT).lerp(WHITE, dayF);
+            backLight.intensity = 0.4 * dayF + 0.08 * nightF;
+
+            // Sky: orange near the horizon -> blue by day; orange dusk -> deep navy by night
+            _skyDay.setHex(SUNRISE_SUNSET_SKY).lerp(_tmpColor.setHex(SKY_COLOR), smooth(0, 35, eSun));
+            _skyNight.setHex(SUNRISE_SUNSET_SKY).lerp(_tmpColor.setHex(NIGHT_SKY_COLOR), smooth(0, 25, eMoon));
+            _skyDay.lerp(_skyNight, nightF);
+            scene.background.copy(_skyDay);
+            scene.fog.color.copy(_skyDay);
+
+            // Hemisphere light: tinted by the sky above and by the ground colour below
+            hemiLight.color.copy(_skyDay).lerp(WHITE, 0.55);
+            hemiLight.groundColor.copy(ground.material.color).multiplyScalar(0.85);
+            hemiLight.intensity = 0.30 * dayF * (0.4 + 0.6 * smooth(0, 30, eSun)) + 0.12 * nightF;
+
+            // Rim light: from the far side, in the colour of the sun (or moon), for glowing edges
+            const useSun = dayF >= 0.5;
+            arcDirection(useSun ? env.sunAngle : env.moonAngle, _dir);
+            rimLight.position.set(-_dir.x, 0.3 + 0.3 * _dir.y, -_dir.z).normalize().multiplyScalar(20);
+            rimLight.color.copy(useSun ? sunLight.color : moonLight.color);
+            rimLight.intensity = 0.35 * sunLight.intensity + 0.9 * moonLight.intensity;
+
+            // Halos around the sun / moon: bigger and warmer near the horizon
+            const horizonF = 1 - smooth(0, 40, eSun);
+            sunHalo.position.copy(sunDisc.position);
+            sunHalo.scale.setScalar(70 + 60 * horizonF);
+            sunHalo.material.color.copy(sunLight.color);
+            sunHalo.material.opacity = 0.65 * dayF * (0.6 + 0.4 * horizonF);
+            sunHalo.visible = dayF > 0.02;
+            moonHalo.position.copy(moonDisc.position);
+            moonHalo.scale.setScalar(48);
+            moonHalo.material.color.copy(moonLight.color);
+            moonHalo.material.opacity = 0.5 * nightF;
+            moonHalo.visible = nightF > 0.02;
+
+            // Glittering dust in the light: gold by day, silver-blue by night
+            envTime += Math.min(dt, 0.1);
+            const lightF = dayF * smooth(0, 25, eSun) + nightF * smooth(0, 25, eMoon);
+            dust.material.color.copy(sunLight.color).lerp(moonLight.color, nightF);
+            dust.material.opacity = 0.75 * lightF;
+            dust.visible = dustOn && lightF > 0.03;
+            if (dust.visible) {
+                const y0 = -boxHeight / 2, span = boxHeight + 1.4;
+                for (let i = 0; i < DUST_COUNT; i++) {
+                    const ph = dustBase[i * 4 + 2];
+                    dustPos[i * 3] = dustBase[i * 4] + Math.sin(envTime * 0.35 + ph * 20) * 0.35;
+                    dustPos[i * 3 + 1] = y0 + (((ph + envTime * dustBase[i * 4 + 3]) % 1) * span);
+                    dustPos[i * 3 + 2] = dustBase[i * 4 + 1] + Math.cos(envTime * 0.3 + ph * 17) * 0.35;
+                }
+                dustGeo.attributes.position.needsUpdate = true;
+            }
+
+            // Clouds: drift, fade out at night, warm tint near sunrise / sunset
+            if (CLOUDS_ON) {
+                cloudGroup.rotation.y += THREE.MathUtils.degToRad(CLOUD_SPEED) * Math.min(dt, 0.1);
+                const warm = 0.5 * (1 - smooth(0, 40, eSun));
+                cloudMats.forEach(m => {
+                    m.color.copy(WHITE).lerp(sunLight.color, warm);
+                    m.opacity = 0.95 * dayF;
+                });
+                cloudGroup.visible = dayF > 0.02;
+            }
+
+            stars.material.opacity = 0.9 * nightF * smooth(0, 30, eMoon);
+            stars.visible = stars.material.opacity > 0.01;
+        }
+        updateClockUI();
+
+        // --- TURNTABLE ---
+        let turntableOn = TURNTABLE_ON_START;
+        const turntableBtn = document.getElementById('turntableBtn');
+        const turntableReveal = document.getElementById('turntableReveal');
+        const turntableSpeedSlider = document.getElementById('turntableSpeedSlider');
+        const turntableSpeedVal = document.getElementById('turntableSpeedVal');
+        let turntableSpeed = TURNTABLE_SPEED;
+        turntableSpeedSlider.value = TURNTABLE_SPEED;
+        turntableSpeedVal.innerText = TURNTABLE_SPEED;
+        turntableSpeedSlider.addEventListener('input', (e) => {
+            turntableSpeed = +e.target.value;
+            turntableSpeedVal.innerText = turntableSpeed;
+        });
+        function updateTurntableBtn() {
+            turntableBtn.innerText = turntableOn ? '⟳ Turntable: ON' : '⟳ Turntable: OFF';
+            turntableBtn.classList.toggle('on', turntableOn);
+            turntableReveal.classList.toggle('open', turntableOn);
+        }
+        turntableBtn.addEventListener('click', () => { turntableOn = !turntableOn; updateTurntableBtn(); });
+        updateTurntableBtn();
+        const clock = new THREE.Clock();
+
         // --- CONTROLS ---
         let targetOpen = 0, currentOpen = 0;
         const lidSlider = document.getElementById('lidSlider');
         const angleVal = document.getElementById('angleVal');
 
-        lidSlider.addEventListener('input', (e) => { targetOpen = parseInt(e.target.value) / 75; });
-        document.getElementById('toggleLidBtn').addEventListener('click', () => {
+        const lidReveal = document.getElementById('lidReveal');
+        // Open / close the lid (button or click on the lid). The hinge slider slides out while the lid is open.
+        function toggleLid() {
             targetOpen = targetOpen > 0.5 ? 0 : 1;
             lidSlider.value = targetOpen * 75;
+            lidReveal.classList.toggle('open', targetOpen > 0.5);
+        }
+        lidSlider.addEventListener('input', (e) => { targetOpen = parseInt(e.target.value) / 75; });
+        document.getElementById('toggleLidBtn').addEventListener('click', toggleLid);
+
+        // --- CLICK THE LID TO OPEN / CLOSE IT ---
+        const raycaster = new THREE.Raycaster();
+        const pointerNdc = new THREE.Vector2();
+        let downX = 0, downY = 0;
+        function isLidPart(o) { while (o) { if (o === lidGroup) return true; o = o.parent; } return false; }
+        function pointerOnLid(ev) {
+            const r = renderer.domElement.getBoundingClientRect();
+            pointerNdc.set(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1);
+            raycaster.setFromCamera(pointerNdc, camera);
+            const hits = raycaster.intersectObject(masterGroup, true).filter(h => h.object.visible);
+            return hits.length > 0 && isLidPart(hits[0].object);
+        }
+        renderer.domElement.addEventListener('pointerdown', (ev) => { downX = ev.clientX; downY = ev.clientY; });
+        renderer.domElement.addEventListener('pointerup', (ev) => {
+            if (Math.hypot(ev.clientX - downX, ev.clientY - downY) > 5) return; // it was a drag (rotating), not a click
+            if (pointerOnLid(ev)) toggleLid();
+        });
+        renderer.domElement.addEventListener('pointermove', (ev) => {
+            if (ev.buttons) return;
+            renderer.domElement.style.cursor = pointerOnLid(ev) ? 'pointer' : 'default';
         });
 
         function animate() {
             requestAnimationFrame(animate);
+            const dt = clock.getDelta();
+            updateEnvironment(dt);
+            placeOpenPopups();
+            if (turntableOn) masterGroup.rotation.y += THREE.MathUtils.degToRad(turntableSpeed) * dt;
+            contactGroup.rotation.y = masterGroup.rotation.y;
+            contactMat.opacity = 0.55 * env.dayF + 0.38 * (1 - env.dayF);
             currentOpen += (targetOpen - currentOpen) * 0.1;
             lidGroup.rotation.x = -currentOpen * THREE.MathUtils.degToRad(65);
             angleVal.innerText = Math.round(currentOpen * 65);
