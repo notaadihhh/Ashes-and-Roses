@@ -97,7 +97,7 @@
         scene.background = new THREE.Color(0x181818);
 
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(2.8, 2.2, 6.2);
+        camera.position.set(3.4, 2.6, 7.6);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -149,10 +149,12 @@
             return geometry;
         }
 
+        // Dimensions derived from the pixel sizes of the artwork (width = 2.2 units = 1920 px of back/front/lidfront)
         const boxWidth = 2.2;
-        const boxDepth = 0.88;
-        const boxHeight = 3.4;
-        const lidFrontHeight = 1.1; // Longer side at front
+        const PX = boxWidth / 1920;                 // units per pixel at the front/back/lidfront scale
+        const boxHeight = 3840 * PX;                // back.png 1920x3840  -> 4.4
+        const boxDepth = boxWidth * 1080 / 2986;    // top/bottom 2986x1080 -> ~0.7957
+        const lidFrontHeight = 1062 * PX;           // lidfront.png 1920x1062 -> ~1.2171 (longer side at front)
         const lidBackHeight = 0.35; // Shorter side at back
         const bodyHeight = boxHeight - lidFrontHeight;
 
