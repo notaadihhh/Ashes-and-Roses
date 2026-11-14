@@ -108,6 +108,17 @@
         #clockSvg { cursor: grab; touch-action: none; user-select: none; display: block; }
         #clockSvg:active { cursor: grabbing; }
         #clockText { font-size: 11px; color: #fff; font-weight: 600; min-width: 54px; text-shadow: 0 1px 2px rgba(0,0,0,0.4); }
+        #boxPositionPopup { box-sizing: border-box; width: min(390px, calc(100vw - 24px)); max-height: calc(100vh - 150px); overflow-y: auto; white-space: normal; }
+        #positionOptions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+        .position-option {
+            display: flex; flex-direction: column; align-items: stretch; gap: 5px;
+            padding: 8px; text-align: left; background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.18); border-radius: 12px;
+        }
+        .position-option:hover { background: rgba(255,255,255,0.17); }
+        .position-option.selected { background: rgba(22,163,74,0.32); border-color: rgba(74,222,128,0.8); }
+        .position-option svg { display: block; width: 100%; height: 66px; }
+        .position-option span { font-size: 10px; line-height: 1.3; }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
@@ -152,11 +163,12 @@
         <div class="bar-item">
             <button id="turntableBtn">⟳ Turntable: OFF</button>
             <div class="reveal" id="turntableReveal"><div class="rv-inner">
-                <input type="range" id="turntableSpeedSlider" class="mini-slider" min="5" max="180" value="30" step="5" title="Turntable speed">
-                <span class="rv-label"><span id="turntableSpeedVal">30</span>°/s</span>
+                <input type="range" id="turntableSpeedSlider" class="mini-slider" min="5" max="180" value="15" step="5" title="Turntable speed">
+                <span class="rv-label"><span id="turntableSpeedVal">15</span>°/s</span>
             </div></div>
         </div>
 
+        <button id="boxPositionBtn">📦 Box Position</button>
         <button id="groundBtn">🎨 Ground<span class="dot" id="groundDot"></span></button>
 
         <div class="bar-item clock-item">
@@ -210,6 +222,31 @@
         • <b>Snapshot</b>: downloads the current view as a PNG<br>
         • Click anywhere else on the page to close an open box
     </div>
+    <div id="boxPositionPopup" class="popup-glass">
+        <label>Choose box positioning</label>
+        <div id="positionOptions">
+            <button class="position-option selected" data-position="upright" aria-pressed="true">
+                <svg viewBox="0 0 120 66" aria-hidden="true"><path d="M8 55H112" stroke="#ddd" stroke-width="2"/><rect x="49" y="12" width="22" height="43" rx="2" fill="#b96666" stroke="#f4d0c0" stroke-width="2"/><path d="M49 18H71" stroke="#f4d0c0" stroke-width="2"/></svg>
+                <span>Standing on its bottom</span>
+            </button>
+            <button class="position-option" data-position="lying" aria-pressed="false">
+                <svg viewBox="0 0 120 66" aria-hidden="true"><path d="M8 55H112" stroke="#ddd" stroke-width="2"/><rect x="28" y="38" width="64" height="17" rx="2" fill="#b96666" stroke="#f4d0c0" stroke-width="2"/><path d="M35 42H85" stroke="#f4d0c0" stroke-width="2"/></svg>
+                <span>Lying on its back</span>
+            </button>
+            <button class="position-option" data-position="leaning-pair" aria-pressed="false">
+                <svg viewBox="0 0 120 66" aria-hidden="true"><path d="M8 55H112" stroke="#ddd" stroke-width="2"/><rect x="69" y="17" width="20" height="38" rx="2" fill="#b96666" stroke="#f4d0c0" stroke-width="2"/><g transform="rotate(-18 49 37)"><rect x="38" y="18" width="22" height="38" rx="2" fill="#9c555b" stroke="#f4d0c0" stroke-width="2"/></g></svg>
+                <span>Two standing, one leaning</span>
+            </button>
+            <button class="position-option" data-position="standing-next-to-lying" aria-pressed="false">
+                <svg viewBox="0 0 120 66" aria-hidden="true"><path d="M8 55H112" stroke="#ddd" stroke-width="2"/><rect x="16" y="40" width="56" height="15" rx="2" fill="#9c555b" stroke="#f4d0c0" stroke-width="2"/><rect x="82" y="18" width="20" height="37" rx="2" fill="#b96666" stroke="#f4d0c0" stroke-width="2"/></svg>
+                <span>Standing beside a lying box</span>
+            </button>
+            <button class="position-option" data-position="leaning-on-lying" aria-pressed="false">
+                <svg viewBox="0 0 120 66" aria-hidden="true"><path d="M8 55H112" stroke="#ddd" stroke-width="2"/><rect x="17" y="40" width="52" height="15" rx="2" fill="#9c555b" stroke="#f4d0c0" stroke-width="2"/><g transform="rotate(-10 72 39)"><rect x="43" y="31" width="58" height="18" rx="2" fill="#b96666" stroke="#f4d0c0" stroke-width="2"/></g></svg>
+                <span>Lying box with another tilted against it</span>
+            </button>
+        </div>
+    </div>
 
     <div id="canvas-container"></div>
 
@@ -234,10 +271,11 @@
             [50, 0xfff3e0],
             [90, 0xffffff]   // noon: white
         ];
+        const LEAN_TILT_DEG = 20;          // tilt of the upper box in the 'lying box with another tilted against it' layout (about 15-30 looks natural)
         const CLOUDS_ON = true;            // moving clouds in the day sky
         const CLOUD_COUNT = 30;            // how many clouds are spread around the sky
         const CLOUD_SPEED = 1.4;           // how fast the clouds drift (degrees per second)
-        const TURNTABLE_SPEED = 30;        // degrees per second (30 = full 360 spin in 12 seconds)
+        const TURNTABLE_SPEED = 15;        // degrees per second (15 = full 360 spin in 24 seconds)
         const TURNTABLE_ON_START = false;  // true = turntable spins as soon as the page opens
         // ====================================================================
 
@@ -369,8 +407,10 @@
         const lidBackHeight = 0.35; // Shorter side at back
         const bodyHeight = boxHeight - lidFrontHeight;
 
+        const layoutGroup = new THREE.Group();
+        scene.add(layoutGroup);
         const masterGroup = new THREE.Group();
-        scene.add(masterGroup);
+        layoutGroup.add(masterGroup);
 
         // --- BACK PANEL (split in two, cut from the SAME back.png so nothing is stretched or squashed) ---
         // Remaps a plane's UVs so it shows only the vertical slice v0..v1 of the picture (0 = bottom, 1 = top)
@@ -504,6 +544,7 @@
 
         // --- HINGED TRAPEZOIDAL LID ---
         const lidGroup = new THREE.Group();
+        lidGroup.name = 'boxLid';
         lidGroup.position.set(0, boxHeight / 2 - lidBackHeight, -boxDepth / 2);
         masterGroup.add(lidGroup);
 
@@ -749,12 +790,18 @@
             return new THREE.CanvasTexture(c);
         }
         const contactMat = new THREE.MeshBasicMaterial({ map: makeContactTexture(), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
-        const contactShadow = new THREE.Mesh(new THREE.PlaneGeometry(boxWidth + 1.3, boxDepth + 1.3), contactMat);
-        contactShadow.rotation.x = -Math.PI / 2;
-        const contactGroup = new THREE.Group();
-        contactGroup.position.y = -boxHeight / 2 - 0.001;
-        contactGroup.add(contactShadow);
-        scene.add(contactGroup);
+        const floorY = ground.position.y;
+        function createContactGroup() {
+            const shadow = new THREE.Mesh(new THREE.PlaneGeometry(boxWidth + 1.3, boxDepth + 1.3), contactMat);
+            shadow.rotation.x = -Math.PI / 2;
+            const group = new THREE.Group();
+            group.position.y = floorY + 0.001;
+            group.add(shadow);
+            layoutGroup.add(group);
+            return { group, shadow };
+        }
+        const primaryContact = createContactGroup();
+        const secondaryContact = createContactGroup();
 
         // White interior: add a back-face-only copy of every panel
         const panelMeshes = [];
@@ -775,6 +822,13 @@
             }
         });
         for (const k in materials) materials[k].shadowSide = THREE.DoubleSide;
+
+        const secondBoxGroup = masterGroup.clone(true);
+        const secondLidGroup = secondBoxGroup.getObjectByName('boxLid');
+        secondBoxGroup.visible = false;
+        layoutGroup.add(secondBoxGroup);
+        const boxGroups = [masterGroup, secondBoxGroup];
+        const lidGroups = [lidGroup, secondLidGroup];
 
         // =============== SUN / MOON / SKY / DAY-NIGHT ===============
         const env = {
@@ -920,6 +974,8 @@
         const groundDot = document.getElementById('groundDot');
         const palettePopup = document.getElementById('palettePopup');
         const paletteGrid = document.getElementById('paletteGrid');
+        const boxPositionBtn = document.getElementById('boxPositionBtn');
+        const boxPositionPopup = document.getElementById('boxPositionPopup');
         const GROUND_PRESETS = [
             ['White', '#ffffff'], ['Snow', '#eef3f8'], ['Light grey', '#cfd2d6'], ['Concrete', '#9a9da1'], ['Asphalt', '#3b3d42'], ['Black', '#141414'],
             ['Sand', '#e3d2a6'], ['Wood', '#a8743f'], ['Dark wood', '#5a3a21'], ['Grass', '#6fae4e'], ['Forest', '#2f6b3a'], ['Sky', '#8fc8ee']
@@ -951,6 +1007,7 @@
         function placeOpenPopups() { // keeps them glued above their button while the bar grows / shrinks
             if (palettePopup.classList.contains('open')) placePopup(palettePopup, groundBtn);
             if (controlsPopup.classList.contains('open')) placePopup(controlsPopup, controlsBtn);
+            if (boxPositionPopup.classList.contains('open')) placePopup(boxPositionPopup, boxPositionBtn);
         }
 
         // Interactive 24h clock: top = noon, bottom = midnight, left = 6:00 (sunrise), right = 18:00 (sunset)
@@ -1030,11 +1087,12 @@
         const imagesBtn = document.getElementById('imagesBtn');
         const imagesPanel = document.getElementById('imagesPanel');
 
-        // The three boxes (palette, controls, panel images) share the same pop-in animation and behaviour:
+        // The popups share the same pop-in animation and outside-click behaviour:
         // a button toggles its box, and clicking anywhere else on the page closes it.
         const popups = [
             { el: palettePopup,  btn: groundBtn,   floating: true },
             { el: controlsPopup, btn: controlsBtn, floating: true },
+            { el: boxPositionPopup, btn: boxPositionBtn, floating: true },
             { el: imagesPanel,   btn: imagesBtn,   floating: false }
         ];
         function setPopupOpen(pop, open) {
@@ -1048,7 +1106,91 @@
                 if (pop.el.classList.contains('open') && !pop.el.contains(ev.target) && !pop.btn.contains(ev.target)) setPopupOpen(pop, false);
             });
         }, true);
-        function closeImagesPanel() { setPopupOpen(popups[2], false); }
+        function closeImagesPanel() { setPopupOpen(popups[3], false); }
+
+        const positionOptions = document.querySelectorAll('.position-option');
+        let cameraLayoutScale = 1;
+        function setBoxPose(group, pose) {
+            group.position.set(pose.x, pose.y, pose.z);
+            group.rotation.set(pose.rx, pose.ry, pose.rz);
+        }
+        function setContactPose(contact, pose, scaleX, scaleZ) {
+            contact.group.position.set(pose.x, floorY + 0.001, pose.z);
+            contact.group.rotation.y = pose.ry;
+            contact.group.scale.set(scaleX, 1, scaleZ);
+        }
+        function selectBoxPosition(position) {
+            const upright = { x: 0, y: 0, z: 0, rx: 0, ry: 0, rz: 0 };
+            const lyingY = floorY + boxDepth / 2;
+            const lying = { x: 0, y: lyingY, z: 0, rx: -Math.PI / 2, ry: 0, rz: 0 };
+            const uprightContactScale = { x: 1, z: 1 };
+            const lyingContactScale = { x: 1, z: (boxHeight + 1.3) / (boxDepth + 1.3) };
+            let first = upright, second = upright, hasSecond = false;
+            let firstScale = uprightContactScale, secondScale = uprightContactScale;
+            let focusY = 0, focusZ = 0;
+            let cameraScale = 1;
+
+            if (position === 'lying') {
+                first = lying;
+                firstScale = lyingContactScale;
+                focusY = lyingY;
+                cameraScale = 1.15;
+            } else if (position === 'leaning-pair') {
+                const tilt = THREE.MathUtils.degToRad(-18);
+                const extentX = (Math.abs(Math.cos(tilt)) * boxWidth + Math.abs(Math.sin(tilt)) * boxHeight) / 2;
+                const extentY = (Math.abs(Math.cos(tilt)) * boxHeight + Math.abs(Math.sin(tilt)) * boxWidth) / 2;
+                first = { x: 1.1, y: 0, z: 0, rx: 0, ry: 0, rz: 0 };
+                second = { x: first.x - boxWidth / 2 - extentX + 0.12, y: floorY + extentY, z: 0, rx: 0, ry: 0, rz: tilt };
+                firstScale = { x: 1, z: 1 };
+                secondScale = { x: extentX * 2 / (boxWidth + 1.3), z: 1 };
+                hasSecond = true;
+                cameraScale = 1.55;
+            } else if (position === 'standing-next-to-lying') {
+                first = { x: -1.7, y: lyingY, z: 0, rx: -Math.PI / 2, ry: 0, rz: 0 };
+                second = { x: 1.6, y: 0, z: 0, rx: 0, ry: 0, rz: 0 };
+                firstScale = lyingContactScale;
+                hasSecond = true;
+                cameraScale = 1.55;
+            } else if (position === 'leaning-on-lying') {
+                // The upper box keeps one end on the ground and rests its underside on the end edge of the
+                // lying box, so it simply leans over it and never cuts into it.
+                const tilt = THREE.MathUtils.degToRad(LEAN_TILT_DEG);
+                const sinT = Math.sin(tilt), cosT = Math.cos(tilt);
+                const leaningRotation = -Math.PI / 2 + tilt;
+                first = { x: -0.9, y: lyingY, z: 0, rx: -Math.PI / 2, ry: 0, rz: 0 };
+                const edgeZ = first.z + boxHeight / 2;                                  // end edge of the lying box (its top edge is boxDepth high)
+                const lowCornerZ = edgeZ + boxDepth / Math.tan(tilt) + 0.02;            // where the leaning box's lower end touches the floor
+                const centreY = (boxHeight * sinT + boxDepth * cosT) / 2;               // height of its centre
+                const centreZ = lowCornerZ - (boxHeight / 2) * cosT + (boxDepth / 2) * sinT;
+                second = { x: first.x, y: floorY + centreY, z: centreZ, rx: leaningRotation, ry: 0, rz: 0 };
+                focusZ = (-boxHeight / 2 + lowCornerZ + boxDepth * sinT) / 2;           // centre the camera on the whole pile
+                firstScale = lyingContactScale;
+                secondScale = { x: 1, z: (boxHeight * Math.cos(tilt) + boxDepth * Math.sin(tilt)) / (boxDepth + 1.3) };
+                hasSecond = true;
+                focusY = lyingY;
+                cameraScale = 1.45;
+            }
+
+            setBoxPose(masterGroup, first);
+            setBoxPose(secondBoxGroup, second);
+            secondBoxGroup.visible = hasSecond;
+            setContactPose(primaryContact, first, firstScale.x, firstScale.z);
+            setContactPose(secondaryContact, second, secondScale.x, secondScale.z);
+            const cameraOffset = camera.position.clone().sub(controls.target);
+            controls.target.set(0, focusY, focusZ);
+            camera.position.copy(controls.target).addScaledVector(cameraOffset, cameraScale / cameraLayoutScale);
+            cameraLayoutScale = cameraScale;
+            controls.update();
+            positionOptions.forEach(option => {
+                const selected = option.dataset.position === position;
+                option.classList.toggle('selected', selected);
+                option.setAttribute('aria-pressed', String(selected));
+            });
+        }
+        positionOptions.forEach(option => option.addEventListener('click', () => {
+            selectBoxPosition(option.dataset.position);
+            setPopupOpen(popups[2], false);
+        }));
 
         function updateEnvironment(dt) {
             // The clock decides everything: time -> sun / moon position, day or night
@@ -1179,40 +1321,56 @@
         const clock = new THREE.Clock();
 
         // --- CONTROLS ---
-        let targetOpen = 0, currentOpen = 0;
+        const targetOpens = [0, 0], currentOpens = [0, 0];
         const lidSlider = document.getElementById('lidSlider');
         const angleVal = document.getElementById('angleVal');
 
         const lidReveal = document.getElementById('lidReveal');
         // Open / close the lid (button or click on the lid). The hinge slider slides out while the lid is open.
-        function toggleLid() {
-            targetOpen = targetOpen > 0.5 ? 0 : 1;
-            lidSlider.value = targetOpen * 75;
-            lidReveal.classList.toggle('open', targetOpen > 0.5);
+        function toggleLid(boxIndex) {
+            if (boxIndex === undefined) {
+                const nextOpen = targetOpens[0] > 0.5 ? 0 : 1;
+                targetOpens.forEach((_, index) => { targetOpens[index] = nextOpen; });
+                lidSlider.value = targetOpens[0] * 75;
+                lidReveal.classList.toggle('open', targetOpens[0] > 0.5);
+            } else {
+                targetOpens[boxIndex] = targetOpens[boxIndex] > 0.5 ? 0 : 1;
+            }
         }
-        lidSlider.addEventListener('input', (e) => { targetOpen = parseInt(e.target.value) / 75; });
-        document.getElementById('toggleLidBtn').addEventListener('click', toggleLid);
+        lidSlider.addEventListener('input', (e) => {
+            const openAmount = parseInt(e.target.value) / 75;
+            targetOpens.forEach((_, index) => { targetOpens[index] = openAmount; });
+        });
+        document.getElementById('toggleLidBtn').addEventListener('click', () => toggleLid());
 
         // --- CLICK THE LID TO OPEN / CLOSE IT ---
         const raycaster = new THREE.Raycaster();
         const pointerNdc = new THREE.Vector2();
         let downX = 0, downY = 0;
-        function isLidPart(o) { while (o) { if (o === lidGroup) return true; o = o.parent; } return false; }
-        function pointerOnLid(ev) {
+        function clickedLidIndex(ev) {
             const r = renderer.domElement.getBoundingClientRect();
             pointerNdc.set(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1);
             raycaster.setFromCamera(pointerNdc, camera);
-            const hits = raycaster.intersectObject(masterGroup, true).filter(h => h.object.visible);
-            return hits.length > 0 && isLidPart(hits[0].object);
+            const activeBoxGroups = boxGroups.filter(group => group.visible);
+            const hits = raycaster.intersectObjects(activeBoxGroups, true).filter(h => h.object.visible);
+            if (!hits.length) return -1;
+            let object = hits[0].object;
+            while (object) {
+                const lidIndex = lidGroups.indexOf(object);
+                if (lidIndex !== -1) return lidIndex;
+                object = object.parent;
+            }
+            return -1;
         }
         renderer.domElement.addEventListener('pointerdown', (ev) => { downX = ev.clientX; downY = ev.clientY; });
         renderer.domElement.addEventListener('pointerup', (ev) => {
             if (Math.hypot(ev.clientX - downX, ev.clientY - downY) > 5) return; // it was a drag (rotating), not a click
-            if (pointerOnLid(ev)) toggleLid();
+            const lidIndex = clickedLidIndex(ev);
+            if (lidIndex !== -1) toggleLid(lidIndex);
         });
         renderer.domElement.addEventListener('pointermove', (ev) => {
             if (ev.buttons) return;
-            renderer.domElement.style.cursor = pointerOnLid(ev) ? 'pointer' : 'default';
+            renderer.domElement.style.cursor = clickedLidIndex(ev) !== -1 ? 'pointer' : 'default';
         });
 
         function animate() {
@@ -1220,12 +1378,13 @@
             const dt = clock.getDelta();
             updateEnvironment(dt);
             placeOpenPopups();
-            if (turntableOn) masterGroup.rotation.y += THREE.MathUtils.degToRad(turntableSpeed) * dt;
-            contactGroup.rotation.y = masterGroup.rotation.y;
+            if (turntableOn) layoutGroup.rotation.y += THREE.MathUtils.degToRad(turntableSpeed) * dt;
             contactMat.opacity = 0.55 * env.dayF + 0.38 * (1 - env.dayF);
-            currentOpen += (targetOpen - currentOpen) * 0.1;
-            lidGroup.rotation.x = -currentOpen * THREE.MathUtils.degToRad(65);
-            angleVal.innerText = Math.round(currentOpen * 65);
+            currentOpens.forEach((currentOpen, index) => {
+                currentOpens[index] += (targetOpens[index] - currentOpen) * 0.1;
+                lidGroups[index].rotation.x = -currentOpens[index] * THREE.MathUtils.degToRad(65);
+            });
+            angleVal.innerText = Math.round(currentOpens[0] * 65);
             controls.update();
             renderer.render(scene, camera);
         }
