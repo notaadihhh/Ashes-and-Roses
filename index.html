@@ -12,7 +12,7 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             color: #e0e0e0;
         }
-        #canvas-container { width: 100vw; height: 100vh; display: block; }
+        #canvas-container { width: 100vw; height: 100vh; height: 100dvh; display: block; }
         h1 { font-size: 17px; margin: 0; color: #fff; }
         label { display: block; font-size: 11px; margin-bottom: 4px; color: #ccc; font-weight: 600; }
         button {
@@ -53,7 +53,7 @@
         #imagesBtn { position: absolute; top: 16px; right: 16px; z-index: 11; padding: 10px 16px; border-radius: 16px; text-shadow: 0 1px 3px rgba(0,0,0,0.45); }
         #visualsBtn { position: absolute; top: 66px; right: 16px; z-index: 11; padding: 10px 16px; border-radius: 16px; text-shadow: 0 1px 3px rgba(0,0,0,0.45); }
         #imagesBtn:hover, #visualsBtn:hover { background: linear-gradient(135deg, rgba(80, 88, 110, 0.55), rgba(30, 33, 44, 0.40)); }
-        #imagesBtn.on, #visualsBtn.on { background: linear-gradient(135deg, rgba(34, 197, 94, 0.55), rgba(21, 128, 61, 0.45)); }
+        #imagesBtn.on, #visualsBtn.on, #realtimeBtn.on { background: linear-gradient(135deg, rgba(34, 197, 94, 0.55), rgba(21, 128, 61, 0.45)); }
         #imagesPanel, #visualsPanel {
             box-sizing: border-box; position: absolute; top: 116px; right: 16px;
             width: min(320px, calc(100vw - 32px)); z-index: 11;
@@ -220,6 +220,60 @@
         #groundControl { width: 86px; min-width: 0; flex: 0 0 auto; overflow: hidden; white-space: nowrap; transition: width 0.38s cubic-bezier(.4,0,.2,1), opacity 0.28s ease; }
         #groundControl.scene-hidden { width: 0; opacity: 0; pointer-events: none; }
 
+        /* ---------- tooltips never overflow the screen ---------- */
+        #snapshotTip, #resetTip, #realtimeTip { white-space: normal; max-width: min(260px, calc(100vw - 20px)); }
+        #controlsPopup { box-sizing: border-box; max-height: calc(100vh - 150px); overflow-y: auto; }
+        #realtimeBtn { white-space: nowrap; }
+
+        /* ---------- mobile / small screens ---------- */
+        @media (max-width: 700px) {
+            #title-card { top: 10px; left: 10px; padding: 7px 13px; border-radius: 13px; }
+            #title-card h1 { font-size: 14px; }
+            .realtime-control { top: 50px; left: 10px; }
+            #realtimeBtn { padding: 6px 11px; font-size: 11px; border-radius: 13px; }
+            #imagesBtn { top: 10px; right: 10px; padding: 7px 12px; font-size: 11px; border-radius: 13px; }
+            #visualsBtn { top: 50px; right: 10px; padding: 7px 12px; font-size: 11px; border-radius: 13px; }
+            #imagesPanel, #visualsPanel {
+                top: 90px; left: 10px; right: 10px; width: auto;
+                max-height: min(34vh, 300px); padding: 10px; border-radius: 14px;
+                transform-origin: top center;
+            }
+            .batch-btn { margin-bottom: 6px; padding: 7px 10px; font-size: 11px; }
+            .status { margin-bottom: 6px; }
+            .file-row { padding: 3px 6px; margin-bottom: 3px; }
+            .file-row input[type="file"] { width: 130px; }
+            .visual-row { min-height: 34px; }
+            .shader-sliders.open { max-height: 190px; }
+            #bestViewHint { top: 92px; right: 10px; font-size: 10px; padding: 6px 10px; }
+
+            #bottom-bar {
+                left: 8px; right: 8px; bottom: 8px; transform: none; max-width: none;
+                gap: 5px; padding: 6px 8px; border-radius: 16px;
+            }
+            #bottom-bar > button, #bottom-bar .bar-item > button { padding: 5px 8px; font-size: 10.5px; }
+            .reveal.open { width: 104px; }
+            .rv-inner { padding-left: 5px; gap: 4px; }
+            .rv-inner .mini-slider { width: 60px; flex: 0 0 60px; }
+            #clockSvg { width: 34px; height: 34px; }
+            #clockText { font-size: 10.5px; min-width: 48px; }
+
+            .popup-glass { padding: 9px 11px; font-size: 10.5px; max-width: calc(100vw - 20px); }
+            #controlsPopup { white-space: normal; width: min(360px, calc(100vw - 20px)); max-height: 34vh; line-height: 1.5; }
+            #boxPositionPopup, #scenePopup { width: calc(100vw - 20px); max-height: 34vh; }
+            #positionOptions { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+            .position-option { padding: 5px; gap: 3px; }
+            .position-option svg { height: 40px; }
+            #sceneOptions { gap: 6px; }
+            .scene-option { padding: 5px; gap: 3px; }
+            .scene-option svg { height: 42px; }
+            #palettePopup { max-width: calc(100vw - 20px); }
+        }
+        @media (max-height: 520px) and (orientation: landscape) {
+            #bottom-bar > button, #bottom-bar .bar-item > button { padding: 4px 8px; font-size: 10.5px; }
+            #imagesPanel, #visualsPanel { max-height: calc(100vh - 140px); }
+            #boxPositionPopup, #scenePopup, #controlsPopup { max-height: calc(100vh - 110px); }
+        }
+
     </style>
 
 </head>
@@ -364,13 +418,13 @@
         </div>
 
         <button id="snapshotBtn" title="Save the current view as an image">📷 Snapshot</button>
-        <button id="resetBtn" title="Reset the view and every setting (your images are kept)">↺ Reset</button>
+        <button id="resetBtn" title="Reset the view and settings (your images, theme and box position are kept)">↺ Reset</button>
         <button id="controlsBtn">ℹ Controls</button>
     </div>
 
     <!-- Glass popups -->
     <div id="snapshotTip" class="popup-glass">Save the Current POV as Image</div>
-    <div id="resetTip" class="popup-glass">Resets the Visuals and Every Setting</div>
+    <div id="resetTip" class="popup-glass">Resets visuals and settings (keeps theme and box position)</div>
     <div id="palettePopup" class="popup-glass">
         <label>Ground colour</label>
         <div id="paletteGrid"></div>
@@ -382,14 +436,14 @@
         • <b>Turntable</b>: spins the box, a speed slider slides out<br>
         • <b>Drag the clock hand</b>: set the time (sun by day, moon by night)<br>
         • <b>Cycle</b>: plays a full day/night; on the Moon, one simulated solar day represents about 29.5 Earth days<br>
-        • <b>Hover over panel buttons</b>: open a panel; move into it to keep it open, and away from both to close<br>
+        • <b>Hover over a panel button</b>: previews its panel (it closes when you move away); <b>click</b> the button to keep the panel open, click it again to close<br>
         • <b>Hover over lid, Turntable or Cycle</b>: reveal their sliders<br>
         • <b>Scenes</b>: switch between meadows, desert dunes, the Moon, and the classic background<br>
         • <b>Ground</b>: pick the surface colour<br>
         • <b>Best View</b> (in Visuals): turns on HDR, Shaders, Magic particles and the day/night cycle<br>
-        • <b>Visuals</b>: hover to open; holds HDR, Shaders (hover for Atmosphere, Gloss, Bounce and Cinematic Grain) and Magic particles<br>
+        • <b>Visuals</b>: hover or click to open; holds HDR, Shaders (hover for Atmosphere, Gloss, Bounce and Cinematic Grain) and Magic particles<br>
         • <b>Snapshot</b>: downloads the current view as a PNG<br>
-        • Move away from a panel button and its panel to close it
+        • A panel opened with a click stays open until you click its button again
     </div>
     <div id="boxPositionPopup" class="popup-glass">
         <label>Choose box positioning</label>
@@ -635,6 +689,11 @@
         container.appendChild(renderer.domElement);
 
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        // On phones zoom the starting view out a little so the whole box is easy to see.
+        if (window.matchMedia('(max-width: 700px)').matches) {
+            const mobileZoom = window.innerWidth / window.innerHeight < 0.8 ? 1.5 : 1.25;
+            camera.position.sub(controls.target).multiplyScalar(mobileZoom).add(controls.target);
+        }
         const defaultCameraPosition = camera.position.clone();
         const defaultControlsTarget = controls.target.clone();
         controls.enableDamping = true;
@@ -1810,24 +1869,115 @@
             );
         }
 
-        const moonRockMaterials = [
-            0x92969a, 0xa2a6aa, 0x808489
-        ].map(color => new THREE.MeshStandardMaterial({
-            color, roughness: 1, metalness: 0, flatShading: true, transparent: true, opacity: 0
-        }));
-        const moonRockGeometry = new THREE.IcosahedronGeometry(0.68, 2);
-        {
-            const positions = moonRockGeometry.attributes.position;
-            let seed = 8675309;
+        // Lunar rocks: angular, fractured boulders (a sphere cut by random planes with softened
+        // edges and fine pitting), built from shared vertices so they never tear or crumple.
+        function makeRockBumpTexture() {
+            const size = 256;
+            const canvas = document.createElement('canvas');
+            canvas.width = canvas.height = size;
+            const context = canvas.getContext('2d');
+            const image = context.createImageData(size, size);
+            let seed = 424242;
             const random = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-            for (let i = 0; i < positions.count; i++) {
-                const variation = 0.78 + random() * 0.42;
-                positions.setXYZ(i, positions.getX(i) * variation, positions.getY(i) * variation, positions.getZ(i) * variation);
+            const grid = (n) => Array.from({ length: n * n }, random);
+            const layers = [{ n: 6, v: grid(6), w: 70 }, { n: 24, v: grid(24), w: 50 }, { n: 96, v: grid(96), w: 36 }];
+            const sample = (l, u, v) => {
+                const x = u * l.n, y = v * l.n, ix = Math.floor(x), iy = Math.floor(y);
+                const tx0 = x - ix, ty0 = y - iy, tx = tx0 * tx0 * (3 - 2 * tx0), ty = ty0 * ty0 * (3 - 2 * ty0);
+                const x0 = ix % l.n, y0 = iy % l.n, x1 = (x0 + 1) % l.n, y1 = (y0 + 1) % l.n;
+                const at = (gx, gy) => l.v[gy * l.n + gx];
+                return THREE.MathUtils.lerp(THREE.MathUtils.lerp(at(x0, y0), at(x1, y0), tx), THREE.MathUtils.lerp(at(x0, y1), at(x1, y1), tx), ty);
+            };
+            for (let y = 0; y < size; y++) {
+                for (let x = 0; x < size; x++) {
+                    let h = 128 + (random() - 0.5) * 40;
+                    layers.forEach(l => { h += (sample(l, x / size, y / size) - 0.5) * l.w; });
+                    // occasional tiny pits
+                    if (random() > 0.992) h -= 55;
+                    const i = (y * size + x) * 4;
+                    image.data[i] = image.data[i + 1] = image.data[i + 2] = THREE.MathUtils.clamp(h, 0, 255);
+                    image.data[i + 3] = 255;
+                }
             }
-            positions.needsUpdate = true;
-            moonRockGeometry.computeVertexNormals();
-            moonRockGeometry.computeBoundingSphere();
+            context.putImageData(image, 0, 0);
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+            return texture;
         }
+        const moonRockBump = makeRockBumpTexture();
+        const moonRockMaterials = [
+            0x8f9296, 0x9fa2a6, 0x7b7e83
+        ].map(color => new THREE.MeshStandardMaterial({
+            color, roughness: 1, metalness: 0, bumpMap: moonRockBump, bumpScale: 0.9, transparent: true, opacity: 0
+        }));
+        function makeLunarRockGeometry(seedValue, flatness, stretchX, stretchZ) {
+            let seed = seedValue;
+            const random = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+            const lattice = (ix, iy, iz) => {
+                const h = Math.sin(ix * 127.1 + iy * 311.7 + iz * 74.7 + seedValue * 0.013) * 43758.5453;
+                return h - Math.floor(h);
+            };
+            const valueNoise = (x, y, z) => {
+                const ix = Math.floor(x), iy = Math.floor(y), iz = Math.floor(z);
+                const fx = x - ix, fy = y - iy, fz = z - iz;
+                const sx = fx * fx * (3 - 2 * fx), sy = fy * fy * (3 - 2 * fy), sz = fz * fz * (3 - 2 * fz);
+                const l = THREE.MathUtils.lerp;
+                return l(
+                    l(l(lattice(ix, iy, iz), lattice(ix + 1, iy, iz), sx), l(lattice(ix, iy + 1, iz), lattice(ix + 1, iy + 1, iz), sx), sy),
+                    l(l(lattice(ix, iy, iz + 1), lattice(ix + 1, iy, iz + 1), sx), l(lattice(ix, iy + 1, iz + 1), lattice(ix + 1, iy + 1, iz + 1), sx), sy),
+                    sz
+                );
+            };
+            const smoothMin = (a, b, k) => {
+                const h = Math.max(k - Math.abs(a - b), 0) / k;
+                return Math.min(a, b) - h * h * k * 0.25;
+            };
+            // random fracture planes make the flat, chipped faces typical of lunar boulders
+            const planes = [];
+            const planeCount = 8 + Math.floor(random() * 3);
+            for (let i = 0; i < planeCount; i++) {
+                const n = new THREE.Vector3(random() * 2 - 1, random() * 2 - 1, random() * 2 - 1).normalize();
+                planes.push({ n, d: 0.62 + random() * 0.24 });
+            }
+            const ox = random() * 50, oy = random() * 50, oz = random() * 50;
+            const source = new THREE.IcosahedronGeometry(1, 7).attributes.position;
+            const indexOf = new Map();
+            const vertices = [], uvs = [], indices = [];
+            const dir = new THREE.Vector3();
+            for (let i = 0; i < source.count; i++) {
+                dir.fromBufferAttribute(source, i).normalize();
+                const key = dir.x.toFixed(4) + ',' + dir.y.toFixed(4) + ',' + dir.z.toFixed(4);
+                let id = indexOf.get(key);
+                if (id === undefined) {
+                    let r = 1;
+                    for (const plane of planes) {
+                        const dp = dir.dot(plane.n);
+                        if (dp > 0.001) r = smoothMin(r, plane.d / dp, 0.22);
+                    }
+                    r *= 1 + 0.16 * (valueNoise(dir.x * 1.7 + ox, dir.y * 1.7 + oy, dir.z * 1.7 + oz) - 0.5)
+                        + 0.07 * (valueNoise(dir.x * 5.3 + oy, dir.y * 5.3 + oz, dir.z * 5.3 + ox) - 0.5)
+                        + 0.025 * (valueNoise(dir.x * 15 + oz, dir.y * 15 + ox, dir.z * 15 + oy) - 0.5);
+                    const x = dir.x * r * stretchX, y = dir.y * r * flatness, z = dir.z * r * stretchZ;
+                    id = vertices.length / 3;
+                    vertices.push(x, y, z);
+                    uvs.push((x + z * 0.5) * 1.3, (y + z * 0.5) * 1.3);
+                    indexOf.set(key, id);
+                }
+                indices.push(id);
+            }
+            const geometry = new THREE.BufferGeometry();
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+            geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+            geometry.setIndex(indices);
+            geometry.computeVertexNormals();
+            geometry.computeBoundingSphere();
+            return geometry;
+        }
+        const moonRockShapes = [
+            { geometry: makeLunarRockGeometry(8675309, 0.62, 1.0, 0.88), flatness: 0.62 },
+            { geometry: makeLunarRockGeometry(1357911, 0.78, 0.9, 1.0), flatness: 0.78 },
+            { geometry: makeLunarRockGeometry(2468013, 0.5, 1.1, 0.8), flatness: 0.5 }
+        ];
         const moonRockMatrices = [[], [], []];
         {
             let seed = 975318642;
@@ -1836,6 +1986,15 @@
             const rockQuaternion = new THREE.Quaternion();
             const rockScale = new THREE.Vector3();
             const rockMatrix = new THREE.Matrix4();
+            const addRock = (x, z, scale, shapeIndex) => {
+                const shape = moonRockShapes[shapeIndex];
+                rockScale.set(scale * (0.8 + random() * 0.5), scale * (0.75 + random() * 0.45), scale * (0.8 + random() * 0.5));
+                // sink the rock slightly into the regolith so it sits naturally
+                rockPosition.set(x, floorY + moonSurfaceHeightAt(x, z) + rockScale.y * shape.flatness * 0.42, z);
+                rockQuaternion.setFromEuler(new THREE.Euler((random() - 0.5) * 0.35, random() * Math.PI * 2, (random() - 0.5) * 0.35));
+                rockMatrix.compose(rockPosition, rockQuaternion, rockScale);
+                moonRockMatrices[shapeIndex].push(rockMatrix.clone());
+            };
             for (let i = 0; i < 36; i++) {
                 const angle = random() * Math.PI * 2;
                 const distance = 4.5 + Math.sqrt(random()) * 64;
@@ -1843,26 +2002,23 @@
                 const clusterZ = Math.sin(angle) * distance;
                 const rockCount = 1 + Math.floor(random() * 2);
                 for (let rockIndex = 0; rockIndex < rockCount; rockIndex++) {
-                    const x = clusterX + (random() - 0.5) * 1.8;
-                    const z = clusterZ + (random() - 0.5) * 1.8;
-                    const scale = 0.3 + random() * 0.5;
-                    const scaleY = scale * (0.7 + random() * 0.4);
-                    rockPosition.set(
-                        x,
-                        floorY + moonSurfaceHeightAt(x, z) + moonRockGeometry.boundingSphere.radius * scaleY * 0.84,
-                        z
+                    addRock(
+                        clusterX + (random() - 0.5) * 1.8,
+                        clusterZ + (random() - 0.5) * 1.8,
+                        0.16 + Math.pow(random(), 2.2) * 0.62,
+                        Math.floor(random() * 3)
                     );
-                    rockQuaternion.setFromEuler(new THREE.Euler((random() - 0.5) * 0.45, random() * Math.PI * 2, (random() - 0.5) * 0.45));
-                    rockScale.set(scale * (0.72 + random() * 0.45), scaleY, scale * (0.72 + random() * 0.45));
-                    rockPosition.y = floorY + moonSurfaceHeightAt(x, z)
-                        + moonRockGeometry.boundingSphere.radius * Math.max(rockScale.x, rockScale.y, rockScale.z) * 0.72;
-                    rockMatrix.compose(rockPosition, rockQuaternion, rockScale);
-                    moonRockMatrices[i % moonRockMaterials.length].push(rockMatrix.clone());
                 }
             }
+            // scattered pebbles and small stones
+            for (let i = 0; i < 170; i++) {
+                const angle = random() * Math.PI * 2;
+                const distance = 3 + Math.sqrt(random()) * 60;
+                addRock(Math.cos(angle) * distance, Math.sin(angle) * distance, 0.04 + random() * 0.09, Math.floor(random() * 3));
+            }
         }
-        moonRockMaterials.forEach((material, index) => {
-            addStaticInstances(sceneDecor.moon, moonRockGeometry, material, moonRockMatrices[index], true, true);
+        moonRockShapes.forEach((shape, index) => {
+            addStaticInstances(sceneDecor.moon, shape.geometry, moonRockMaterials[index], moonRockMatrices[index], true, true);
         });
 
         const meadowMotion = [];
@@ -3717,9 +3873,13 @@
             const current = indiaTimeParts();
             const currentMinutes = current.hours * 60 + current.minutes;
             const clockMinutes = ((Math.floor(env.time * 60 + 1e-7) % 1440) + 1440) % 1440;
-            const isClockScene = sceneTargets.meadow === 1 || sceneTargets.desert === 1;
-            realtimeBtn.textContent = `${String(current.hours).padStart(2, '0')}:${String(current.minutes).padStart(2, '0')}`;
-            const shouldShow = isClockScene && (env.cycleOn || clockMinutes !== currentMinutes);
+            // Always visible (also while the day/night cycle runs); only hidden on the Moon,
+            // where Indian time has no meaning.
+            const shouldShow = sceneTargets.moon !== 1;
+            const realNight = !(current.hours >= 6 && current.hours < 18);
+            const label = `${realNight ? '🌙' : '☀'} ${String(current.hours).padStart(2, '0')}:${String(current.minutes).padStart(2, '0')}`;
+            if (realtimeBtn.textContent !== label) realtimeBtn.textContent = label;
+            realtimeBtn.classList.toggle('on', shouldShow && !env.cycleOn && clockMinutes === currentMinutes);
             realtimeBtn.hidden = !shouldShow;
             realtimeBtn.parentElement.hidden = !shouldShow;
         }
@@ -3938,9 +4098,11 @@
             { el: scenePopup, btn: sceneBtn, floating: true },
             { el: imagesPanel, btn: imagesBtn, floating: false },
             { el: visualsPanel, btn: visualsBtn, floating: false },
-            { el: document.getElementById('snapshotTip'), btn: snapshotBtn, floating: true },
-            { el: document.getElementById('resetTip'), btn: document.getElementById('resetBtn'), floating: true }
+            { el: document.getElementById('snapshotTip'), btn: snapshotBtn, floating: true, tip: true },
+            { el: document.getElementById('resetTip'), btn: document.getElementById('resetBtn'), floating: true, tip: true }
         ];
+        // pop.pinned = the panel was opened with a click: it stays open (even when the pointer
+        // leaves) until its button is clicked again. Hover alone only previews a panel.
         const popupCloseTimers = new Map();
         function clearPopupCloseTimer(pop) {
             const timer = popupCloseTimers.get(pop);
@@ -3950,42 +4112,79 @@
             }
         }
         function setPopupOpen(pop, open) {
-            if (!open) clearPopupCloseTimer(pop);
+            if (!open) { clearPopupCloseTimer(pop); pop.pinned = false; }
             pop.el.classList.toggle('open', open);
             pop.btn.classList.toggle('on', open);
-            if (pop.el === scenePopup) sceneBtn.setAttribute('aria-expanded', String(open));
-            if (pop.el === visualsPanel) visualsBtn.setAttribute('aria-expanded', String(open));
+            if (!pop.tip) pop.btn.setAttribute('aria-expanded', String(open));
             if (open && pop.floating) placePopup(pop.el, pop.btn);
         }
         function openPopupOnHover(activePopup) {
             popups.forEach(pop => {
-                if (pop !== activePopup) setPopupOpen(pop, false);
+                if (pop !== activePopup && !pop.tip) setPopupOpen(pop, false);
             });
             clearPopupCloseTimer(activePopup);
             setPopupOpen(activePopup, true);
         }
         function schedulePopupClose(pop) {
+            if (pop.pinned) return;
             clearPopupCloseTimer(pop);
             popupCloseTimers.set(pop, setTimeout(() => {
                 popupCloseTimers.delete(pop);
+                if (pop.pinned) return;
                 if (!pop.btn.matches(':hover') && !pop.el.matches(':hover')) setPopupOpen(pop, false);
             }, 180));
         }
         popups.forEach(pop => {
-            pop.btn.addEventListener('pointerenter', () => openPopupOnHover(pop));
+            // touch screens have no hover: only taps open / close panels there
+            pop.btn.addEventListener('pointerenter', (ev) => {
+                if (ev.pointerType === 'touch') return;
+                if (pop.tip) { clearPopupCloseTimer(pop); setPopupOpen(pop, true); return; }
+                // a click-opened panel is never replaced by a mere hover over another button
+                if (popups.some(other => other !== pop && !other.tip && other.pinned)) return;
+                openPopupOnHover(pop);
+            });
             pop.el.addEventListener('pointerenter', () => clearPopupCloseTimer(pop));
-            pop.btn.addEventListener('pointerleave', () => schedulePopupClose(pop));
-            pop.el.addEventListener('pointerleave', () => schedulePopupClose(pop));
+            pop.btn.addEventListener('pointerleave', (ev) => { if (ev.pointerType !== 'touch') schedulePopupClose(pop); });
+            pop.el.addEventListener('pointerleave', (ev) => { if (ev.pointerType !== 'touch') schedulePopupClose(pop); });
+            if (pop.tip) return;
             pop.btn.addEventListener('click', () => {
-                const open = pop.btn.matches(':hover') || !pop.el.classList.contains('open');
-                setPopupOpen(pop, open);
+                if (pop.pinned) { setPopupOpen(pop, false); return; }   // clicked again -> close
+                popups.forEach(other => { if (other !== pop && !other.tip) setPopupOpen(other, false); });
+                setPopupOpen(pop, true);
+                pop.pinned = true;                                      // clicked -> stays open
             });
         });
-        document.addEventListener('pointerdown', (ev) => {
-            popups.forEach(pop => {
-                if (pop.el.classList.contains('open') && !pop.el.contains(ev.target) && !pop.btn.contains(ev.target)) setPopupOpen(pop, false);
-            });
-        }, true);
+        document.addEventListener('keydown', (ev) => {
+            if (ev.key === 'Escape') popups.forEach(pop => setPopupOpen(pop, false));
+        });
+
+        // On phones, slide the 3D view into the free space between the top buttons / open top
+        // panel and the bottom bar / open bottom panel, so the box is never hidden by a panel.
+        const mobileQuery = window.matchMedia('(max-width: 700px)');
+        let viewShift = 0, viewShiftApplied = null, viewSizeApplied = '';
+        function updateMobileViewOffset(dt) {
+            const w = window.innerWidth, h = window.innerHeight;
+            let target = 0;
+            if (mobileQuery.matches) {
+                let top = 96, bottom = barEl.getBoundingClientRect().top - 6;
+                [imagesPanel, visualsPanel].forEach(p => {
+                    if (p.classList.contains('open')) top = Math.max(top, p.getBoundingClientRect().bottom + 6);
+                });
+                [palettePopup, controlsPopup, boxPositionPopup, scenePopup].forEach(p => {
+                    if (p.classList.contains('open')) bottom = Math.min(bottom, p.getBoundingClientRect().top - 6);
+                });
+                if (bottom - top < 140) bottom = top + 140;
+                target = (top + bottom) / 2 - h / 2;
+            }
+            viewShift += (target - viewShift) * (1 - Math.exp(-Math.min(dt, 0.1) * 9));
+            if (Math.abs(target - viewShift) < 0.4) viewShift = target;
+            const sizeKey = w + 'x' + h;
+            if (viewShift === viewShiftApplied && sizeKey === viewSizeApplied) return;
+            viewShiftApplied = viewShift; viewSizeApplied = sizeKey;
+            if (viewShift === 0) camera.clearViewOffset();
+            else camera.setViewOffset(w, h, 0, -viewShift, w, h);
+            camera.updateProjectionMatrix();
+        }
         function closeImagesPanel() { setPopupOpen(popups.find(pop => pop.el === imagesPanel), false); }
 
         // "Best View" hint under the Visuals button: 5 s on load, then again every 45 s,
@@ -4093,6 +4292,7 @@
 
         const positionOptions = document.querySelectorAll('.position-option');
         let cameraLayoutScale = 1;
+        let currentBoxPosition = 'upright';
         function setBoxPose(group, pose) {
             group.position.set(pose.x, pose.y, pose.z);
             group.rotation.set(pose.rx, pose.ry, pose.rz);
@@ -4103,6 +4303,7 @@
             contact.group.scale.set(scaleX, 1, scaleZ);
         }
         function selectBoxPosition(position) {
+            currentBoxPosition = position;
             const upright = { x: 0, y: 0, z: 0, rx: 0, ry: 0, rz: 0 };
             const lyingY = floorY + boxDepth / 2;
             const lying = { x: 0, y: lyingY, z: 0, rx: -Math.PI / 2, ry: 0, rz: 0 };
@@ -4617,6 +4818,7 @@
             const dt = clock.getDelta();
             updateEnvironment(dt);
             placeOpenPopups();
+            updateMobileViewOffset(dt);
             if (turntableOn) {
                 layoutGroup.rotation.y += THREE.MathUtils.degToRad(turntableSpeed) * dt;
                 if (Math.abs(layoutGroup.rotation.y - lastReflectionTurntableAngle) >= THREE.MathUtils.degToRad(15)) {
@@ -4748,12 +4950,11 @@
             setShadersEnabled(false, true);
 
             popups.forEach(pop => setPopupOpen(pop, false));
-            selectScene('meadow');
-            selectBoxPosition('upright');
+            // Keep the chosen theme (scene) and box position; only re-frame the camera for them.
             camera.position.copy(defaultCameraPosition);
             controls.target.copy(defaultControlsTarget);
             cameraLayoutScale = 1;
-            controls.update();
+            selectBoxPosition(currentBoxPosition);
 
             resetBtn.innerText = '✔ Reset';
             setTimeout(() => { resetBtn.innerText = '↺ Reset'; }, 1200);
@@ -4762,6 +4963,7 @@
 
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
+            viewShiftApplied = null;
             camera.updateProjectionMatrix();
             renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, RENDER_PIXEL_RATIO_CAP));
             renderer.setSize(window.innerWidth, window.innerHeight);
