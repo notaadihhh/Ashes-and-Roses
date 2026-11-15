@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Roses and Ashes - Fixed Pond Geometry Viewer</title>
+    <title>Roses and Ashes - Waves and Reflections</title>
     <style>
         body {
             margin: 0; padding: 0; overflow: hidden;
@@ -243,7 +243,7 @@
         </div>
 
         <button id="dustBtn" class="on" title="Show / hide the glittering dust particles">✨ Dust: ON</button>
-        <button id="hdrBtn" class="on" title="Toggle HDR tone mapping">🌅 HDR: ON</button>
+        <button id="hdrBtn" title="Toggle HDR tone mapping">🌅 HDR: OFF</button>
         <button id="shadersBtn" title="Toggle cinematic colour grade for a vibrant, film-like look">🎬 Shaders: OFF</button>
         <button id="snapshotBtn" title="Save the current view as an image">📷 Snapshot</button>
         <button id="resetBtn" title="Reset the view and every setting (your images are kept)">↺ Reset</button>
@@ -462,7 +462,7 @@
         // Cinematic rendering controls. Keep the robust Three.js render pipeline,
         // and grade the completed canvas so the look affects the whole environment
         // consistently (terrain, foliage, water, sky and the box).
-        let hdrEnabled = true;
+        let hdrEnabled = false;
         let shadersEnabled = false;
         function updatePostProcessing() {
             renderer.toneMapping = hdrEnabled ? THREE.ACESFilmicToneMapping : THREE.NoToneMapping;
@@ -498,15 +498,18 @@
         const rimLight = new THREE.DirectionalLight(0xffffff, 0);
         scene.add(rimLight);
 
-        // Ground bounce light - reflects sunlight/moonlight onto the box from below
+        // Subtle ground bounce: a directional lift follows the active sun/moon,
+        // a local point fill reaches the lower side faces, and a hemisphere light
+        // gives downward-facing box surfaces a restrained ground-coloured ambient lift.
         const groundBounceLight = new THREE.DirectionalLight(0xffffff, 0);
         groundBounceLight.position.set(0, -5, 0);
         scene.add(groundBounceLight);
-        // Localized ground-reflection fill: lifts the lower faces of the box with the
-        // colour and intensity of the active sun/moon, rather than lighting only the terrain.
-        const groundBouncePoint = new THREE.PointLight(0xffffff, 0, 11, 2);
-        groundBouncePoint.position.set(0, -1.25, 0.35);
+        scene.add(groundBounceLight.target);
+        const groundBouncePoint = new THREE.PointLight(0xffffff, 0, 6.5, 2);
+        groundBouncePoint.position.set(0, -1.95, 0.35);
         scene.add(groundBouncePoint);
+        const groundBounceHemi = new THREE.HemisphereLight(0x000000, 0x000000, 0);
+        scene.add(groundBounceHemi);
 
         function makeShadowLight(color, intensity) {
             const l = new THREE.DirectionalLight(color, intensity);
@@ -1577,6 +1580,26 @@
             return (ridgeA + ridgeB + ridgeC) * xFade * zFade * centreFade;
         }
 
+        // The top of the visible dune mesh is the authoritative desert ground.
+        // Every land prop is seated against this sampled surface rather than a flat base plane.
+        function desertSurfaceY(x, z) {
+            return floorY + 0.012 + duneHeightAt(x, z);
+        }
+        function settleDesertObject(object, x, z, embed = 0.018) {
+            object.updateMatrixWorld(true);
+            const bounds = new THREE.Box3().setFromObject(object);
+            if (bounds.isEmpty()) return;
+            object.position.y += desertSurfaceY(x, z) - bounds.min.y - embed;
+            object.updateMatrixWorld(true);
+        }
+        function settleDesertMesh(mesh, x, z, embed = 0.01) {
+            mesh.updateMatrixWorld(true);
+            const bounds = new THREE.Box3().setFromObject(mesh);
+            if (bounds.isEmpty()) return;
+            mesh.position.y += desertSurfaceY(x, z) - bounds.min.y - embed;
+            mesh.updateMatrixWorld(true);
+        }
+
         const duneGeometry = new THREE.PlaneGeometry(120, 110, 120, 100);
         duneGeometry.rotateX(-Math.PI / 2);
         const dunePositions = duneGeometry.attributes.position;
@@ -1743,6 +1766,7 @@
             }
             cactus.traverse(object => { if (object.isMesh) object.castShadow = true; });
             sceneDecor.desert.add(cactus);
+            settleDesertObject(cactus, x, z, 0.022);
         }
 
         addCactus(-8, -8, 1.4, 0);
@@ -1773,6 +1797,12 @@
                 cluster.add(rock);
             }
             sceneDecor.desert.add(cluster);
+            cluster.updateMatrixWorld(true);
+            cluster.children.forEach(rock => {
+                const worldPos = new THREE.Vector3();
+                rock.getWorldPosition(worldPos);
+                settleDesertMesh(rock, worldPos.x, worldPos.z, 0.018);
+            });
         }
         addDesertRocks(-24, -4, 1.25, 4);
         addDesertRocks(25, -13, 1.1, 5);
@@ -1799,6 +1829,7 @@
                 shrub.add(twig);
             }
             sceneDecor.desert.add(shrub);
+            settleDesertObject(shrub, x, z, 0.016);
         }
         addDesertShrub(-14, -2, 0.9);
         addDesertShrub(15, -3, 0.8);
@@ -1824,6 +1855,7 @@
                 patch.add(blade);
             }
             sceneDecor.desert.add(patch);
+            settleDesertObject(patch, x, z, 0.012);
         }
         for (let i = 0; i < 20; i++) {
             const angle = i * 0.314 + 1.2;
@@ -1834,9 +1866,10 @@
         // Tumbleweeds
         function addTumbleweed(x, z, size) {
             const tw = new THREE.Mesh(new THREE.IcosahedronGeometry(size * 0.35, 1), desertMats.tumbleweed);
-            tw.position.set(x, floorY + size * 0.35 + duneHeightAt(x, z), z);
+            tw.position.set(x, desertSurfaceY(x, z) + size * 0.35, z);
             tw.castShadow = true;
             sceneDecor.desert.add(tw);
+            settleDesertMesh(tw, x, z, 0.002);
             tumbleweedMotion.push({ object: tw, startX: x, startZ: z, phase: x + z, speed: 0.3 + Math.abs(Math.sin(x)) * 0.4, size });
         }
         addTumbleweed(-10, 3, 0.8);
@@ -1861,6 +1894,7 @@
                 flowerGroup.add(petal);
             }
             sceneDecor.desert.add(flowerGroup);
+            settleDesertObject(flowerGroup, x, z, 0.008);
         }
         for (let i = 0; i < 12; i++) {
             const angle = i * 0.52 + 0.3;
@@ -1893,6 +1927,7 @@
             skullGroup.rotation.y = x * 0.5;
             skullGroup.rotation.z = -0.15;
             sceneDecor.desert.add(skullGroup);
+            settleDesertObject(skullGroup, x, z, 0.035);
         }
         addSkull(4, -15, 1.2);
         addSkull(-18, -6, 0.9);
@@ -1977,6 +2012,7 @@
                 shelf.add(slab);
             }
             sceneDecor.desert.add(shelf);
+            settleDesertObject(shelf, x, z, 0.014);
         }
         addSandstoneShelf(-34, -2, 1.5, 0.4);
         addSandstoneShelf(35, -19, 1.25, -0.6);
@@ -1994,6 +2030,7 @@
             pebble.rotation.set(i * 0.21, i * 0.7, i * 0.13);
             pebble.castShadow = true;
             sceneDecor.desert.add(pebble);
+            settleDesertMesh(pebble, x, z, 0.008);
         }
 
         function addYucca(x, z, size) {
@@ -2013,25 +2050,37 @@
                 plant.add(blade);
             }
             sceneDecor.desert.add(plant);
+            settleDesertObject(plant, x, z, 0.016);
         }
         [[-30,-27,1.0],[29,-31,1.15],[-2,18,0.9],[36,1,1.0],[-36,16,1.1],[12,-36,0.85]].forEach(v => addYucca(v[0],v[1],v[2]));
 
-        // Small dry channels add erosion lines and visual scale to the dune floor.
+        // Shallow erosion marks are built as tubes that follow the actual dune height,
+        // so they cannot bridge across a dip or hover above a ridge.
         for (let i = 0; i < 9; i++) {
-            const wash = new THREE.Mesh(new THREE.TorusGeometry(2.4 + (i % 3) * 0.7, 0.035, 4, 36, Math.PI * (0.65 + (i % 4) * 0.08)), desertCreaseMat);
+            const arcRadius = 2.4 + (i % 3) * 0.7;
+            const arcLength = Math.PI * (0.65 + (i % 4) * 0.08);
             const a = i * 2.17, r = 12 + (i % 4) * 5;
             const x = Math.cos(a) * r, z = Math.sin(a) * r;
-            wash.position.set(x, floorY + 0.045 + duneHeightAt(x, z), z);
-            wash.rotation.x = Math.PI / 2;
-            wash.rotation.z = a;
-            wash.scale.set(1.3, 0.72, 1);
+            const pathPoints = [];
+            for (let step = 0; step <= 36; step++) {
+                const t = step / 36;
+                const theta = -arcLength * 0.5 + t * arcLength;
+                const px = x + Math.cos(theta) * arcRadius * 1.3;
+                const pz = z + Math.sin(theta) * arcRadius * 0.72;
+                pathPoints.push(new THREE.Vector3(px, desertSurfaceY(px, pz) + 0.012, pz));
+            }
+            const washCurve = new THREE.CatmullRomCurve3(pathPoints);
+            const wash = new THREE.Mesh(new THREE.TubeGeometry(washCurve, 48, 0.018, 4, false), desertCreaseMat);
+            wash.castShadow = false;
             sceneDecor.desert.add(wash);
         }
 
         // ====== MEADOW WATER FEATURE: a quiet, irregular woodland pond ======
         // Kept off the centreline so it frames the box without obscuring it.
         const pondX = -9.2, pondZ = 8.2;
-        const pondBase = meadowHeightAt(pondX, pondZ) + 0.10;
+        // Set the pond level just above the local meadow surface instead of lifting
+        // the entire shoreline apron away from the ground.
+        const pondBase = meadowHeightAt(pondX, pondZ) + 0.012;
         const pondGroup = new THREE.Group();
         pondGroup.position.set(pondX, floorY + pondBase, pondZ);
         sceneDecor.meadow.add(pondGroup);
@@ -2047,26 +2096,172 @@
         }
         const pondBankMat = new THREE.MeshStandardMaterial({ color: 0x776b45, roughness: 1, transparent: true, opacity: 0 });
         const pondWaterMat = new THREE.MeshPhysicalMaterial({
-            color: 0x397f83, roughness: 0.16, metalness: 0.12, clearcoat: 1,
+            color: 0x2b70a5, roughness: 0.16, metalness: 0.12, clearcoat: 1,
             clearcoatRoughness: 0.08, transparent: true, opacity: 0,
             side: THREE.DoubleSide, depthWrite: false
         });
         // Deliberately use the standard material pipeline for compatibility.
         // Water animation is applied to material properties in updateEnvironment.
-        const bankGeo = new THREE.ShapeGeometry(makePondShape(1.28, 1.22), 32);
-        bankGeo.rotateX(-Math.PI / 2);
+        // A dense, terrain-conforming sandy shoreline replaces the old flat raised disc.
+        // Reuse the radial pond mesh builder so the shoreline has enough vertices to follow hills.
+        const bankGeo = makeWavyPondGeometry(makePondShape(1.28, 1.22), 18, 160);
+        const bankPositions = bankGeo.attributes.position;
+        for (let i = 0; i < bankPositions.count; i++) {
+            const worldX = pondX + bankPositions.getX(i);
+            const worldZ = pondZ + bankPositions.getZ(i);
+            const terrainY = floorY + 0.012 + meadowHeightAt(worldX, worldZ);
+            bankPositions.setY(i, terrainY + 0.003 - pondGroup.position.y);
+        }
+        bankPositions.needsUpdate = true;
+        bankGeo.computeVertexNormals();
         const bank = new THREE.Mesh(bankGeo, pondBankMat);
-        bank.position.y = -0.025;
         bank.renderOrder = 1;
         bank.receiveShadow = true;
         pondGroup.add(bank);
-        const waterGeo = new THREE.ShapeGeometry(makePondShape(1, 1), 32);
-        waterGeo.rotateX(-Math.PI / 2);
+        // Build a dense radial water surface that follows the pond outline.
+        // The extra vertices let gentle waves deform the surface without custom GLSL.
+        function makeWavyPondGeometry(shape, radialSegments = 22, angularSegments = 160) {
+            const outline = shape.getPoints(320)
+                .map(point => {
+                    let angle = Math.atan2(point.y, point.x);
+                    if (angle < 0) angle += Math.PI * 2;
+                    return { angle, radius: Math.hypot(point.x, point.y) };
+                })
+                .sort((a, b) => a.angle - b.angle);
+            const samples = [];
+            outline.forEach(point => {
+                const previous = samples[samples.length - 1];
+                if (!previous || Math.abs(point.angle - previous.angle) > 1e-5) samples.push(point);
+                else previous.radius = (previous.radius + point.radius) * 0.5;
+            });
+            function boundaryRadius(angle) {
+                const a = ((angle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+                let nextIndex = samples.findIndex(point => point.angle >= a);
+                if (nextIndex < 0) nextIndex = 0;
+                const next = samples[nextIndex];
+                const previous = samples[(nextIndex - 1 + samples.length) % samples.length];
+                let a0 = previous.angle;
+                let a1 = next.angle;
+                let target = a;
+                if (nextIndex === 0) a1 += Math.PI * 2;
+                if (target < a0) target += Math.PI * 2;
+                const span = Math.max(1e-6, a1 - a0);
+                const t = THREE.MathUtils.clamp((target - a0) / span, 0, 1);
+                return THREE.MathUtils.lerp(previous.radius, next.radius, t);
+            }
+
+            const vertexCount = 1 + radialSegments * angularSegments;
+            const positions = new Float32Array(vertexCount * 3);
+            const uvs = new Float32Array(vertexCount * 2);
+            const indices = [];
+            // One center vertex, then evenly spaced concentric rings.
+            for (let i = 1; i <= radialSegments; i++) {
+                const radial = i / radialSegments;
+                for (let j = 0; j < angularSegments; j++) {
+                    const angle = j / angularSegments * Math.PI * 2;
+                    const radius = boundaryRadius(angle) * radial;
+                    const index = 1 + (i - 1) * angularSegments + j;
+                    const x = Math.cos(angle) * radius;
+                    const z = Math.sin(angle) * radius;
+                    positions[index * 3] = x;
+                    positions[index * 3 + 1] = 0;
+                    positions[index * 3 + 2] = z;
+                    uvs[index * 2] = 0.5 + x / 10;
+                    uvs[index * 2 + 1] = 0.5 + z / 8;
+                }
+            }
+            for (let j = 0; j < angularSegments; j++) {
+                const next = (j + 1) % angularSegments;
+                indices.push(0, 1 + next, 1 + j);
+            }
+            for (let ring = 2; ring <= radialSegments; ring++) {
+                const innerStart = 1 + (ring - 2) * angularSegments;
+                const outerStart = 1 + (ring - 1) * angularSegments;
+                for (let j = 0; j < angularSegments; j++) {
+                    const next = (j + 1) % angularSegments;
+                    const a = innerStart + j;
+                    const d = innerStart + next;
+                    const b = outerStart + j;
+                    const c = outerStart + next;
+                    // Winding faces upward (+Y).
+                    indices.push(a, d, c, a, c, b);
+                }
+            }
+            const geometry = new THREE.BufferGeometry();
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+            geometry.setIndex(indices);
+            geometry.computeVertexNormals();
+            geometry.computeBoundingSphere();
+            return geometry;
+        }
+
+        const waterGeo = makeWavyPondGeometry(makePondShape(1, 1));
+        const waterBasePositions = waterGeo.attributes.position.array.slice();
         const water = new THREE.Mesh(waterGeo, pondWaterMat);
-        water.position.y = 0.018;
+        water.position.y = 0.008;
         water.renderOrder = 2;
         water.receiveShadow = true;
+        water.castShadow = false;
         pondGroup.add(water);
+
+        // Expanding shoreline-style ripple rings ride just above the animated surface.
+        // They are children of the water mesh so hiding the water for cubemap capture
+        // also hides the rings and prevents self-reflection artifacts.
+        const rippleRingGeometry = new THREE.RingGeometry(0.965, 1.0, 72);
+        const rippleVisuals = [];
+        const rippleEmitters = [
+            { x: -1.45, z: 0.25, phase: 0.05 },
+            { x: 1.32, z: -0.72, phase: 0.38 },
+            { x: 0.12, z: 1.28, phase: 0.69 },
+            { x: -0.45, z: -1.22, phase: 0.87 }
+        ];
+        rippleEmitters.forEach((emitter, emitterIndex) => {
+            for (let ringIndex = 0; ringIndex < 3; ringIndex++) {
+                const material = new THREE.MeshBasicMaterial({
+                    color: 0xa9def5,
+                    transparent: true,
+                    opacity: 0.16,
+                    side: THREE.DoubleSide,
+                    depthWrite: false,
+                    toneMapped: false
+                });
+                const ring = new THREE.Mesh(rippleRingGeometry, material);
+                ring.rotation.x = -Math.PI / 2;
+                ring.position.set(emitter.x, 0.0025 + ringIndex * 0.00025, emitter.z);
+                ring.scale.setScalar(0.2);
+                ring.renderOrder = 3;
+                water.add(ring);
+                rippleVisuals.push({
+                    mesh: ring,
+                    material,
+                    phase: emitter.phase + ringIndex * 0.31,
+                    speed: 0.38 + (emitterIndex % 2) * 0.045
+                });
+            }
+        });
+
+        // A low-resolution dynamic cubemap gives the water genuine scene reflections
+        // (trees, shoreline, box, sky and lighting) without fragile shader injection.
+        const pondReflectionSize = window.innerWidth < 900 ? 128 : 256;
+        const pondReflectionTarget = new THREE.WebGLCubeRenderTarget(pondReflectionSize, {
+            format: THREE.RGBFormat,
+            generateMipmaps: true,
+            minFilter: THREE.LinearMipmapLinearFilter
+        });
+        pondReflectionTarget.texture.name = 'Pond real-time reflection map';
+        pondWaterMat.envMap = pondReflectionTarget.texture;
+        pondWaterMat.envMapIntensity = 1.35;
+        pondWaterMat.reflectivity = 0.92;
+        pondWaterMat.metalness = 0.08;
+        pondWaterMat.roughness = 0.13;
+        pondWaterMat.clearcoat = 1;
+        pondWaterMat.clearcoatRoughness = 0.075;
+        pondWaterMat.needsUpdate = true;
+        const pondReflectionCamera = new THREE.CubeCamera(0.1, 100, pondReflectionTarget);
+        pondReflectionCamera.position.set(pondX, pondGroup.position.y + water.position.y + 0.10, pondZ);
+        scene.add(pondReflectionCamera);
+        let lastPondReflectionUpdate = -1;
 
         // Pebbled shoreline, reed clumps, cattails and lily pads make the pond read as
         // part of the terrain rather than a flat blue decal.
@@ -2079,11 +2274,17 @@
             const a = i * 2.399963;
             const r = 4.25 + (i % 5) * 0.12;
             const stone = new THREE.Mesh(shoreStoneGeo, shoreStoneMats[i % 2]);
-            stone.position.set(Math.cos(a) * r, 0.01 + (i % 3) * 0.018, Math.sin(a) * r * 0.72);
+            stone.position.set(Math.cos(a) * r, 0, Math.sin(a) * r * 0.72);
             stone.scale.set(0.65 + (i % 4) * 0.18, 0.45 + (i % 3) * 0.12, 0.7 + (i % 5) * 0.12);
             stone.rotation.set(i * 0.17, i * 0.41, i * 0.23);
             stone.castShadow = true;
             pondGroup.add(stone);
+            pondGroup.updateMatrixWorld(true);
+            const stoneBounds = new THREE.Box3().setFromObject(stone);
+            const stoneWorldX = pondX + stone.position.x;
+            const stoneWorldZ = pondZ + stone.position.z;
+            const stoneGroundY = floorY + 0.012 + meadowHeightAt(stoneWorldX, stoneWorldZ);
+            stone.position.y += stoneGroundY - stoneBounds.min.y - 0.012;
         }
         const reedMat = new THREE.MeshStandardMaterial({ color: 0x587342, roughness: 0.9, transparent: true, opacity: 0 });
         const reedTipMat = new THREE.MeshStandardMaterial({ color: 0x795638, roughness: 0.95, transparent: true, opacity: 0 });
@@ -2091,7 +2292,9 @@
             const a = i * 2.399963;
             const r = 4.0 + (i % 3) * 0.18;
             const clump = new THREE.Group();
-            clump.position.set(Math.cos(a) * r, 0.02, Math.sin(a) * r * 0.72);
+            const reedX = Math.cos(a) * r;
+            const reedZ = Math.sin(a) * r * 0.72;
+            clump.position.set(reedX, floorY + 0.012 + meadowHeightAt(pondX + reedX, pondZ + reedZ) - pondGroup.position.y + 0.004, reedZ);
             for (let j = 0; j < 4; j++) {
                 const h = 0.55 + ((i + j) % 4) * 0.12;
                 const blade = new THREE.Mesh(new THREE.ConeGeometry(0.045, h, 5), reedMat);
@@ -2114,7 +2317,7 @@
             const a = i * 2.399963 + 0.4;
             const r = 0.8 + (i % 3) * 0.72;
             const pad = new THREE.Group();
-            pad.position.set(Math.cos(a) * r, 0.055, Math.sin(a) * r * 0.58);
+            pad.position.set(Math.cos(a) * r, water.position.y + 0.004, Math.sin(a) * r * 0.58);
             pad.rotation.y = a;
             const leaf = new THREE.Mesh(new THREE.CircleGeometry(0.28 + (i % 3) * 0.045, 18, 0.28, Math.PI * 1.82), lilyMat);
             leaf.rotation.x = -Math.PI / 2;
@@ -2240,6 +2443,14 @@
         const NIGHT_AMBIENT = new THREE.Color(0x8190c8);
         const WHITE = new THREE.Color(0xffffff);
         const _bounceColor = new THREE.Color();
+        const _bounceSourceColor = new THREE.Color();
+        const _bounceGroundTint = new THREE.Color();
+        const _bounceSunDir = new THREE.Vector3();
+        const _bounceMoonDir = new THREE.Vector3();
+        const _bounceDirection = new THREE.Vector3();
+        const _bounceBoxCenter = new THREE.Vector3();
+        const _bounceBoxTemp = new THREE.Vector3();
+        const _bounceTempColor = new THREE.Color();
 
         const sunDisc = new THREE.Mesh(new THREE.SphereGeometry(4, 24, 16), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, fog: false }));
         const moonDisc = new THREE.Mesh(new THREE.SphereGeometry(3.2, 24, 16), new THREE.MeshBasicMaterial({ color: MOON_COLOR, transparent: true, fog: false }));
@@ -2682,12 +2893,40 @@
             meadowMotion.forEach(item => {
                 item.object.rotation.z = Math.sin(envTime * 1.4 + item.phase) * item.amount;
             });
-            // Subtle moving highlights without custom shader code.
+            // Wind-driven crossing swells plus small circular ripples. Vertex normals
+            // change every frame, so the reflected scenery bends with the waves.
             const waterPulse = 0.5 + 0.5 * Math.sin(envTime * 1.25);
-            pondWaterMat.roughness = 0.14 + waterPulse * 0.055;
-            pondWaterMat.color.setRGB(0.16 + waterPulse * 0.025, 0.39 + waterPulse * 0.035, 0.41 + waterPulse * 0.04);
-            water.position.y = 0.018 + Math.sin(envTime * 1.1) * 0.006;
-            water.scale.set(1 + Math.sin(envTime * 0.7) * 0.002, 1, 1 + Math.cos(envTime * 0.8) * 0.002);
+            pondWaterMat.roughness = 0.105 + waterPulse * 0.035;
+            // Richer blue water, while keeping enough green to feel natural in a meadow.
+            pondWaterMat.color.setRGB(0.13 + waterPulse * 0.015, 0.30 + waterPulse * 0.025, 0.57 + waterPulse * 0.04);
+            const waterPositions = waterGeo.attributes.position.array;
+            for (let i = 0; i < waterPositions.length / 3; i++) {
+                const base = i * 3;
+                const x = waterBasePositions[base];
+                const z = waterBasePositions[base + 2];
+                // Broader crossing swells create a more readable moving water surface.
+                const swellA = Math.sin(x * 1.05 + z * 0.52 + envTime * 1.35) * 0.022;
+                const swellB = Math.sin(z * 1.55 - x * 0.82 - envTime * 1.08) * 0.016;
+                const swellC = Math.sin(x * 2.05 - z * 1.72 + envTime * 1.72) * 0.0065;
+                const rippleAX = x + 1.2, rippleAZ = z - 0.55;
+                const rippleBX = x - 1.55, rippleBZ = z + 0.9;
+                const rippleA = Math.sin(Math.hypot(rippleAX, rippleAZ) * 5.4 - envTime * 2.25)
+                    * 0.010 * Math.exp(-Math.hypot(rippleAX, rippleAZ) * 0.19);
+                const rippleB = Math.sin(Math.hypot(rippleBX, rippleBZ) * 6.1 - envTime * 1.85)
+                    * 0.008 * Math.exp(-Math.hypot(rippleBX, rippleBZ) * 0.22);
+                waterPositions[base + 1] = swellA + swellB + swellC + rippleA + rippleB;
+            }
+            waterGeo.attributes.position.needsUpdate = true;
+            waterGeo.computeVertexNormals();
+            // Each source emits a sequence of soft expanding rings that fade naturally.
+            rippleVisuals.forEach(ripple => {
+                const progress = (envTime * ripple.speed + ripple.phase) % 1;
+                const radius = 0.22 + progress * 1.18;
+                ripple.mesh.scale.setScalar(radius);
+                ripple.material.opacity = meadowOpacity * 0.23 * Math.pow(1 - progress, 1.35);
+            });
+            water.position.y = 0.018 + Math.sin(envTime * 1.05) * 0.0025;
+            water.scale.set(1 + Math.sin(envTime * 0.7) * 0.0015, 1, 1 + Math.cos(envTime * 0.8) * 0.0015);
             flyMotion.forEach(fly => {
                 const t = envTime * fly.speed + fly.phase;
                 fly.object.position.set(
@@ -2703,6 +2942,13 @@
                 tw.object.position.z = tw.startZ + Math.cos(t * 0.2) * 1.5;
                 tw.object.rotation.x = t * 1.2;
                 tw.object.rotation.z = t * 0.8;
+                // Re-seat from the rotated mesh bounds each frame. This compensates
+                // for both changing dune height and the tumbleweed's changing shape profile.
+                const twGround = desertSurfaceY(tw.object.position.x, tw.object.position.z);
+                tw.object.position.y = twGround + tw.size * 0.35;
+                tw.object.updateMatrixWorld(true);
+                const twBounds = new THREE.Box3().setFromObject(tw.object);
+                tw.object.position.y += twGround - twBounds.min.y - 0.002;
             });
 
             if (env.cycleOn) env.time = (env.time + Math.min(dt, 0.1) * 24 / env.cycleLen) % 24;
@@ -2734,17 +2980,6 @@
             moonDisc.position.copy(_dir).multiplyScalar(130);
             moonDisc.material.opacity = nightF;
             moonDisc.visible = nightF > 0.02;
-
-            // Ground bounce light - sunlight/moonlight reflected by ground onto the box
-            const activeLightColor = dayF > 0.5 ? sunLight.color : moonLight.color;
-            const activeLightIntensity = dayF > 0.5 ? sunLight.intensity : moonLight.intensity;
-            _bounceColor.copy(activeLightColor).multiply(ground.material.color);
-            groundBounceLight.color.copy(_bounceColor);
-            groundBounceLight.intensity = activeLightIntensity * (shadersEnabled ? 0.35 : 0.2);
-            groundBounceLight.position.set(0, floorY - 0.4, 1.5);
-            groundBouncePoint.color.copy(_bounceColor);
-            groundBouncePoint.intensity = activeLightIntensity * (shadersEnabled ? 1.25 : 0.72);
-            groundBouncePoint.position.set(0, floorY + 0.28, 0.35);
 
             // Fill light intensity varies with shaders
             fillLight.intensity = shadersEnabled ? 0.36 : 0.22;
@@ -2782,6 +3017,68 @@
                 customGroundColor.b * sceneWeights.classic + sceneGroundColors.meadow.b * meadowOpacity + sceneGroundColors.desert.b * desertOpacity
             );
             ground.material.color.copy(sceneColorScratch);
+
+            // Ground-coloured bounce follows the combined sun/moon direction. The
+            // ground tint is blended with the source light rather than multiplied,
+            // so the reflected colour stays visible without becoming muddy or strong.
+            const bounceSunPower = sunLight.intensity;
+            const bounceMoonPower = moonLight.intensity;
+            const bouncePower = bounceSunPower + bounceMoonPower;
+            if (bouncePower > 0.0001) {
+                _bounceSourceColor.copy(sunLight.color).multiplyScalar(bounceSunPower)
+                    .add(_bounceTempColor.copy(moonLight.color).multiplyScalar(bounceMoonPower))
+                    .multiplyScalar(1 / bouncePower);
+            } else {
+                _bounceSourceColor.setRGB(0, 0, 0);
+            }
+            _bounceGroundTint.copy(ground.material.color);
+            _bounceColor.copy(_bounceSourceColor).lerp(_bounceGroundTint, 0.64).multiplyScalar(0.72);
+
+            // Average the visible box positions so the bounce remains attached to
+            // upright, lying and paired layouts, including a rotated turntable.
+            _bounceBoxCenter.set(0, 0, 0);
+            let bounceBoxCount = 0;
+            for (const bounceBox of boxGroups) {
+                if (!bounceBox.visible) continue;
+                bounceBox.getWorldPosition(_bounceBoxTemp);
+                _bounceBoxCenter.add(_bounceBoxTemp);
+                bounceBoxCount++;
+            }
+            if (bounceBoxCount > 0) _bounceBoxCenter.multiplyScalar(1 / bounceBoxCount);
+
+            // The ground patch sits on the side facing the strongest combined
+            // sunlight/moonlight direction, so its coloured fill moves through the day.
+            arcDirection(env.sunAngle, _bounceSunDir);
+            arcDirection(env.moonAngle, _bounceMoonDir);
+            _bounceDirection.copy(_bounceSunDir).multiplyScalar(bounceSunPower)
+                .addScaledVector(_bounceMoonDir, bounceMoonPower);
+            _bounceDirection.y = 0;
+            if (_bounceDirection.lengthSq() < 0.000001) _bounceDirection.set(0, 0, 1);
+            else _bounceDirection.normalize();
+
+            groundBounceLight.color.copy(_bounceColor);
+            groundBounceLight.intensity = bouncePower * 0.055;
+            groundBounceLight.position.set(
+                _bounceBoxCenter.x + _bounceDirection.x * 1.25,
+                floorY + 0.16,
+                _bounceBoxCenter.z + _bounceDirection.z * 1.25
+            );
+            groundBounceLight.target.position.copy(_bounceBoxCenter);
+            groundBounceLight.target.updateMatrixWorld();
+
+            groundBouncePoint.color.copy(_bounceColor);
+            groundBouncePoint.intensity = bouncePower * 0.22;
+            groundBouncePoint.position.set(
+                _bounceBoxCenter.x + _bounceDirection.x * 0.78,
+                floorY + 0.24,
+                _bounceBoxCenter.z + _bounceDirection.z * 0.78
+            );
+
+            // Hemisphere ground colour softly reaches the underside and lower
+            // faces of the box without a hard hotspot or a strong direct beam.
+            groundBounceHemi.color.setRGB(0, 0, 0);
+            groundBounceHemi.groundColor.copy(_bounceColor);
+            groundBounceHemi.intensity = bouncePower * 0.12;
 
             hemiLight.color.copy(_skyDay).lerp(WHITE, 0.55);
             hemiLight.groundColor.copy(ground.material.color).multiplyScalar(0.85);
@@ -2939,6 +3236,19 @@
             });
             angleVal.innerText = Math.round(currentOpens[0] * 65);
             controls.update();
+            // Refresh the reflection a few times per second while the meadow is
+            // visible. Hiding the water during capture prevents recursive self-reflection.
+            if (sceneWeights.meadow > 0.06 && envTime - lastPondReflectionUpdate > 0.65) {
+                lastPondReflectionUpdate = envTime;
+                const waterWasVisible = water.visible;
+                water.visible = false;
+                try {
+                    pondReflectionCamera.position.set(pondX, pondGroup.position.y + water.position.y + 0.10, pondZ);
+                    pondReflectionCamera.update(renderer, scene);
+                } finally {
+                    water.visible = waterWasVisible;
+                }
+            }
             renderer.render(scene, camera);
         }
         animate();
@@ -2978,9 +3288,9 @@
             dustBtn.innerText = '✨ Dust: ON';
             dustBtn.classList.add('on');
 
-            hdrEnabled = true;
-            hdrBtn.innerText = '🌅 HDR: ON';
-            hdrBtn.classList.add('on');
+            hdrEnabled = false;
+            hdrBtn.innerText = '🌅 HDR: OFF';
+            hdrBtn.classList.remove('on');
 
             shadersEnabled = false;
             shadersBtn.innerText = '🎬 Shaders: OFF';
