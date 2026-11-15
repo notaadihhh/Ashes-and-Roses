@@ -22,8 +22,8 @@
         button.on { background: #16a34a; border-color: #16a34a; }
         input[type="range"] { width: 100%; accent-color: #e50914; }
 
-        /* liquid-glass look shared by the title, the panel-images button and the bottom bar */
-        #title-card, #imagesBtn, #bottom-bar, #imagesPanel, #welcomeDialog, .popup-glass {
+        /* liquid-glass look shared by the title, top buttons, panels and bottom bar */
+        #title-card, #imagesBtn, #visualsBtn, #bottom-bar, #imagesPanel, #visualsPanel, .popup-glass {
             background: linear-gradient(135deg, rgba(52, 58, 76, 0.46), rgba(18, 20, 28, 0.30));
             -webkit-backdrop-filter: blur(10px) saturate(170%);
             backdrop-filter: blur(10px) saturate(170%);
@@ -33,22 +33,73 @@
         #title-card { position: absolute; top: 16px; left: 16px; z-index: 10; padding: 10px 18px; border-radius: 16px; }
         #title-card h1 { text-shadow: 0 1px 3px rgba(0,0,0,0.45); }
 
-        /* top-right: panel images button + popup */
+        /* top-right controls and popups */
         #imagesBtn { position: absolute; top: 16px; right: 16px; z-index: 11; padding: 10px 16px; border-radius: 16px; text-shadow: 0 1px 3px rgba(0,0,0,0.45); }
-        #imagesBtn:hover { background: linear-gradient(135deg, rgba(80, 88, 110, 0.55), rgba(30, 33, 44, 0.40)); }
-        #imagesBtn.on { background: linear-gradient(135deg, rgba(34, 197, 94, 0.55), rgba(21, 128, 61, 0.45)); }
-        #imagesPanel {
-            position: absolute; top: 66px; right: 16px; width: 320px; z-index: 11;
-            max-height: calc(100vh - 220px); overflow-y: auto;
+        #visualsBtn { position: absolute; top: 66px; right: 16px; z-index: 11; padding: 10px 16px; border-radius: 16px; text-shadow: 0 1px 3px rgba(0,0,0,0.45); }
+        #imagesBtn:hover, #visualsBtn:hover { background: linear-gradient(135deg, rgba(80, 88, 110, 0.55), rgba(30, 33, 44, 0.40)); }
+        #imagesBtn.on, #visualsBtn.on { background: linear-gradient(135deg, rgba(34, 197, 94, 0.55), rgba(21, 128, 61, 0.45)); }
+        #imagesPanel, #visualsPanel {
+            box-sizing: border-box; position: absolute; top: 116px; right: 16px;
+            width: min(320px, calc(100vw - 32px)); z-index: 11;
+            max-height: calc(100vh - 132px); overflow-y: auto;
             padding: 14px; border-radius: 18px;
             transform-origin: top right; opacity: 0; visibility: hidden; pointer-events: none;
             transform: translateY(-12px) scale(0.9);
             transition: opacity 0.26s ease, transform 0.3s cubic-bezier(.4,0,.6,1), visibility 0s linear 0.3s;
         }
-        #imagesPanel.open {
+        #imagesPanel.open, #visualsPanel.open {
             opacity: 1; visibility: visible; pointer-events: auto; transform: none;
             transition: opacity 0.3s ease, transform 0.42s cubic-bezier(.2,.9,.3,1.18), visibility 0s;
         }
+        #cinematicGrain {
+            position: fixed; inset: 0; z-index: 5; pointer-events: none;
+            background-repeat: repeat; background-size: 512px 512px;
+            mix-blend-mode: soft-light; opacity: 0; visibility: hidden;
+            transition: opacity 0.18s ease, visibility 0s linear 0.18s;
+        }
+        #cinematicGrain.active { visibility: visible; transition: opacity 0.18s ease, visibility 0s; }
+        .visual-toggle-row { display: flex; gap: 8px; }
+        .visual-toggle-row button {
+            flex: 1; padding: 8px 6px; white-space: nowrap; font-size: 11px;
+            background: rgba(255,255,255,0.10); border-color: rgba(255,255,255,0.22);
+            text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+        }
+        .visual-toggle-row button:hover { background: rgba(255,255,255,0.22); }
+        .visual-toggle-row button.on { background: rgba(22,163,74,0.65); border-color: rgba(74,222,128,0.6); }
+        .shader-sliders {
+            max-height: 0; margin-top: 0; overflow: hidden; opacity: 0;
+            visibility: hidden; transform: translateY(-6px);
+            transition: max-height 0.42s ease, margin-top 0.38s ease, opacity 0.28s ease, transform 0.35s ease, visibility 0s linear 0.42s;
+        }
+        .shader-sliders.open { max-height: 230px; margin-top: 10px; opacity: 1; visibility: visible; transform: none; transition: max-height 0.42s ease, margin-top 0.38s ease, opacity 0.28s ease, transform 0.35s ease, visibility 0s; }
+        .visual-row {
+            display: grid; grid-template-columns: 90px minmax(0, 1fr); align-items: center;
+            gap: 8px; min-height: 43px; opacity: 0; transform: translateY(-5px);
+            transition: opacity 0.25s ease, transform 0.3s ease;
+        }
+        .shader-sliders.open .visual-row { opacity: 1; transform: none; }
+        .shader-sliders.open .visual-row:nth-child(1) { transition-delay: 0.06s; }
+        .shader-sliders.open .visual-row:nth-child(2) { transition-delay: 0.13s; }
+        .shader-sliders.open .visual-row:nth-child(3) { transition-delay: 0.20s; }
+        .shader-sliders.open .visual-row:nth-child(4) { transition-delay: 0.27s; }
+        .visual-row label { margin: 0; color: #eee; font-size: 11px; }
+        .visual-slider-control { display: flex; align-items: center; gap: 7px; min-width: 0; }
+        .visual-range-wrap { position: relative; flex: 1; min-width: 0; height: 22px; }
+        .visual-range-wrap input {
+            position: absolute; left: 0; top: 6px; width: 100%; height: 14px; margin: 0;
+            accent-color: #ef4444; z-index: 1;
+        }
+        .visual-default-marker {
+            position: absolute; top: 0; left: var(--default-position); z-index: 2;
+            width: 7px; height: 7px; border: 1px solid #fff; border-radius: 50%;
+            background: #22c55e; box-shadow: 0 0 5px rgba(34,197,94,0.8);
+            transform: translateX(-50%); pointer-events: none;
+        }
+        .visual-default-marker::after {
+            content: ""; position: absolute; left: 50%; top: 7px; width: 1px; height: 7px;
+            background: rgba(74,222,128,0.85); transform: translateX(-50%);
+        }
+        .visual-value { min-width: 32px; color: #eee; font-size: 10px; text-align: right; }
         .batch-btn { width: 100%; margin-bottom: 10px; }
         .file-row {
             display: flex; align-items: center; justify-content: space-between;
@@ -133,34 +184,6 @@
         #groundControl { width: 86px; min-width: 0; flex: 0 0 auto; overflow: hidden; white-space: nowrap; transition: width 0.38s cubic-bezier(.4,0,.2,1), opacity 0.28s ease; }
         #groundControl.scene-hidden { width: 0; opacity: 0; pointer-events: none; }
 
-        /* welcome dialog */
-        #welcomeOverlay {
-            position: fixed; inset: 0; z-index: 100;
-            background: rgba(14, 20, 34, 0.18);
-            -webkit-backdrop-filter: blur(16px) saturate(160%); backdrop-filter: blur(16px) saturate(160%);
-            opacity: 0; visibility: hidden;
-            transition: opacity 0.4s ease, visibility 0s linear 0.4s;
-        }
-        #welcomeOverlay.open { opacity: 1; visibility: visible; transition: opacity 0.4s ease, visibility 0s; }
-        #welcomeDialog {
-            position: fixed; left: 50%; top: 50%; z-index: 101; width: min(380px, calc(100vw - 32px)); box-sizing: border-box;
-            padding: 26px 24px 22px; border-radius: 22px; text-align: center;
-            transform-origin: center; opacity: 0; visibility: hidden; pointer-events: none;
-            transform: translate(-50%, -50%) scale(0.9);
-            transition: opacity 0.26s ease, transform 0.3s cubic-bezier(.4,0,.6,1), visibility 0s linear 0.3s;
-        }
-        #welcomeDialog.open {
-            opacity: 1; visibility: visible; pointer-events: auto; transform: translate(-50%, -50%);
-            transition: opacity 0.3s ease, transform 0.45s cubic-bezier(.2,.9,.3,1.18), visibility 0s;
-        }
-        #welcomeDialog h1 { font-size: 24px; margin: 0 0 6px; text-shadow: 0 1px 3px rgba(0,0,0,0.45); }
-        #welcomeDialog p { margin: 0 0 18px; font-size: 12px; line-height: 1.5; color: #e6e6e6; text-shadow: 0 1px 2px rgba(0,0,0,0.4); }
-        .welcome-btn {
-            display: block; width: 100%; margin-top: 10px; padding: 11px 14px; font-size: 12px; border-radius: 12px;
-            background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.26); text-shadow: 0 1px 2px rgba(0,0,0,0.4);
-        }
-        .welcome-btn:hover { background: rgba(255,255,255,0.24); }
-        #welcomeDialog .hint { margin: 14px 0 0; font-size: 10px; color: #cfcfcf; }
     </style>
 
 </head>
@@ -171,7 +194,10 @@
 
     <!-- Top-right: panel image uploads -->
     <button id="imagesBtn">🖼 Panel Images</button>
+    <button id="visualsBtn" aria-haspopup="true" aria-expanded="false">✨ Visuals</button>
     <div id="imagesPanel">
+        <button class="batch-btn" id="chooseImageFolderBtn">📂 Choose Folder with Panel Images</button>
+        <input type="file" id="panelFolderInput" webkitdirectory directory multiple accept="image/png" style="display:none">
         <button class="batch-btn" onclick="document.getElementById('batchInput').click()">📁 Select All 13 Images at Once</button>
         <input type="file" id="batchInput" multiple accept="image/*" style="display:none">
         <div class="status" id="statusText">Waiting for images...</div>
@@ -189,6 +215,54 @@
         <div class="file-row"><span>Side 2 Triangle</span><input type="file" accept="image/*" data-panel="side2Triangle"></div>
         <div class="file-row"><span>Inner Sides (innerside)</span><input type="file" accept="image/*" data-panel="innerSide"></div>
         <div class="file-row"><span>Inner Curve (inner)</span><input type="file" accept="image/*" data-panel="inner"></div>
+    </div>
+    <div id="visualsPanel">
+        <div class="visual-toggle-row">
+            <button id="hdrBtn" title="Toggle HDR tone mapping">🌅 HDR: OFF</button>
+            <button id="shadersBtn" title="Toggle atmosphere, bounce lighting, and box gloss">🎬 Shaders: OFF</button>
+        </div>
+        <div id="shaderSliders" class="shader-sliders">
+            <div class="visual-row">
+                <label for="atmosphereSlider">Atmosphere</label>
+                <div class="visual-slider-control">
+                    <div class="visual-range-wrap">
+                        <span class="visual-default-marker" style="--default-position:66.6667%"></span>
+                        <input id="atmosphereSlider" type="range" min="0" max="150" value="100" step="1" aria-label="Atmosphere strength">
+                    </div>
+                    <span id="atmosphereValue" class="visual-value">100%</span>
+                </div>
+            </div>
+            <div class="visual-row">
+                <label for="glossSlider">Gloss</label>
+                <div class="visual-slider-control">
+                    <div class="visual-range-wrap">
+                        <span class="visual-default-marker" style="--default-position:66.6667%"></span>
+                        <input id="glossSlider" type="range" min="0" max="150" value="100" step="1" aria-label="Box gloss">
+                    </div>
+                    <span id="glossValue" class="visual-value">100%</span>
+                </div>
+            </div>
+            <div class="visual-row">
+                <label for="bounceSlider">Bounce off light</label>
+                <div class="visual-slider-control">
+                    <div class="visual-range-wrap">
+                        <span class="visual-default-marker" style="--default-position:66.6667%"></span>
+                        <input id="bounceSlider" type="range" min="0" max="150" value="100" step="1" aria-label="Bounce off light strength">
+                    </div>
+                    <span id="bounceValue" class="visual-value">100%</span>
+                </div>
+            </div>
+            <div class="visual-row">
+                <label for="cinematicGrainSlider">Cinematic Grain</label>
+                <div class="visual-slider-control">
+                    <div class="visual-range-wrap">
+                        <span class="visual-default-marker" style="--default-position:20%"></span>
+                        <input id="cinematicGrainSlider" type="range" min="0" max="100" value="20" step="1" aria-label="Cinematic grain strength">
+                    </div>
+                    <span id="cinematicGrainValue" class="visual-value">20%</span>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Bottom bar -->
@@ -242,9 +316,7 @@
             </div></div>
         </div>
 
-        <button id="dustBtn" class="on" title="Show / hide the glittering dust particles">✨ Dust: ON</button>
-        <button id="hdrBtn" title="Toggle HDR tone mapping">🌅 HDR: OFF</button>
-        <button id="shadersBtn" title="Toggle cinematic colour grade for a vibrant, film-like look">🎬 Shaders: OFF</button>
+        <button id="dustBtn" title="Show / hide the magic particles around the box">✨ Magic particles: OFF</button>
         <button id="snapshotBtn" title="Save the current view as an image">📷 Snapshot</button>
         <button id="resetBtn" title="Reset the view and every setting (your images are kept)">↺ Reset</button>
         <button id="controlsBtn">ℹ Controls</button>
@@ -262,13 +334,14 @@
         • <b>Turntable</b>: spins the box, a speed slider slides out<br>
         • <b>Drag the clock hand</b>: set the time (sun by day, moon by night)<br>
         • <b>Cycle</b>: plays a full day, then a night; a length slider slides out<br>
+        • <b>Hover over panel buttons</b>: open a panel; move into it to keep it open, and away from both to close<br>
+        • <b>Hover over lid, Turntable or Cycle</b>: reveal their sliders<br>
         • <b>Scenes</b>: switch between meadows, desert dunes, and the classic background<br>
         • <b>Ground</b>: pick the surface colour<br>
-        • <b>Dust</b>: turns the glittering dust particles on / off<br>
-        • <b>HDR</b>: toggles HDR tone mapping for high dynamic range lighting<br>
-        • <b>Shaders</b>: toggles a cinematic colour grade with richer saturation, contrast and warm highlights<br>
+        • <b>Magic particles</b>: toggles the floating particles around the box<br>
+        • <b>Visuals</b>: hover to open; hover Shaders to reveal Atmosphere, Gloss, Bounce and Cinematic Grain<br>
         • <b>Snapshot</b>: downloads the current view as a PNG<br>
-        • Click anywhere else on the page to close an open box
+        • Move away from a panel button and its panel to close it
     </div>
     <div id="boxPositionPopup" class="popup-glass">
         <label>Choose box positioning</label>
@@ -326,16 +399,7 @@
     </div>
 
     <div id="canvas-container"></div>
-
-    <!-- Welcome dialog -->
-    <div id="welcomeOverlay"></div>
-    <div id="welcomeDialog" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle">
-        <h1 id="welcomeTitle">Roses and Ashes</h1>
-        <p>Upload the images for the box.</p>
-        <button class="welcome-btn" id="welcomeAllBtn">📁 Upload all images at once</button>
-        <button class="welcome-btn" id="welcomeEachBtn">🖼 Upload each image separately</button>
-        <p class="hint">Click anywhere outside this box to skip and see the box as it is.</p>
-    </div>
+    <div id="cinematicGrain" aria-hidden="true"></div>
 
     <script>
     (async function bootstrapRosesAndAshes() {
@@ -424,7 +488,8 @@
         // ================= ENVIRONMENT SETTINGS =================
         const SKY_COLOR = 0x87ceeb;
         const GROUND_COLOR = 0x9a9da1;
-        const CIGARETTE_COLOR = 0xff8c1a;
+        const CIGARETTE_BUTT_COLOR = 0xff8c1a;
+        const CIGARETTE_END_COLOR = 0xdeb566;
         const INTERIOR_COLOR = 0xffffff;
         const NIGHT_SKY_COLOR = 0x070b1f;
         const SUNRISE_SUNSET_SKY = 0xf0916a;
@@ -451,9 +516,10 @@
         camera.position.set(3.4, 2.6, 7.6);
         scene.add(camera);
 
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        const RENDER_PIXEL_RATIO_CAP = 1.75;
+        const renderer = new THREE.WebGLRenderer({ antialias: true, stencil: false, powerPreference: 'high-performance' });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, RENDER_PIXEL_RATIO_CAP));
         renderer.outputEncoding = THREE.sRGBEncoding;
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
         renderer.toneMappingExposure = 0.85;
@@ -464,6 +530,28 @@
         // consistently (terrain, foliage, water, sky and the box).
         let hdrEnabled = false;
         let shadersEnabled = false;
+        let pondReflectionDirty = true;
+        let boxReflectionDirty = true;
+        // Shadow maps only depend on the lights and on moving casters (never on the
+        // camera), so they are refreshed on demand instead of on every single frame.
+        let shadowForceUpdate = true;
+        function invalidatePondReflection() {
+            pondReflectionDirty = true;
+            shadowForceUpdate = true;
+        }
+        function invalidateBoxReflection() {
+            boxReflectionDirty = true;
+            shadowForceUpdate = true;
+        }
+        function invalidateReflections() {
+            invalidatePondReflection();
+            invalidateBoxReflection();
+        }
+        const VISUAL_SLIDER_DEFAULTS = { atmosphere: 100, gloss: 100, bounce: 100, grain: 20 };
+        let atmosphereAmount = VISUAL_SLIDER_DEFAULTS.atmosphere;
+        let boxGlossAmount = VISUAL_SLIDER_DEFAULTS.gloss;
+        let bounceAmount = VISUAL_SLIDER_DEFAULTS.bounce;
+        let grainAmount = VISUAL_SLIDER_DEFAULTS.grain;
         function updatePostProcessing() {
             renderer.toneMapping = hdrEnabled ? THREE.ACESFilmicToneMapping : THREE.NoToneMapping;
             // Restore the brighter filmic exposure that gave the earlier build its
@@ -489,6 +577,7 @@
         // Shadows
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.shadowMap.autoUpdate = false; // refreshed manually in animate()
 
         // Lighting
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.58);
@@ -498,24 +587,18 @@
         const rimLight = new THREE.DirectionalLight(0xffffff, 0);
         scene.add(rimLight);
 
-        // Subtle ground bounce: a directional lift follows the active sun/moon,
-        // a local point fill reaches the lower side faces, and a hemisphere light
-        // gives downward-facing box surfaces a restrained ground-coloured ambient lift.
-        const groundBounceLight = new THREE.DirectionalLight(0xffffff, 0);
-        groundBounceLight.position.set(0, -5, 0);
-        scene.add(groundBounceLight);
-        scene.add(groundBounceLight.target);
-        const groundBouncePoint = new THREE.PointLight(0xffffff, 0, 6.5, 2);
-        groundBouncePoint.position.set(0, -1.95, 0.35);
-        scene.add(groundBouncePoint);
-        const groundBounceHemi = new THREE.HemisphereLight(0x000000, 0x000000, 0);
-        scene.add(groundBounceHemi);
+        const lowerBounceUniforms = {
+            color: { value: new THREE.Color() },
+            intensity: { value: 0 },
+            minY: { value: 0 },
+            maxY: { value: 1 }
+        };
 
         function makeShadowLight(color, intensity) {
             const l = new THREE.DirectionalLight(color, intensity);
             l.position.set(5, 10, 7);
             l.castShadow = true;
-            l.shadow.mapSize.set(4096, 4096);
+            l.shadow.mapSize.set(1792, 1792);
             l.shadow.camera.left = -32;
             l.shadow.camera.right = 32;
             l.shadow.camera.top = 32;
@@ -525,7 +608,7 @@
             l.shadow.camera.updateProjectionMatrix();
             l.shadow.bias = -0.0002;
             l.shadow.normalBias = 0.02;
-            l.shadow.radius = 4;
+            l.shadow.radius = 1.5;
             scene.add(l);
             return l;
         }
@@ -542,17 +625,17 @@
 
         // Materials
         const materials = {
-            front: new THREE.MeshPhysicalMaterial({ color: 0xeeeeee, roughness: 0.35, clearcoat: 0.55, clearcoatRoughness: 0.22 }),
-            lidFront: new THREE.MeshPhysicalMaterial({ color: 0xdddddd, roughness: 0.35, clearcoat: 0.55, clearcoatRoughness: 0.22 }),
-            top: new THREE.MeshPhysicalMaterial({ color: 0xcccccc, roughness: 0.35, clearcoat: 0.55, clearcoatRoughness: 0.22 }),
-            back: new THREE.MeshPhysicalMaterial({ color: 0xeeeeee, roughness: 0.35, clearcoat: 0.55, clearcoatRoughness: 0.22 }),
-            bottom: new THREE.MeshPhysicalMaterial({ color: 0xcccccc, roughness: 0.35, clearcoat: 0.55, clearcoatRoughness: 0.22 }),
-            side1: new THREE.MeshPhysicalMaterial({ color: 0xe5e5e5, roughness: 0.35, clearcoat: 0.55, clearcoatRoughness: 0.22 }),
-            side2: new THREE.MeshPhysicalMaterial({ color: 0xe5e5e5, roughness: 0.35, clearcoat: 0.55, clearcoatRoughness: 0.22 }),
-            side1Trapezoid: new THREE.MeshPhysicalMaterial({ color: 0xdc2626, roughness: 0.4, alphaTest: 0.5, clearcoat: 0.45, clearcoatRoughness: 0.25 }),
-            side2Trapezoid: new THREE.MeshPhysicalMaterial({ color: 0xdc2626, roughness: 0.4, alphaTest: 0.5, clearcoat: 0.45, clearcoatRoughness: 0.25 }),
-            side1Triangle:  new THREE.MeshPhysicalMaterial({ color: 0x16a34a, roughness: 0.4, alphaTest: 0.5, clearcoat: 0.45, clearcoatRoughness: 0.25 }),
-            side2Triangle:  new THREE.MeshPhysicalMaterial({ color: 0x16a34a, roughness: 0.4, alphaTest: 0.5, clearcoat: 0.45, clearcoatRoughness: 0.25 }),
+            front: new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.35, clearcoat: 0.55, clearcoatRoughness: 0.22 }),
+            lidFront: new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.35, clearcoat: 0.55, clearcoatRoughness: 0.22 }),
+            top: new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.35, clearcoat: 0.55, clearcoatRoughness: 0.22 }),
+            back: new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.35, clearcoat: 0.55, clearcoatRoughness: 0.22 }),
+            bottom: new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.35, clearcoat: 0.55, clearcoatRoughness: 0.22 }),
+            side1: new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.35, clearcoat: 0.55, clearcoatRoughness: 0.22 }),
+            side2: new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.35, clearcoat: 0.55, clearcoatRoughness: 0.22 }),
+            side1Trapezoid: new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.4, alphaTest: 0.5, clearcoat: 0.45, clearcoatRoughness: 0.25 }),
+            side2Trapezoid: new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.4, alphaTest: 0.5, clearcoat: 0.45, clearcoatRoughness: 0.25 }),
+            side1Triangle:  new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.4, alphaTest: 0.5, clearcoat: 0.45, clearcoatRoughness: 0.25 }),
+            side2Triangle:  new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.4, alphaTest: 0.5, clearcoat: 0.45, clearcoatRoughness: 0.25 }),
             innerSide: new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, metalness: 0, side: THREE.DoubleSide, alphaTest: 0.5 }),
             inner:     new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, metalness: 0, side: THREE.DoubleSide, alphaTest: 0.5 })
         };
@@ -651,6 +734,56 @@
         linerFront.receiveShadow = true;
         lowerBodyGroup.add(linerFront);
 
+        // Cigarette paper uses fine fibers and a subtle longitudinal overlap seam.
+        function makeCigarettePaperTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            const paper = ctx.createLinearGradient(0, 0, canvas.width, 0);
+            paper.addColorStop(0, '#f4f0e5');
+            paper.addColorStop(0.5, '#fffdf5');
+            paper.addColorStop(1, '#eee9dc');
+            ctx.fillStyle = paper;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            let seed = 85421;
+            const random = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+            for (let i = 0; i < 420; i++) {
+                const x = random() * canvas.width;
+                const tone = random() < 0.6 ? 255 : 128;
+                ctx.strokeStyle = `rgba(${tone},${tone},${tone},${0.06 + random() * 0.12})`;
+                ctx.lineWidth = 0.35 + random() * 0.65;
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x + (random() - 0.5) * 2, canvas.height);
+                ctx.stroke();
+            }
+            for (let i = 0; i < 900; i++) {
+                const tone = random() < 0.55 ? 255 : 132;
+                ctx.fillStyle = `rgba(${tone},${tone},${tone},${0.06 + random() * 0.1})`;
+                ctx.fillRect(random() * canvas.width, random() * canvas.height, 1, 1);
+            }
+
+            ctx.beginPath();
+            ctx.moveTo(386, 0);
+            ctx.bezierCurveTo(382, 64, 390, 184, 386, canvas.height);
+            ctx.strokeStyle = 'rgba(126, 102, 62, 0.22)';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(389, 0);
+            ctx.bezierCurveTo(385, 64, 393, 184, 389, canvas.height);
+            ctx.strokeStyle = 'rgba(255, 250, 232, 0.55)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.encoding = THREE.sRGBEncoding;
+            texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+            return texture;
+        }
+
         // Cigarettes
         const CIGS_PER_ROW = 6;
         const CIGS_ROWS = 2;
@@ -659,11 +792,21 @@
         const cigHeight = boxHeight * CIGARETTE_LENGTH_MM / PACK_LENGTH_MM;
         const cigRadius = Math.min(linerFrontW / (2 * CIGS_PER_ROW), linerSideW / (2 * CIGS_ROWS));
         const cigBaseY = -boxHeight / 2 + 0.005;
+        const cigarettePaperTexture = makeCigarettePaperTexture();
+        const cigarettePaperMaterial = new THREE.MeshStandardMaterial({
+            color: CIGARETTE_BUTT_COLOR, map: cigarettePaperTexture,
+            bumpMap: cigarettePaperTexture, bumpScale: 0.012,
+            roughness: 0.94, metalness: 0
+        });
+        const cigaretteEndMaterial = new THREE.MeshStandardMaterial({
+            color: CIGARETTE_END_COLOR, roughness: 1, metalness: 0
+        });
+        const cigaretteGeometry = new THREE.CylinderGeometry(cigRadius, cigRadius, cigHeight, 24);
         for (let r = 0; r < CIGS_ROWS; r++) {
             for (let c = 0; c < CIGS_PER_ROW; c++) {
                 const cig = new THREE.Mesh(
-                    new THREE.CylinderGeometry(cigRadius, cigRadius, cigHeight, 24),
-                    new THREE.MeshStandardMaterial({ color: CIGARETTE_COLOR, roughness: 0.6, metalness: 0 })
+                    cigaretteGeometry,
+                    [cigarettePaperMaterial, cigaretteEndMaterial, cigaretteEndMaterial]
                 );
                 cig.position.set(
                     (c - (CIGS_PER_ROW - 1) / 2) * 2 * cigRadius,
@@ -769,7 +912,7 @@
         function cleanLinerImage(img) {
             const c = document.createElement('canvas');
             c.width = img.naturalWidth; c.height = img.naturalHeight;
-            const ctx = c.getContext('2d');
+            const ctx = c.getContext('2d', { willReadFrequently: true });
             ctx.drawImage(img, 0, 0);
             const data = ctx.getImageData(0, 0, c.width, c.height);
             const d = data.data;
@@ -785,7 +928,7 @@
         function trimTransparent(img) {
             const c = document.createElement('canvas');
             c.width = img.naturalWidth; c.height = img.naturalHeight;
-            const ctx = c.getContext('2d');
+            const ctx = c.getContext('2d', { willReadFrequently: true });
             ctx.drawImage(img, 0, 0);
             const d = ctx.getImageData(0, 0, c.width, c.height).data;
             let minX = c.width, minY = c.height, maxX = -1, maxY = -1;
@@ -805,44 +948,193 @@
             return out;
         }
 
-        const ALL_PANEL_KEYS = ['front', 'lidFront', 'top', 'back', 'bottom', 'side1', 'side2',
-            'side1Trapezoid', 'side1Triangle', 'side2Trapezoid', 'side2Triangle', 'innerSide', 'inner'];
+        const PANEL_IMAGE_FILES = [
+            { key: 'front', filename: 'front.png' },
+            { key: 'lidFront', filename: 'lidfront.png' },
+            { key: 'top', filename: 'top.png' },
+            { key: 'back', filename: 'back.png' },
+            { key: 'bottom', filename: 'bottom.png' },
+            { key: 'side1', filename: 'side1.png' },
+            { key: 'side2', filename: 'side2.png' },
+            { key: 'side1Trapezoid', filename: 'side1trapezoid.png' },
+            { key: 'side1Triangle', filename: 'side1triangle.png' },
+            { key: 'side2Trapezoid', filename: 'side2trapezoid.png' },
+            { key: 'side2Triangle', filename: 'side2triangle.png' },
+            { key: 'innerSide', filename: 'innerside.png' },
+            { key: 'inner', filename: 'inner.png' }
+        ];
+        const PANEL_IMAGE_BASE_URL = 'https://raw.githubusercontent.com/notaadihhh/Ashes-and-Roses/main/';
+        const PANEL_IMAGE_CACHE_DB = 'roses-and-ashes-panel-images';
+        const PANEL_IMAGE_CACHE_STORE = 'images';
+        const PANEL_IMAGE_CACHE_VERSION = 1;
+        const PANEL_IMAGE_CACHE_MAX_AGE = 30 * 24 * 60 * 60 * 1000;
+        let panelImageCacheDbPromise = null;
+        let panelImageCacheUnavailable = false;
+        const ALL_PANEL_KEYS = PANEL_IMAGE_FILES.map(panel => panel.key);
         const loadedPanelKeys = new Set();
+        const manuallyOverriddenPanelKeys = new Set();
         let allPanelsHandled = false;
-        function onPanelImageLoaded(key) {
+
+        function getPanelImageCacheDb() {
+            if (panelImageCacheUnavailable) return Promise.resolve(null);
+            if (!window.indexedDB) {
+                panelImageCacheUnavailable = true;
+                console.warn('IndexedDB is unavailable; panel images will use the browser network cache only.');
+                return Promise.resolve(null);
+            }
+            if (!panelImageCacheDbPromise) {
+                panelImageCacheDbPromise = new Promise((resolve, reject) => {
+                    const request = window.indexedDB.open(PANEL_IMAGE_CACHE_DB, PANEL_IMAGE_CACHE_VERSION);
+                    request.onupgradeneeded = () => {
+                        if (!request.result.objectStoreNames.contains(PANEL_IMAGE_CACHE_STORE)) {
+                            request.result.createObjectStore(PANEL_IMAGE_CACHE_STORE, { keyPath: 'url' });
+                        }
+                    };
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error || new Error('Unable to open the image cache.'));
+                    request.onblocked = () => reject(new Error('The image cache is blocked by another page.'));
+                }).catch(error => {
+                    panelImageCacheUnavailable = true;
+                    console.warn('Persistent panel image caching is unavailable; continuing with network loading.', error);
+                    return null;
+                });
+            }
+            return panelImageCacheDbPromise;
+        }
+
+        function readCachedPanelImage(url) {
+            return getPanelImageCacheDb().then(db => {
+                if (!db) return null;
+                return new Promise((resolve, reject) => {
+                    const request = db.transaction(PANEL_IMAGE_CACHE_STORE, 'readonly')
+                        .objectStore(PANEL_IMAGE_CACHE_STORE).get(url);
+                    request.onsuccess = () => {
+                        const record = request.result;
+                        if (!record || record.version !== PANEL_IMAGE_CACHE_VERSION ||
+                            Date.now() - record.cachedAt > PANEL_IMAGE_CACHE_MAX_AGE ||
+                            !(record.blob instanceof Blob)) {
+                            resolve(null);
+                            return;
+                        }
+                        resolve(record.blob);
+                    };
+                    request.onerror = () => reject(request.error || new Error('Unable to read a cached panel image.'));
+                });
+            }).catch(error => {
+                console.warn('Unable to read the panel image cache; downloading the image instead.', error);
+                return null;
+            });
+        }
+
+        function storeCachedPanelImage(url, blob) {
+            return getPanelImageCacheDb().then(db => {
+                if (!db) return;
+                return new Promise((resolve, reject) => {
+                    const transaction = db.transaction(PANEL_IMAGE_CACHE_STORE, 'readwrite');
+                    transaction.objectStore(PANEL_IMAGE_CACHE_STORE).put({
+                        url,
+                        blob,
+                        cachedAt: Date.now(),
+                        version: PANEL_IMAGE_CACHE_VERSION
+                    });
+                    transaction.oncomplete = resolve;
+                    transaction.onerror = () => reject(transaction.error || new Error('Unable to save a panel image.'));
+                    transaction.onabort = () => reject(transaction.error || new Error('Saving a panel image was aborted.'));
+                });
+            }).catch(error => {
+                console.warn('Unable to save a panel image for reuse; the image is still available for this session.', error);
+            });
+        }
+
+        function loadPanelImageBlob(blob) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                const objectUrl = URL.createObjectURL(blob);
+                img.onload = () => {
+                    const finish = () => { URL.revokeObjectURL(objectUrl); resolve(img); };
+                    if (img.decode) img.decode().then(finish, finish); else finish();
+                };
+                img.onerror = () => {
+                    URL.revokeObjectURL(objectUrl);
+                    reject(new Error('The panel image data could not be decoded.'));
+                };
+                img.src = objectUrl;
+            });
+        }
+
+        async function loadPanelImage(url) {
+            const cachedBlob = await readCachedPanelImage(url);
+            if (cachedBlob) {
+                try {
+                    return { image: await loadPanelImageBlob(cachedBlob), fromCache: true };
+                } catch (error) {
+                    console.warn('A cached panel image could not be decoded; downloading a fresh copy.', error);
+                }
+            }
+
+            const response = await fetch(url, { mode: 'cors' });
+            if (!response.ok) throw new Error(`Panel image request failed (${response.status} ${response.statusText}).`);
+            const blob = await response.blob();
+            if (!blob.size) throw new Error('The downloaded panel image is empty.');
+            const image = await loadPanelImageBlob(blob);
+            await storeCachedPanelImage(url, blob);
+            return { image, fromCache: false };
+        }
+
+        function onPanelImageLoaded(key, fromFolder = false) {
             loadedPanelKeys.add(key);
             if (!allPanelsHandled && ALL_PANEL_KEYS.every(k => loadedPanelKeys.has(k))) {
                 allPanelsHandled = true;
                 document.getElementById('statusText').innerText = `All ${ALL_PANEL_KEYS.length} images loaded ✔`;
-                setTimeout(closeImagesPanel, 900);
+                if (!fromFolder) setTimeout(closeImagesPanel, 900);
             }
+        }
+
+        function applyPanelImage(panelKey, img, fromFolder = false) {
+            let source = img;
+            try {
+                if (TRIM_PANELS.has(panelKey)) source = trimTransparent(img);
+                if (LINER_KEYS.has(panelKey)) source = cleanLinerImage(img);
+            } catch (error) {
+                if (!fromFolder || !(error instanceof DOMException) || error.name !== 'SecurityError') throw error;
+                source = img;
+            }
+            const tex = new THREE.Texture(source);
+            tex.encoding = THREE.sRGBEncoding;
+            tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+            tex.needsUpdate = true;
+            const replacedTextures = new Set([
+                materials[panelKey].map,
+                LINER_KEYS.has(panelKey) ? linerDepthMats[panelKey].map : null,
+                TRIM_PANELS.has(panelKey) ? innerMaterials[panelKey].map : null
+            ]);
+            materials[panelKey].map = tex;
+            materials[panelKey].color.setHex(0xffffff);
+            materials[panelKey].needsUpdate = true;
+            onPanelImageLoaded(panelKey, fromFolder);
+            if (LINER_KEYS.has(panelKey)) {
+                linerDepthMats[panelKey].map = tex;
+                linerDepthMats[panelKey].needsUpdate = true;
+            }
+            if (TRIM_PANELS.has(panelKey)) {
+                innerMaterials[panelKey].map = tex;
+                innerMaterials[panelKey].needsUpdate = true;
+            }
+            replacedTextures.forEach(previousTexture => {
+                if (previousTexture && previousTexture !== tex) previousTexture.dispose();
+            });
+            if (!fromFolder) invalidatePondReflection();
         }
 
         function applyImageFile(panelKey, file) {
             if (!file || !materials[panelKey]) return;
+            manuallyOverriddenPanelKeys.add(panelKey);
             const reader = new FileReader();
             reader.onload = function(e) {
                 const img = new Image();
-                img.onload = function() {
-                    let source = img;
-                    if (TRIM_PANELS.has(panelKey)) source = trimTransparent(img);
-                    if (LINER_KEYS.has(panelKey)) source = cleanLinerImage(img);
-                    const tex = new THREE.Texture(source);
-                    tex.encoding = THREE.sRGBEncoding;
-                    tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
-                    tex.needsUpdate = true;
-                    materials[panelKey].map = tex;
-                    materials[panelKey].color.setHex(0xffffff);
-                    materials[panelKey].needsUpdate = true;
-                    onPanelImageLoaded(panelKey);
-                    if (LINER_KEYS.has(panelKey)) {
-                        linerDepthMats[panelKey].map = tex;
-                        linerDepthMats[panelKey].needsUpdate = true;
-                    }
-                    if (TRIM_PANELS.has(panelKey)) {
-                        innerMaterials[panelKey].map = tex;
-                        innerMaterials[panelKey].needsUpdate = true;
-                    }
+                img.onload = () => {
+                    const apply = () => applyPanelImage(panelKey, img);
+                    if (img.decode) img.decode().then(apply, apply); else apply();
                 };
                 img.src = e.target.result;
             };
@@ -882,7 +1174,76 @@
             document.getElementById('statusText').innerText = `Loaded ${matched} of ${files.length} images!`;
         });
 
+        const panelFolderInput = document.getElementById('panelFolderInput');
+        document.getElementById('chooseImageFolderBtn').addEventListener('click', () => panelFolderInput.click());
+        panelFolderInput.addEventListener('change', (e) => {
+            const filesByName = new Map(Array.from(e.target.files).map(file => [file.name.toLowerCase(), file]));
+            let matched = 0;
+            PANEL_IMAGE_FILES.forEach(({ key, filename }) => {
+                const file = filesByName.get(filename.toLowerCase());
+                if (file) {
+                    applyImageFile(key, file);
+                    matched++;
+                }
+            });
+            document.getElementById('statusText').innerText = matched === PANEL_IMAGE_FILES.length
+                ? `Reading all ${matched} panel images...`
+                : `Found ${matched} of ${PANEL_IMAGE_FILES.length} panel images; missing panels stay white.`;
+            panelFolderInput.value = '';
+        });
+
+        function loadPanelImagesFromGitHub() {
+            const statusText = document.getElementById('statusText');
+            let settled = 0;
+            let loaded = 0;
+            let cached = 0;
+            let downloaded = 0;
+            statusText.innerText = 'Loading panel images (checking saved copies)...';
+
+            function loadNext(index) {
+                if (index === PANEL_IMAGE_FILES.length) {
+                    statusText.innerText = loaded === PANEL_IMAGE_FILES.length
+                        ? `Loaded all ${loaded} panel images ✔ (${cached} saved, ${downloaded} downloaded)`
+                        : `Loaded ${loaded} of ${PANEL_IMAGE_FILES.length} GitHub images; missing panels stay white.`;
+                    invalidatePondReflection();
+                    return;
+                }
+
+                const { key, filename } = PANEL_IMAGE_FILES[index];
+                const url = new URL(filename, PANEL_IMAGE_BASE_URL).href;
+                let finished = false;
+                const timeoutId = setTimeout(() => finish(false), 60000);
+
+                function finish(success, image, fromCache) {
+                    if (finished) return;
+                    finished = true;
+                    clearTimeout(timeoutId);
+                    settled++;
+                    if (success) {
+                        loaded++;
+                        if (fromCache) cached++;
+                        else downloaded++;
+                        if (!manuallyOverriddenPanelKeys.has(key)) applyPanelImage(key, image, true);
+                    }
+                    statusText.innerText = `Loading panel images (${settled}/${PANEL_IMAGE_FILES.length}; ${cached} saved, ${downloaded} downloaded)...`;
+                    loadNext(index + 1);
+                }
+
+                loadPanelImage(url).then(result => {
+                    if (!finished) finish(true, result.image, result.fromCache);
+                }, error => {
+                    console.error(`Unable to load panel image "${filename}".`, error);
+                    finish(false);
+                });
+            }
+
+            loadNext(0);
+        }
+        loadPanelImagesFromGitHub();
+
         // --- TEXTURES ---
+        const GROUND_TEXTURE_ANISOTROPY = Math.min(4, renderer.capabilities.getMaxAnisotropy());
+
         function makeGroundTexture(size) {
             const c = document.createElement('canvas');
             c.width = c.height = size;
@@ -918,7 +1279,7 @@
             tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
             tex.repeat.set(48, 48);
             tex.encoding = THREE.sRGBEncoding;
-            tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+            tex.anisotropy = GROUND_TEXTURE_ANISOTROPY;
             return tex;
         }
         const groundTex = makeGroundTexture(512);
@@ -964,7 +1325,7 @@
             const texture = new THREE.CanvasTexture(canvas);
             texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
             texture.encoding = THREE.sRGBEncoding;
-            texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+            texture.anisotropy = GROUND_TEXTURE_ANISOTROPY;
             return texture;
         }
 
@@ -1126,6 +1487,19 @@
         };
         Object.values(sceneDecor).forEach(group => scene.add(group));
 
+        function addStaticInstances(parent, geometry, material, matrices, castShadow, receiveShadow = false) {
+            if (!matrices.length) return null;
+            const mesh = new THREE.InstancedMesh(geometry, material, matrices.length);
+            matrices.forEach((matrix, index) => mesh.setMatrixAt(index, matrix));
+            mesh.instanceMatrix.needsUpdate = true;
+            mesh.instanceMatrix.setUsage(THREE.StaticDrawUsage);
+            mesh.castShadow = castShadow;
+            mesh.receiveShadow = receiveShadow;
+            mesh.frustumCulled = false;
+            parent.add(mesh);
+            return mesh;
+        }
+
         const meadowMats = {
             ground: new THREE.MeshStandardMaterial({ color: 0x4a7d32, roughness: 0.98, map: groundTex, bumpMap: groundTex, bumpScale: 0.34, transparent: true, opacity: 0 }),
             grass: new THREE.MeshStandardMaterial({ color: 0x3d8b38, roughness: 0.88, transparent: true, opacity: 0 }),
@@ -1172,6 +1546,7 @@
         const meadowMotion = [];
         const flyMotion = [];
         const tumbleweedMotion = [];
+        const tumbleweedBounds = new THREE.Box3();
 
         function meadowHeightAt(x, z) {
             const centreT = THREE.MathUtils.clamp((Math.hypot(x, z) - 3.5) / 4.5, 0, 1);
@@ -1195,16 +1570,21 @@
             return centreFade * Math.max(0.035, 0.14 + broadRolls + fineRolls + irregularRidge + hillA + hillB + hillC + hillD + hillE + hillF + hillG + hillH + hillI + hillJ + hillK + hillL + hillM);
         }
 
-        const meadowGroundGeometry = new THREE.PlaneGeometry(180, 180, 160, 160);
-        meadowGroundGeometry.rotateX(-Math.PI / 2);
-        const meadowGroundPositions = meadowGroundGeometry.attributes.position;
-        for (let i = 0; i < meadowGroundPositions.count; i++) {
-            const x = meadowGroundPositions.getX(i);
-            const z = meadowGroundPositions.getZ(i);
-            meadowGroundPositions.setY(i, 0.012 + meadowHeightAt(x, z));
+        function makeMeadowGroundGeometry(segments) {
+            const geometry = new THREE.PlaneGeometry(180, 180, segments, segments);
+            geometry.rotateX(-Math.PI / 2);
+            const positions = geometry.attributes.position;
+            for (let i = 0; i < positions.count; i++) {
+                const x = positions.getX(i);
+                const z = positions.getZ(i);
+                positions.setY(i, 0.012 + meadowHeightAt(x, z));
+            }
+            positions.needsUpdate = true;
+            geometry.computeVertexNormals();
+            return geometry;
         }
-        meadowGroundPositions.needsUpdate = true;
-        meadowGroundGeometry.computeVertexNormals();
+        const meadowGroundGeometry = makeMeadowGroundGeometry(160);
+        const meadowGroundLowGeometry = makeMeadowGroundGeometry(96);
         const meadowGround = new THREE.Mesh(meadowGroundGeometry, meadowMats.ground);
         meadowGround.position.set(0, floorY, 0);
         meadowGround.receiveShadow = true;
@@ -1437,31 +1817,62 @@
         // Enhanced grass tufts
         let meadowSeed = 3471;
         const meadowRandom = () => (meadowSeed = (meadowSeed * 16807) % 2147483647) / 2147483647;
+        const grassInstanceBuckets = new Map([meadowMats.grassDark, meadowMats.grass, meadowMats.grassLight].map(material => [material, []]));
+        const tuftFlowerMaterials = [meadowMats.flower, meadowMats.flowerPink, meadowMats.flowerWhite, meadowMats.flowerRed, meadowMats.flowerPurple];
+        const tuftFlowerInstanceBuckets = new Map(tuftFlowerMaterials.map(material => [material, []]));
+        const animatedGrassRoots = [];
+        const instancedVegetationMeshes = [];
+        const grassBladeGeometry = new THREE.ConeGeometry(0.05, 1, 4);
+        const tuftFlowerGeometry = new THREE.SphereGeometry(0.06, 8, 6);
+        const fernStemGeometry = new THREE.CylinderGeometry(0.008, 0.014, 1, 4);
+        const fernLeafGeometry = new THREE.SphereGeometry(0.065, 7, 5);
+        const fernStemInstanceBuckets = new Map([[meadowMats.grass, []]]);
+        const fernLeafInstanceBuckets = new Map([meadowMats.grassDark, meadowMats.grassLight].map(material => [material, []]));
+        function addInstancedVegetationPiece(root, buckets, material, position, rotation, scale) {
+            const piece = {
+                localMatrix: new THREE.Matrix4().compose(
+                    position,
+                    new THREE.Quaternion().setFromEuler(rotation),
+                    scale
+                ),
+                mesh: null,
+                index: -1
+            };
+            buckets.get(material).push(piece);
+            root.pieces.push(piece);
+        }
         for (let i = 0; i < 65; i++) {
             const angle = meadowRandom() * Math.PI * 2;
             const radius = 4.0 + meadowRandom() * 18;
-            const tuft = new THREE.Group();
             const x = Math.cos(angle) * radius, z = Math.sin(angle) * radius;
-            tuft.position.set(x, floorY + 0.012 + meadowHeightAt(x, z), z);
+            const root = {
+                x, y: floorY + 0.012 + meadowHeightAt(x, z), z,
+                phase: angle, amount: 0.08, pieces: []
+            };
+            animatedGrassRoots.push(root);
             const bladeCount = 5 + Math.floor(meadowRandom() * 4);
             for (let blade = 0; blade < bladeCount; blade++) {
                 const height = 0.2 + meadowRandom() * 0.45;
                 const grassMat = blade % 4 === 0 ? meadowMats.grassDark : blade % 3 ? meadowMats.grass : meadowMats.grassLight;
-                const grassBlade = new THREE.Mesh(new THREE.ConeGeometry(0.05, height, 4), grassMat);
-                grassBlade.position.set((meadowRandom() - 0.5) * 0.35, height / 2, (meadowRandom() - 0.5) * 0.35);
-                grassBlade.rotation.z = (meadowRandom() - 0.5) * 0.7;
-                grassBlade.rotation.x = (meadowRandom() - 0.5) * 0.15;
-                grassBlade.castShadow = true;
-                tuft.add(grassBlade);
+                const position = new THREE.Vector3(
+                    (meadowRandom() - 0.5) * 0.35,
+                    height / 2,
+                    (meadowRandom() - 0.5) * 0.35
+                );
+                const rotation = new THREE.Euler(
+                    (meadowRandom() - 0.5) * 0.15,
+                    0,
+                    (meadowRandom() - 0.5) * 0.7
+                );
+                addInstancedVegetationPiece(root, grassInstanceBuckets, grassMat, position, rotation, new THREE.Vector3(1, height, 1));
             }
             if (i % 4 === 0) {
-                const flowerMats = [meadowMats.flower, meadowMats.flowerPink, meadowMats.flowerWhite, meadowMats.flowerRed, meadowMats.flowerPurple];
-                const flower = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 6), flowerMats[i % flowerMats.length]);
-                flower.position.set(0, 0.32, 0);
-                tuft.add(flower);
+                const material = tuftFlowerMaterials[i % tuftFlowerMaterials.length];
+                const position = new THREE.Vector3(0, 0.32, 0);
+                const rotation = new THREE.Euler();
+                const scale = new THREE.Vector3(1, 1, 1);
+                addInstancedVegetationPiece(root, tuftFlowerInstanceBuckets, material, position, rotation, scale);
             }
-            sceneDecor.meadow.add(tuft);
-            meadowMotion.push({ object: tuft, phase: angle, amount: 0.08 });
         }
 
         // Enhanced bushes with varied shapes
@@ -1530,42 +1941,47 @@
 
         // Enhanced detailed flowers
         const flowerStemGeometry = new THREE.CylinderGeometry(0.012, 0.02, 0.28, 5);
+        const flowerLeafGeometry = new THREE.SphereGeometry(0.04, 6, 4);
         const flowerPetalGeometry = new THREE.SphereGeometry(0.055, 10, 7);
         const flowerCenterGeometry = new THREE.SphereGeometry(0.04, 10, 7);
-        const flowerPetalMats = [meadowMats.flower, meadowMats.flowerPink, meadowMats.flowerWhite, meadowMats.flowerRed, meadowMats.flowerPurple];
+        const flowerPetalMats = tuftFlowerMaterials;
+        const flowerStemInstanceBuckets = new Map([[meadowMats.grass, []]]);
+        const flowerLeafInstanceBuckets = new Map([[meadowMats.grassLight, []]]);
+        const flowerPetalInstanceBuckets = new Map(flowerPetalMats.map(material => [material, []]));
+        const flowerCenterInstanceBuckets = new Map([[meadowMats.flower, []]]);
         for (let i = 0; i < 48; i++) {
             const angle = meadowRandom() * Math.PI * 2;
             const radius = 4.2 + meadowRandom() * 19;
             const x = Math.cos(angle) * radius, z = Math.sin(angle) * radius;
-            const flower = new THREE.Group();
-            flower.position.set(x, floorY + 0.012 + meadowHeightAt(x, z), z);
-            const stem = new THREE.Mesh(flowerStemGeometry, meadowMats.grass);
-            stem.position.y = 0.14;
-            stem.rotation.z = (meadowRandom() - 0.5) * 0.15;
-            stem.castShadow = true;
-            flower.add(stem);
-            // Leaf on stem
-            const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 4), meadowMats.grassLight);
-            leaf.position.set(0.04, 0.12, 0);
-            leaf.scale.set(1.5, 0.3, 0.8);
-            flower.add(leaf);
+            const root = {
+                x, y: floorY + 0.012 + meadowHeightAt(x, z), z,
+                phase: angle + i, amount: 0.05, pieces: []
+            };
+            animatedGrassRoots.push(root);
+            const stemRotation = new THREE.Euler(0, 0, (meadowRandom() - 0.5) * 0.15);
+            addInstancedVegetationPiece(
+                root, flowerStemInstanceBuckets, meadowMats.grass,
+                new THREE.Vector3(0, 0.14, 0), stemRotation, new THREE.Vector3(1, 1, 1)
+            );
+            addInstancedVegetationPiece(
+                root, flowerLeafInstanceBuckets, meadowMats.grassLight,
+                new THREE.Vector3(0.04, 0.12, 0), new THREE.Euler(), new THREE.Vector3(1.5, 0.3, 0.8)
+            );
 
             const petals = flowerPetalMats[i % flowerPetalMats.length];
             const petalCount = 5 + (i % 3);
             for (let petal = 0; petal < petalCount; petal++) {
                 const petalAngle = petal * Math.PI * 2 / petalCount;
-                const bloom = new THREE.Mesh(flowerPetalGeometry, petals);
-                bloom.position.set(Math.cos(petalAngle) * 0.065, 0.30, Math.sin(petalAngle) * 0.065);
-                bloom.scale.set(1, 0.6, 1);
-                bloom.castShadow = true;
-                flower.add(bloom);
+                addInstancedVegetationPiece(
+                    root, flowerPetalInstanceBuckets, petals,
+                    new THREE.Vector3(Math.cos(petalAngle) * 0.065, 0.30, Math.sin(petalAngle) * 0.065),
+                    new THREE.Euler(), new THREE.Vector3(1, 0.6, 1)
+                );
             }
-            const center = new THREE.Mesh(flowerCenterGeometry, meadowMats.flower);
-            center.position.y = 0.32;
-            center.castShadow = true;
-            flower.add(center);
-            sceneDecor.meadow.add(flower);
-            meadowMotion.push({ object: flower, phase: angle + i, amount: 0.05 });
+            addInstancedVegetationPiece(
+                root, flowerCenterInstanceBuckets, meadowMats.flower,
+                new THREE.Vector3(0, 0.32, 0), new THREE.Euler(), new THREE.Vector3(1, 1, 1)
+            );
         }
 
         // ====== DESERT TERRAIN ======
@@ -1600,19 +2016,34 @@
             mesh.updateMatrixWorld(true);
         }
 
-        const duneGeometry = new THREE.PlaneGeometry(120, 110, 120, 100);
-        duneGeometry.rotateX(-Math.PI / 2);
-        const dunePositions = duneGeometry.attributes.position;
-        for (let i = 0; i < dunePositions.count; i++) {
-            const x = dunePositions.getX(i);
-            const z = dunePositions.getZ(i) - 25;
-            dunePositions.setY(i, 0.012 + duneHeightAt(x, z));
+        function makeDuneGeometry(widthSegments, depthSegments) {
+            const geometry = new THREE.PlaneGeometry(120, 110, widthSegments, depthSegments);
+            geometry.rotateX(-Math.PI / 2);
+            const positions = geometry.attributes.position;
+            for (let i = 0; i < positions.count; i++) {
+                const x = positions.getX(i);
+                const z = positions.getZ(i) - 25;
+                positions.setY(i, 0.012 + duneHeightAt(x, z));
+            }
+            positions.needsUpdate = true;
+            geometry.computeVertexNormals();
+            return geometry;
         }
-        dunePositions.needsUpdate = true;
-        duneGeometry.computeVertexNormals();
+        const duneGeometry = makeDuneGeometry(120, 100);
+        const duneLowGeometry = makeDuneGeometry(72, 60);
         const duneLandscape = new THREE.Mesh(duneGeometry, desertMats.dune);
         duneLandscape.position.set(0, floorY, -25);
         duneLandscape.receiveShadow = true;
+        let terrainLowDetail = false;
+        function updateTerrainLOD() {
+            const distance = camera.position.distanceTo(controls.target);
+            const useLowDetail = terrainLowDetail ? distance > 17 : distance > 19;
+            if (useLowDetail === terrainLowDetail) return;
+            terrainLowDetail = useLowDetail;
+            meadowGround.geometry = useLowDetail ? meadowGroundLowGeometry : meadowGroundGeometry;
+            duneLandscape.geometry = useLowDetail ? duneLowGeometry : duneGeometry;
+            invalidateReflections();
+        }
         const sandGround = new THREE.Mesh(new THREE.CircleGeometry(90, 128), desertMats.sandGround);
         sandGround.rotation.x = -Math.PI / 2;
         sandGround.position.y = floorY + 0.006;
@@ -1623,13 +2054,29 @@
         // Cactus helpers
         const cactusSpineGeometry = new THREE.ConeGeometry(0.008, 0.09, 4);
         const cactusSpineAxis = new THREE.Vector3(0, 1, 0);
+        const cactusSpineMatrices = new WeakMap();
+        function queueCactusSpine(parent, position, quaternion, scale) {
+            let matrices = cactusSpineMatrices.get(parent);
+            if (!matrices) {
+                matrices = [];
+                cactusSpineMatrices.set(parent, matrices);
+            }
+            matrices.push(new THREE.Matrix4().compose(position, quaternion, scale));
+        }
         function addCactusThorn(parent, x, y, z, direction, size) {
-            const thorn = new THREE.Mesh(cactusSpineGeometry, desertMats.spine);
-            thorn.position.set(x, y, z).addScaledVector(direction, size * 0.045);
-            thorn.quaternion.setFromUnitVectors(cactusSpineAxis, direction);
-            thorn.scale.setScalar(size);
-            thorn.castShadow = true;
-            parent.add(thorn);
+            const position = new THREE.Vector3(x, y, z).addScaledVector(direction, size * 0.045);
+            const quaternion = new THREE.Quaternion().setFromUnitVectors(cactusSpineAxis, direction);
+            queueCactusSpine(parent, position, quaternion, new THREE.Vector3(size, size, size));
+        }
+        function addCactusSpineInstances(root) {
+            const parents = [];
+            root.traverse(parent => {
+                if (cactusSpineMatrices.has(parent)) parents.push(parent);
+            });
+            parents.forEach(parent => {
+                addStaticInstances(parent, cactusSpineGeometry, desertMats.spine, cactusSpineMatrices.get(parent), true);
+                cactusSpineMatrices.delete(parent);
+            });
         }
         function addColumnarCactusSpines(parent, x, z, height, radius, size, rows, count) {
             for (let row = 0; row < rows; row++) {
@@ -1713,12 +2160,14 @@
                 for (let row = 0; row < 4; row++) {
                     for (let i = 0; i < 10; i++) {
                         const angle = i * Math.PI / 5 + row * 0.18;
-                        const spine = new THREE.Mesh(new THREE.ConeGeometry(0.015 * size, 0.12 * size, 4), desertMats.spine);
-                        spine.position.set(Math.cos(angle) * 0.44 * size, (0.2 + row * 0.2) * size, Math.sin(angle) * 0.4 * size);
-                        spine.rotation.z = Math.cos(angle) * 0.8;
-                        spine.rotation.x = Math.sin(angle) * 0.8;
-                        spine.castShadow = true;
-                        cactus.add(spine);
+                        const position = new THREE.Vector3(
+                            Math.cos(angle) * 0.44 * size,
+                            (0.2 + row * 0.2) * size,
+                            Math.sin(angle) * 0.4 * size
+                        );
+                        const rotation = new THREE.Euler(Math.sin(angle) * 0.8, 0, Math.cos(angle) * 0.8);
+                        const scale = new THREE.Vector3(1.875 * size, 1.3333333333 * size, 1.875 * size);
+                        queueCactusSpine(cactus, position, new THREE.Quaternion().setFromEuler(rotation), scale);
                     }
                 }
             } else if (style === 2) {
@@ -1764,9 +2213,10 @@
                 if (!desertMats._extraMats) desertMats._extraMats = [];
                 desertMats._extraMats.push(hole.material);
             }
-            cactus.traverse(object => { if (object.isMesh) object.castShadow = true; });
             sceneDecor.desert.add(cactus);
             settleDesertObject(cactus, x, z, 0.022);
+            addCactusSpineInstances(cactus);
+            cactus.traverse(object => { if (object.isMesh) object.castShadow = true; });
         }
 
         addCactus(-8, -8, 1.4, 0);
@@ -1842,26 +2292,36 @@
         addDesertShrub(18, 12, 0.7);
 
         // Dead grass patches in desert
+        const deadGrassGeometry = new THREE.ConeGeometry(0.03, 1, 3);
+        const deadGrassMatrices = [];
         function addDeadGrass(x, z, size) {
             const patch = new THREE.Group();
             patch.position.set(x, floorY + 0.012 + duneHeightAt(x, z), z);
+            const blades = [];
             for (let i = 0; i < 8; i++) {
                 const height = 0.15 + Math.abs(Math.sin(i * 2.7)) * 0.25;
-                const blade = new THREE.Mesh(new THREE.ConeGeometry(0.03, height * size, 3), desertMats.deadGrass);
+                const blade = new THREE.Mesh(deadGrassGeometry, desertMats.deadGrass);
                 const bAngle = i * Math.PI * 0.25 + z;
                 blade.position.set(Math.cos(bAngle) * 0.12 * size, height * size / 2, Math.sin(bAngle) * 0.12 * size);
+                blade.scale.y = height * size;
                 blade.rotation.z = (Math.sin(i * 1.3) - 0.3) * 0.5;
                 blade.castShadow = true;
                 patch.add(blade);
+                blades.push(blade);
             }
-            sceneDecor.desert.add(patch);
             settleDesertObject(patch, x, z, 0.012);
+            patch.updateMatrix();
+            blades.forEach(blade => {
+                blade.updateMatrix();
+                deadGrassMatrices.push(new THREE.Matrix4().multiplyMatrices(patch.matrix, blade.matrix));
+            });
         }
         for (let i = 0; i < 20; i++) {
             const angle = i * 0.314 + 1.2;
             const r = 5 + (i % 7) * 4;
             addDeadGrass(Math.cos(angle) * r, Math.sin(angle) * r, 0.7 + (i % 3) * 0.2);
         }
+        addStaticInstances(sceneDecor.desert, deadGrassGeometry, desertMats.deadGrass, deadGrassMatrices, true);
 
         // Tumbleweeds
         function addTumbleweed(x, z, size) {
@@ -1936,28 +2396,40 @@
         // ====== EXTRA NATURAL DETAIL LAYER ======
         // Meadow: fern rosettes, fallen timber, saplings and dense mixed ground cover.
         function addFern(x, z, size, tint = 0) {
-            const fern = new THREE.Group();
-            fern.position.set(x, floorY + 0.018 + meadowHeightAt(x, z), z);
+            const root = {
+                x, y: floorY + 0.018 + meadowHeightAt(x, z), z,
+                phase: x + z, amount: 0.025, pieces: []
+            };
+            animatedGrassRoots.push(root);
             const mat = tint ? meadowMats.grassLight : meadowMats.grassDark;
             for (let fr = 0; fr < 7; fr++) {
                 const a = fr * Math.PI * 2 / 7 + x * 0.17;
                 const length = size * (0.42 + (fr % 3) * 0.09);
-                const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.008 * size, 0.014 * size, length, 4), meadowMats.grass);
-                stem.position.set(Math.cos(a) * length * 0.28, length * 0.42, Math.sin(a) * length * 0.28);
-                stem.rotation.z = Math.cos(a) * 0.8;
-                stem.rotation.x = -Math.sin(a) * 0.8;
-                fern.add(stem);
+                const stemPosition = new THREE.Vector3(
+                    Math.cos(a) * length * 0.28,
+                    length * 0.42,
+                    Math.sin(a) * length * 0.28
+                );
+                const stemRotation = new THREE.Euler(-Math.sin(a) * 0.8, 0, Math.cos(a) * 0.8);
+                addInstancedVegetationPiece(
+                    root, fernStemInstanceBuckets, meadowMats.grass,
+                    stemPosition, stemRotation, new THREE.Vector3(size, length, size)
+                );
                 for (let j = 1; j <= 5; j++) {
                     const t = j / 6;
-                    const leaflet = new THREE.Mesh(new THREE.SphereGeometry(0.065 * size * (1 - t * 0.45), 7, 5), mat);
-                    leaflet.position.set(Math.cos(a) * length * (0.16 + t * 0.48), length * (0.25 + t * 0.52), Math.sin(a) * length * (0.16 + t * 0.48));
-                    leaflet.scale.set(1.8, 0.34, 0.72);
-                    leaflet.rotation.y = a;
-                    fern.add(leaflet);
+                    const radiusScale = size * (1 - t * 0.45);
+                    const leafletPosition = new THREE.Vector3(
+                        Math.cos(a) * length * (0.16 + t * 0.48),
+                        length * (0.25 + t * 0.52),
+                        Math.sin(a) * length * (0.16 + t * 0.48)
+                    );
+                    addInstancedVegetationPiece(
+                        root, fernLeafInstanceBuckets, mat,
+                        leafletPosition, new THREE.Euler(0, a, 0),
+                        new THREE.Vector3(1.8 * radiusScale, 0.34 * radiusScale, 0.72 * radiusScale)
+                    );
                 }
             }
-            sceneDecor.meadow.add(fern);
-            meadowMotion.push({ object: fern, phase: x + z, amount: 0.025 });
         }
         for (let i = 0; i < 32; i++) {
             const a = i * 2.399963;
@@ -2020,18 +2492,39 @@
         addSandstoneShelf(18, 27, 1.15, -0.2);
 
         const gravelGeometries = [new THREE.IcosahedronGeometry(0.055, 0), new THREE.IcosahedronGeometry(0.085, 0), new THREE.IcosahedronGeometry(0.12, 1)];
+        const gravelInstanceBatches = new Map();
         for (let i = 0; i < 190; i++) {
             const a = i * 2.399963;
             const r = 7 + (i % 23) * 1.55;
             const x = Math.cos(a) * r, z = Math.sin(a) * r;
-            const pebble = new THREE.Mesh(gravelGeometries[i % 3], i % 5 === 0 ? desertMats.rockRed : (i % 2 ? desertMats.rock : desertAccentMat));
+            const geometry = gravelGeometries[i % 3];
+            const material = i % 5 === 0 ? desertMats.rockRed : (i % 2 ? desertMats.rock : desertAccentMat);
+            let materialBatches = gravelInstanceBatches.get(geometry);
+            if (!materialBatches) {
+                materialBatches = new Map();
+                gravelInstanceBatches.set(geometry, materialBatches);
+            }
+            let matrices = materialBatches.get(material);
+            if (!matrices) {
+                matrices = [];
+                materialBatches.set(material, matrices);
+            }
+            const pebble = new THREE.Mesh(geometry, material);
             pebble.position.set(x, floorY + 0.035 + duneHeightAt(x, z), z);
             pebble.scale.set(1.2 + (i % 3) * 0.2, 0.55, 0.8 + (i % 4) * 0.1);
             pebble.rotation.set(i * 0.21, i * 0.7, i * 0.13);
             pebble.castShadow = true;
             sceneDecor.desert.add(pebble);
             settleDesertMesh(pebble, x, z, 0.008);
+            pebble.updateMatrix();
+            matrices.push(pebble.matrix.clone());
+            sceneDecor.desert.remove(pebble);
         }
+        gravelInstanceBatches.forEach((materialBatches, geometry) => {
+            materialBatches.forEach((matrices, material) => {
+                addStaticInstances(sceneDecor.desert, geometry, material, matrices, true);
+            });
+        });
 
         function addYucca(x, z, size) {
             const plant = new THREE.Group();
@@ -2094,7 +2587,44 @@
             shape.bezierCurveTo(-2.0 * scaleX, 2.9 * scaleZ, -4.1 * scaleX, 1.6 * scaleZ, -3.8 * scaleX, -0.25 * scaleZ);
             return shape;
         }
-        const pondBankMat = new THREE.MeshStandardMaterial({ color: 0x776b45, roughness: 1, transparent: true, opacity: 0 });
+        const pondBasinShape = makePondShape(1, 1);
+        const pondBasinOutline = pondBasinShape.getPoints(64);
+        function pondShapeContainsPoint(x, z) {
+            let inside = false;
+            for (let i = 0, j = pondBasinOutline.length - 1; i < pondBasinOutline.length; j = i++) {
+                const a = pondBasinOutline[i], b = pondBasinOutline[j];
+                const crossesEdge = (a.y > z) !== (b.y > z)
+                    && x < (b.x - a.x) * (z - a.y) / (b.y - a.y) + a.x;
+                if (crossesEdge) inside = !inside;
+            }
+            return inside;
+        }
+        const pondGroundDepth = 1.45;
+        function carvePondBasin(geometry) {
+            const positions = geometry.attributes.position;
+            for (let i = 0; i < positions.count; i++) {
+                const localX = positions.getX(i) - pondX;
+                const localZ = positions.getZ(i) - pondZ;
+                if (Math.abs(localX) > 4.5 || Math.abs(localZ) > 3.4) continue;
+                if (!pondShapeContainsPoint(localX, localZ)) continue;
+                const basinRadius = Math.hypot(localX / 4.4, localZ / 3.3);
+                const edgeFade = THREE.MathUtils.clamp((1 - basinRadius) / 0.28, 0, 1);
+                const basinProfile = edgeFade * edgeFade * (3 - 2 * edgeFade);
+                positions.setY(i, positions.getY(i) - pondGroundDepth * basinProfile);
+            }
+            positions.needsUpdate = true;
+            geometry.computeVertexNormals();
+        }
+        carvePondBasin(meadowGroundGeometry);
+        carvePondBasin(meadowGroundLowGeometry);
+
+        const pondBankTexture = sandTexture.clone();
+        pondBankTexture.repeat.set(3, 3);
+        pondBankTexture.needsUpdate = true;
+        const pondBankMat = new THREE.MeshStandardMaterial({
+            color: 0x9b8054, roughness: 1, map: pondBankTexture,
+            bumpMap: pondBankTexture, bumpScale: 0.14, transparent: true, opacity: 0
+        });
         const pondWaterMat = new THREE.MeshPhysicalMaterial({
             color: 0x2b70a5, roughness: 0.16, metalness: 0.12, clearcoat: 1,
             clearcoatRoughness: 0.08, transparent: true, opacity: 0,
@@ -2104,13 +2634,13 @@
         // Water animation is applied to material properties in updateEnvironment.
         // A dense, terrain-conforming sandy shoreline replaces the old flat raised disc.
         // Reuse the radial pond mesh builder so the shoreline has enough vertices to follow hills.
-        const bankGeo = makeWavyPondGeometry(makePondShape(1.28, 1.22), 18, 160);
+        const bankGeo = makeWavyPondGeometry(makePondShape(1.34, 1.34), 26, 192, 1 / 1.34);
         const bankPositions = bankGeo.attributes.position;
         for (let i = 0; i < bankPositions.count; i++) {
             const worldX = pondX + bankPositions.getX(i);
             const worldZ = pondZ + bankPositions.getZ(i);
             const terrainY = floorY + 0.012 + meadowHeightAt(worldX, worldZ);
-            bankPositions.setY(i, terrainY + 0.003 - pondGroup.position.y);
+            bankPositions.setY(i, terrainY + 0.04 - pondGroup.position.y);
         }
         bankPositions.needsUpdate = true;
         bankGeo.computeVertexNormals();
@@ -2120,7 +2650,9 @@
         pondGroup.add(bank);
         // Build a dense radial water surface that follows the pond outline.
         // The extra vertices let gentle waves deform the surface without custom GLSL.
-        function makeWavyPondGeometry(shape, radialSegments = 22, angularSegments = 160) {
+        function makeWavyPondGeometry(shape, radialSegments = 22, angularSegments = 160, innerScale = 0) {
+            const hasInnerBoundary = innerScale > 0;
+            const centerVertexCount = hasInnerBoundary ? 0 : 1;
             const outline = shape.getPoints(320)
                 .map(point => {
                     let angle = Math.atan2(point.y, point.x);
@@ -2150,17 +2682,19 @@
                 return THREE.MathUtils.lerp(previous.radius, next.radius, t);
             }
 
-            const vertexCount = 1 + radialSegments * angularSegments;
+            const vertexCount = centerVertexCount + radialSegments * angularSegments;
             const positions = new Float32Array(vertexCount * 3);
             const uvs = new Float32Array(vertexCount * 2);
             const indices = [];
-            // One center vertex, then evenly spaced concentric rings.
+            // Use a center fan for water and concentric boundary rings for the sand bank.
             for (let i = 1; i <= radialSegments; i++) {
-                const radial = i / radialSegments;
+                const radial = hasInnerBoundary
+                    ? innerScale + (1 - innerScale) * (i - 1) / Math.max(1, radialSegments - 1)
+                    : i / radialSegments;
                 for (let j = 0; j < angularSegments; j++) {
                     const angle = j / angularSegments * Math.PI * 2;
                     const radius = boundaryRadius(angle) * radial;
-                    const index = 1 + (i - 1) * angularSegments + j;
+                    const index = centerVertexCount + (i - 1) * angularSegments + j;
                     const x = Math.cos(angle) * radius;
                     const z = Math.sin(angle) * radius;
                     positions[index * 3] = x;
@@ -2170,13 +2704,15 @@
                     uvs[index * 2 + 1] = 0.5 + z / 8;
                 }
             }
-            for (let j = 0; j < angularSegments; j++) {
-                const next = (j + 1) % angularSegments;
-                indices.push(0, 1 + next, 1 + j);
+            if (!hasInnerBoundary) {
+                for (let j = 0; j < angularSegments; j++) {
+                    const next = (j + 1) % angularSegments;
+                    indices.push(0, 1 + next, 1 + j);
+                }
             }
             for (let ring = 2; ring <= radialSegments; ring++) {
-                const innerStart = 1 + (ring - 2) * angularSegments;
-                const outerStart = 1 + (ring - 1) * angularSegments;
+                const innerStart = centerVertexCount + (ring - 2) * angularSegments;
+                const outerStart = centerVertexCount + (ring - 1) * angularSegments;
                 for (let j = 0; j < angularSegments; j++) {
                     const next = (j + 1) % angularSegments;
                     const a = innerStart + j;
@@ -2196,8 +2732,44 @@
             return geometry;
         }
 
+        const pondBedDepth = 1.25;
+        const pondBedGeometry = makeWavyPondGeometry(makePondShape(1, 1), 24, 192);
+        const pondBedPositions = pondBedGeometry.attributes.position;
+        for (let i = 0; i < pondBedPositions.count; i++) {
+            const radial = i === 0 ? 0 : Math.ceil(i / 192) / 24;
+            pondBedPositions.setY(i, -0.08 - pondBedDepth * (1 - radial * radial));
+        }
+        pondBedPositions.needsUpdate = true;
+        pondBedGeometry.computeVertexNormals();
+        const pondBedMat = new THREE.MeshStandardMaterial({
+            color: 0x253e3b, roughness: 0.94, transparent: true, opacity: 0,
+            side: THREE.DoubleSide
+        });
+        const pondBed = new THREE.Mesh(pondBedGeometry, pondBedMat);
+        pondBed.renderOrder = 1.5;
+        pondBed.receiveShadow = true;
+        pondGroup.add(pondBed);
+
         const waterGeo = makeWavyPondGeometry(makePondShape(1, 1));
-        const waterBasePositions = waterGeo.attributes.position.array.slice();
+        const waterWaveData = new Float32Array(waterGeo.attributes.position.count * 7);
+        const initialWaterPositions = waterGeo.attributes.position.array;
+        for (let i = 0; i < waterGeo.attributes.position.count; i++) {
+            const positionIndex = i * 3;
+            const waveIndex = i * 7;
+            const x = initialWaterPositions[positionIndex];
+            const z = initialWaterPositions[positionIndex + 2];
+            const rippleAX = x + 1.2, rippleAZ = z - 0.55;
+            const rippleBX = x - 1.55, rippleBZ = z + 0.9;
+            const rippleDistanceA = Math.hypot(rippleAX, rippleAZ);
+            const rippleDistanceB = Math.hypot(rippleBX, rippleBZ);
+            waterWaveData[waveIndex] = x * 1.05 + z * 0.52;
+            waterWaveData[waveIndex + 1] = z * 1.55 - x * 0.82;
+            waterWaveData[waveIndex + 2] = x * 2.05 - z * 1.72;
+            waterWaveData[waveIndex + 3] = rippleDistanceA * 5.4;
+            waterWaveData[waveIndex + 4] = rippleDistanceB * 6.1;
+            waterWaveData[waveIndex + 5] = 0.010 * Math.exp(-rippleDistanceA * 0.19);
+            waterWaveData[waveIndex + 6] = 0.008 * Math.exp(-rippleDistanceB * 0.22);
+        }
         const water = new THREE.Mesh(waterGeo, pondWaterMat);
         water.position.y = 0.008;
         water.renderOrder = 2;
@@ -2243,7 +2815,7 @@
 
         // A low-resolution dynamic cubemap gives the water genuine scene reflections
         // (trees, shoreline, box, sky and lighting) without fragile shader injection.
-        const pondReflectionSize = window.innerWidth < 900 ? 128 : 256;
+        const pondReflectionSize = window.innerWidth < 900 ? 64 : 128;
         const pondReflectionTarget = new THREE.WebGLCubeRenderTarget(pondReflectionSize, {
             format: THREE.RGBFormat,
             generateMipmaps: true,
@@ -2251,8 +2823,8 @@
         });
         pondReflectionTarget.texture.name = 'Pond real-time reflection map';
         pondWaterMat.envMap = pondReflectionTarget.texture;
-        pondWaterMat.envMapIntensity = 1.35;
-        pondWaterMat.reflectivity = 0.92;
+        pondWaterMat.envMapIntensity = 0.85;
+        pondWaterMat.reflectivity = 0.72;
         pondWaterMat.metalness = 0.08;
         pondWaterMat.roughness = 0.13;
         pondWaterMat.clearcoat = 1;
@@ -2261,7 +2833,6 @@
         const pondReflectionCamera = new THREE.CubeCamera(0.1, 100, pondReflectionTarget);
         pondReflectionCamera.position.set(pondX, pondGroup.position.y + water.position.y + 0.10, pondZ);
         scene.add(pondReflectionCamera);
-        let lastPondReflectionUpdate = -1;
 
         // Pebbled shoreline, reed clumps, cattails and lily pads make the pond read as
         // part of the terrain rather than a flat blue decal.
@@ -2270,10 +2841,12 @@
             new THREE.MeshStandardMaterial({ color: 0x9a9278, roughness: 0.98, transparent: true, opacity: 0 })
         ];
         const shoreStoneGeo = new THREE.IcosahedronGeometry(0.16, 1);
+        const shoreStoneMatrices = [[], []];
         for (let i = 0; i < 42; i++) {
             const a = i * 2.399963;
             const r = 4.25 + (i % 5) * 0.12;
-            const stone = new THREE.Mesh(shoreStoneGeo, shoreStoneMats[i % 2]);
+            const materialIndex = i % 2;
+            const stone = new THREE.Mesh(shoreStoneGeo, shoreStoneMats[materialIndex]);
             stone.position.set(Math.cos(a) * r, 0, Math.sin(a) * r * 0.72);
             stone.scale.set(0.65 + (i % 4) * 0.18, 0.45 + (i % 3) * 0.12, 0.7 + (i % 5) * 0.12);
             stone.rotation.set(i * 0.17, i * 0.41, i * 0.23);
@@ -2285,7 +2858,13 @@
             const stoneWorldZ = pondZ + stone.position.z;
             const stoneGroundY = floorY + 0.012 + meadowHeightAt(stoneWorldX, stoneWorldZ);
             stone.position.y += stoneGroundY - stoneBounds.min.y - 0.012;
+            stone.updateMatrix();
+            shoreStoneMatrices[materialIndex].push(stone.matrix.clone());
+            pondGroup.remove(stone);
         }
+        shoreStoneMats.forEach((material, index) => {
+            addStaticInstances(pondGroup, shoreStoneGeo, material, shoreStoneMatrices[index], true);
+        });
         const reedMat = new THREE.MeshStandardMaterial({ color: 0x587342, roughness: 0.9, transparent: true, opacity: 0 });
         const reedTipMat = new THREE.MeshStandardMaterial({ color: 0x795638, roughness: 0.95, transparent: true, opacity: 0 });
         for (let i = 0; i < 17; i++) {
@@ -2334,17 +2913,66 @@
         for (let i = 0; i < 12; i++) {
             const a = i * 2.399963 + 0.7;
             const r = 5.15 + (i % 4) * 0.18;
-            const tuft = new THREE.Group();
-            tuft.position.set(pondX + Math.cos(a) * r, floorY + meadowHeightAt(pondX + Math.cos(a) * r, pondZ + Math.sin(a) * r) + 0.02, pondZ + Math.sin(a) * r);
+            const x = pondX + Math.cos(a) * r;
+            const z = pondZ + Math.sin(a) * r;
+            const root = {
+                x, y: floorY + meadowHeightAt(x, z) + 0.02, z,
+                phase: a, amount: 0.055, pieces: []
+            };
+            animatedGrassRoots.push(root);
             for (let j = 0; j < 5; j++) {
-                const blade = new THREE.Mesh(new THREE.ConeGeometry(0.045, 0.42 + (j % 3) * 0.12, 4), j % 2 ? meadowMats.grass : meadowMats.grassLight);
-                blade.position.set(Math.sin(j * 2) * 0.1, 0.2, Math.cos(j * 2) * 0.1);
-                blade.rotation.z = (j - 2) * 0.14;
-                tuft.add(blade);
+                const material = j % 2 ? meadowMats.grass : meadowMats.grassLight;
+                const position = new THREE.Vector3(Math.sin(j * 2) * 0.1, 0.2, Math.cos(j * 2) * 0.1);
+                const rotation = new THREE.Euler(0, 0, (j - 2) * 0.14);
+                const height = 0.42 + (j % 3) * 0.12;
+                const scale = new THREE.Vector3(0.9, height, 0.9);
+                addInstancedVegetationPiece(root, grassInstanceBuckets, material, position, rotation, scale);
             }
-            sceneDecor.meadow.add(tuft);
-            meadowMotion.push({ object: tuft, phase: a, amount: 0.055 });
         }
+
+        const grassRootPosition = new THREE.Vector3();
+        const grassRootQuaternion = new THREE.Quaternion();
+        const grassRootScale = new THREE.Vector3(1, 1, 1);
+        const grassRootMatrix = new THREE.Matrix4();
+        const grassInstanceMatrix = new THREE.Matrix4();
+        const grassSwayAxis = new THREE.Vector3(0, 0, 1);
+        function updateInstancedGrass(time) {
+            for (const root of animatedGrassRoots) {
+                const sway = Math.sin(time * 1.4 + root.phase) * root.amount;
+                grassRootPosition.set(root.x, root.y, root.z);
+                grassRootQuaternion.setFromAxisAngle(grassSwayAxis, sway);
+                grassRootMatrix.compose(grassRootPosition, grassRootQuaternion, grassRootScale);
+                for (const piece of root.pieces) {
+                    grassInstanceMatrix.multiplyMatrices(grassRootMatrix, piece.localMatrix);
+                    piece.mesh.setMatrixAt(piece.index, grassInstanceMatrix);
+                }
+            }
+            instancedVegetationMeshes.forEach(mesh => { mesh.instanceMatrix.needsUpdate = true; });
+        }
+        function createInstancedVegetation(buckets, geometry, castShadow) {
+            for (const [material, entries] of buckets) {
+                if (!entries.length) continue;
+                const mesh = new THREE.InstancedMesh(geometry, material, entries.length);
+                mesh.castShadow = castShadow;
+                mesh.frustumCulled = false;
+                mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+                entries.forEach((entry, index) => {
+                    entry.mesh = mesh;
+                    entry.index = index;
+                });
+                sceneDecor.meadow.add(mesh);
+                instancedVegetationMeshes.push(mesh);
+            }
+        }
+        createInstancedVegetation(grassInstanceBuckets, grassBladeGeometry, true);
+        createInstancedVegetation(tuftFlowerInstanceBuckets, tuftFlowerGeometry, false);
+        createInstancedVegetation(flowerStemInstanceBuckets, flowerStemGeometry, true);
+        createInstancedVegetation(flowerLeafInstanceBuckets, flowerLeafGeometry, false);
+        createInstancedVegetation(flowerPetalInstanceBuckets, flowerPetalGeometry, true);
+        createInstancedVegetation(flowerCenterInstanceBuckets, flowerCenterGeometry, true);
+        createInstancedVegetation(fernStemInstanceBuckets, fernStemGeometry, false);
+        createInstancedVegetation(fernLeafInstanceBuckets, fernLeafGeometry, false);
+        updateInstancedGrass(0);
 
         // Cinematic appearance is controlled through lighting, tone mapping and
         // material properties; avoid custom shader injection for broad GPU support.
@@ -2410,7 +3038,48 @@
         layoutGroup.add(secondBoxGroup);
         const boxGroups = [masterGroup, secondBoxGroup];
         const lidGroups = [lidGroup, secondLidGroup];
-
+        const boxReflectionTarget = new THREE.WebGLCubeRenderTarget(64, {
+            format: THREE.RGBFormat,
+            generateMipmaps: true,
+            minFilter: THREE.LinearMipmapLinearFilter
+        });
+        boxReflectionTarget.texture.name = 'Box surroundings reflection map';
+        const boxReflectionCamera = new THREE.CubeCamera(0.1, 100, boxReflectionTarget);
+        scene.add(boxReflectionCamera);
+        const boxPanelFinishes = [
+            'front', 'lidFront', 'top', 'back', 'bottom', 'side1', 'side2',
+            'side1Trapezoid', 'side2Trapezoid', 'side1Triangle', 'side2Triangle'
+        ].map(key => {
+            const material = materials[key];
+            material.envMap = boxReflectionTarget.texture;
+            material.envMapIntensity = 0;
+            material.needsUpdate = true;
+            return {
+                material,
+                roughness: material.roughness,
+                clearcoat: material.clearcoat,
+                clearcoatRoughness: material.clearcoatRoughness,
+                reflectivity: material.reflectivity
+            };
+        });
+        function setBoxGleam(enabled, amount = 1) {
+            const gloss = enabled ? THREE.MathUtils.clamp(amount, 0, 1.5) : 0;
+            boxPanelFinishes.forEach(finish => {
+                finish.material.roughness = gloss > 0
+                    ? Math.max(0.045, finish.roughness * (1 - 0.6 * gloss))
+                    : finish.roughness;
+                finish.material.clearcoat = gloss > 0
+                    ? Math.min(0.98, finish.clearcoat + 0.4 * gloss)
+                    : finish.clearcoat;
+                finish.material.clearcoatRoughness = enabled
+                    ? Math.max(0.045, finish.clearcoatRoughness * Math.max(0.1, 1 - 0.75 * gloss))
+                    : finish.clearcoatRoughness;
+                finish.material.envMapIntensity = gloss * 0.4;
+                finish.material.reflectivity = gloss > 0
+                    ? Math.min(1, finish.reflectivity + 0.15 * gloss)
+                    : finish.reflectivity;
+            });
+        }
         // =============== SUN / MOON / SKY / DAY-NIGHT ===============
         const env = {
             time: START_TIME_HOURS,
@@ -2445,9 +3114,7 @@
         const _bounceColor = new THREE.Color();
         const _bounceSourceColor = new THREE.Color();
         const _bounceGroundTint = new THREE.Color();
-        const _bounceSunDir = new THREE.Vector3();
-        const _bounceMoonDir = new THREE.Vector3();
-        const _bounceDirection = new THREE.Vector3();
+        const _atmosphereSandTint = new THREE.Color(0xd8b78a);
         const _bounceBoxCenter = new THREE.Vector3();
         const _bounceBoxTemp = new THREE.Vector3();
         const _bounceTempColor = new THREE.Color();
@@ -2506,7 +3173,8 @@
         dust.frustumCulled = false;
         scene.add(dust);
         let envTime = 0;
-        let dustOn = true;
+        let dustOn = false;
+        let atmosphereStrength = 0;
 
         // Clouds
         function makeCloudTexture(variant) {
@@ -2610,6 +3278,7 @@
         // MEADOW is now the default scene
         const sceneWeights = { classic: 0, meadow: 1, desert: 0 };
         const sceneTargets = { classic: 0, meadow: 1, desert: 0 };
+        const SCENE_NAMES = ['classic', 'meadow', 'desert'];
         const sceneGroundColors = {
             classic: new THREE.Color(GROUND_COLOR),
             meadow: new THREE.Color(0x467c3e),
@@ -2646,6 +3315,7 @@
             ground.material.color.copy(customGroundColor);
             groundDot.style.background = hex;
             paletteSwatches.forEach(sw => sw.classList.toggle('sel', sw.dataset.hex.toLowerCase() === hex.toLowerCase()));
+            invalidateReflections();
         }
         GROUND_PRESETS.forEach(([name, hex]) => {
             const sw = document.createElement('button');
@@ -2702,7 +3372,10 @@
             ev.preventDefault();
         });
         clockSvg.addEventListener('pointermove', (ev) => { if (draggingClock) setTimeFromPointer(ev); });
-        ['pointerup', 'pointercancel'].forEach(t => clockSvg.addEventListener(t, () => { draggingClock = false; }));
+        ['pointerup', 'pointercancel'].forEach(t => clockSvg.addEventListener(t, () => {
+            if (draggingClock) invalidateReflections();
+            draggingClock = false;
+        }));
 
         // Cycle
         const cycleBtn = document.getElementById('cycleBtn');
@@ -2714,6 +3387,7 @@
             cycleBtn.innerText = env.cycleOn ? '⏱ Cycle: ON' : '⏱ Cycle: OFF';
             cycleBtn.classList.toggle('on', env.cycleOn);
             cycleReveal.classList.toggle('open', env.cycleOn);
+            invalidateReflections();
         });
         cycleLenSlider.value = CYCLE_DURATION_SECONDS;
         cycleLenVal.innerText = CYCLE_DURATION_SECONDS;
@@ -2725,11 +3399,12 @@
         const controlsBtn = document.getElementById('controlsBtn');
         const controlsPopup = document.getElementById('controlsPopup');
         const dustBtn = document.getElementById('dustBtn');
-        dustBtn.addEventListener('click', () => {
-            dustOn = !dustOn;
-            dustBtn.innerText = dustOn ? '✨ Dust: ON' : '✨ Dust: OFF';
+        function setMagicParticlesEnabled(enabled) {
+            dustOn = enabled;
+            dustBtn.innerText = dustOn ? '✨ Magic particles: ON' : '✨ Magic particles: OFF';
             dustBtn.classList.toggle('on', dustOn);
-        });
+        }
+        dustBtn.addEventListener('click', () => setMagicParticlesEnabled(!dustOn));
 
         // HDR toggle
         const hdrBtn = document.getElementById('hdrBtn');
@@ -2738,16 +3413,111 @@
             hdrBtn.innerText = hdrEnabled ? '🌅 HDR: ON' : '🌅 HDR: OFF';
             hdrBtn.classList.toggle('on', hdrEnabled);
             updatePostProcessing();
+            invalidateReflections();
         });
 
         // Shaders toggle
         const shadersBtn = document.getElementById('shadersBtn');
-        shadersBtn.addEventListener('click', () => {
-            shadersEnabled = !shadersEnabled;
+        const shaderSliders = document.getElementById('shaderSliders');
+        const atmosphereSlider = document.getElementById('atmosphereSlider');
+        const glossSlider = document.getElementById('glossSlider');
+        const bounceSlider = document.getElementById('bounceSlider');
+        const cinematicGrainSlider = document.getElementById('cinematicGrainSlider');
+        const atmosphereValue = document.getElementById('atmosphereValue');
+        const glossValue = document.getElementById('glossValue');
+        const bounceValue = document.getElementById('bounceValue');
+        const cinematicGrainValue = document.getElementById('cinematicGrainValue');
+        const cinematicGrainOverlay = document.getElementById('cinematicGrain');
+        let shaderHoverReveal = false;
+        let shaderHoverCloseTimer;
+        const grainCanvas = document.createElement('canvas');
+        grainCanvas.width = grainCanvas.height = 512;
+        const grainContext = grainCanvas.getContext('2d');
+        const grainPixels = grainContext.createImageData(grainCanvas.width, grainCanvas.height);
+        for (let i = 0; i < grainPixels.data.length; i += 4) {
+            const value = Math.max(0, Math.min(255, Math.round(128 + (Math.random() - Math.random()) * 104)));
+            grainPixels.data[i] = grainPixels.data[i + 1] = grainPixels.data[i + 2] = value;
+            grainPixels.data[i + 3] = 255;
+        }
+        grainContext.putImageData(grainPixels, 0, 0);
+        cinematicGrainOverlay.style.backgroundImage = `url("${grainCanvas.toDataURL('image/png')}")`;
+        function updateCinematicGrain() {
+            cinematicGrainOverlay.classList.toggle('active', shadersEnabled && grainAmount > 0);
+            cinematicGrainOverlay.style.opacity = shadersEnabled
+                ? String(grainAmount * 0.0014)
+                : '0';
+        }
+        function updateVisualSliderLabels() {
+            atmosphereValue.innerText = `${atmosphereSlider.value}%`;
+            glossValue.innerText = `${glossSlider.value}%`;
+            bounceValue.innerText = `${bounceSlider.value}%`;
+            cinematicGrainValue.innerText = `${cinematicGrainSlider.value}%`;
+        }
+        function clearShaderHoverClose() {
+            clearTimeout(shaderHoverCloseTimer);
+        }
+        function scheduleShaderHoverClose() {
+            clearShaderHoverClose();
+            shaderHoverCloseTimer = setTimeout(() => {
+                if (shadersBtn.matches(':hover') || shaderSliders.matches(':hover')) return;
+                shaderHoverReveal = false;
+                shaderSliders.classList.toggle('open', shadersEnabled);
+            }, 180);
+        }
+        shadersBtn.addEventListener('pointerenter', () => {
+            clearShaderHoverClose();
+            shaderHoverReveal = true;
+            shaderSliders.classList.add('open');
+        });
+        shaderSliders.addEventListener('pointerenter', clearShaderHoverClose);
+        shadersBtn.addEventListener('pointerleave', scheduleShaderHoverClose);
+        shaderSliders.addEventListener('pointerleave', scheduleShaderHoverClose);
+        function setShadersEnabled(enabled, resetToDefaults = false) {
+            if (resetToDefaults) {
+                atmosphereSlider.value = VISUAL_SLIDER_DEFAULTS.atmosphere;
+                glossSlider.value = VISUAL_SLIDER_DEFAULTS.gloss;
+                bounceSlider.value = VISUAL_SLIDER_DEFAULTS.bounce;
+                cinematicGrainSlider.value = VISUAL_SLIDER_DEFAULTS.grain;
+                atmosphereAmount = VISUAL_SLIDER_DEFAULTS.atmosphere;
+                boxGlossAmount = VISUAL_SLIDER_DEFAULTS.gloss;
+                bounceAmount = VISUAL_SLIDER_DEFAULTS.bounce;
+                grainAmount = VISUAL_SLIDER_DEFAULTS.grain;
+                updateVisualSliderLabels();
+            }
+            shadersEnabled = enabled;
             shadersBtn.innerText = shadersEnabled ? '🎬 Shaders: ON' : '🎬 Shaders: OFF';
             shadersBtn.classList.toggle('on', shadersEnabled);
+            shaderSliders.classList.toggle('open', shadersEnabled || shaderHoverReveal);
+            updateCinematicGrain();
+            setBoxGleam(shadersEnabled, boxGlossAmount / 100);
+            invalidateReflections();
             updatePostProcessing();
+        }
+        shadersBtn.addEventListener('click', () => {
+            setShadersEnabled(!shadersEnabled, !shadersEnabled);
         });
+        atmosphereSlider.addEventListener('input', () => {
+            atmosphereAmount = Number(atmosphereSlider.value);
+            updateVisualSliderLabels();
+        });
+        atmosphereSlider.addEventListener('change', invalidateReflections);
+        glossSlider.addEventListener('input', () => {
+            boxGlossAmount = Number(glossSlider.value);
+            updateVisualSliderLabels();
+            setBoxGleam(shadersEnabled, boxGlossAmount / 100);
+        });
+        glossSlider.addEventListener('change', invalidatePondReflection);
+        bounceSlider.addEventListener('input', () => {
+            bounceAmount = Number(bounceSlider.value);
+            updateVisualSliderLabels();
+        });
+        bounceSlider.addEventListener('change', invalidateReflections);
+        cinematicGrainSlider.addEventListener('input', () => {
+            grainAmount = Number(cinematicGrainSlider.value);
+            updateVisualSliderLabels();
+            updateCinematicGrain();
+        });
+        updateCinematicGrain();
 
         // Snapshot
         const snapshotBtn = document.getElementById('snapshotBtn');
@@ -2765,21 +3535,57 @@
 
         const imagesBtn = document.getElementById('imagesBtn');
         const imagesPanel = document.getElementById('imagesPanel');
+        const visualsBtn = document.getElementById('visualsBtn');
+        const visualsPanel = document.getElementById('visualsPanel');
 
         const popups = [
             { el: palettePopup,  btn: groundBtn,   floating: true },
             { el: controlsPopup, btn: controlsBtn, floating: true },
             { el: boxPositionPopup, btn: boxPositionBtn, floating: true },
             { el: scenePopup, btn: sceneBtn, floating: true },
-            { el: imagesPanel,   btn: imagesBtn,   floating: false }
+            { el: imagesPanel, btn: imagesBtn, floating: false },
+            { el: visualsPanel, btn: visualsBtn, floating: false }
         ];
+        const popupCloseTimers = new Map();
+        function clearPopupCloseTimer(pop) {
+            const timer = popupCloseTimers.get(pop);
+            if (timer !== undefined) {
+                clearTimeout(timer);
+                popupCloseTimers.delete(pop);
+            }
+        }
         function setPopupOpen(pop, open) {
+            if (!open) clearPopupCloseTimer(pop);
             pop.el.classList.toggle('open', open);
             pop.btn.classList.toggle('on', open);
             if (pop.el === scenePopup) sceneBtn.setAttribute('aria-expanded', String(open));
+            if (pop.el === visualsPanel) visualsBtn.setAttribute('aria-expanded', String(open));
             if (open && pop.floating) placePopup(pop.el, pop.btn);
         }
-        popups.forEach(pop => pop.btn.addEventListener('click', () => setPopupOpen(pop, !pop.el.classList.contains('open'))));
+        function openPopupOnHover(activePopup) {
+            popups.forEach(pop => {
+                if (pop !== activePopup) setPopupOpen(pop, false);
+            });
+            clearPopupCloseTimer(activePopup);
+            setPopupOpen(activePopup, true);
+        }
+        function schedulePopupClose(pop) {
+            clearPopupCloseTimer(pop);
+            popupCloseTimers.set(pop, setTimeout(() => {
+                popupCloseTimers.delete(pop);
+                if (!pop.btn.matches(':hover') && !pop.el.matches(':hover')) setPopupOpen(pop, false);
+            }, 180));
+        }
+        popups.forEach(pop => {
+            pop.btn.addEventListener('pointerenter', () => openPopupOnHover(pop));
+            pop.el.addEventListener('pointerenter', () => clearPopupCloseTimer(pop));
+            pop.btn.addEventListener('pointerleave', () => schedulePopupClose(pop));
+            pop.el.addEventListener('pointerleave', () => schedulePopupClose(pop));
+            pop.btn.addEventListener('click', () => {
+                const open = pop.btn.matches(':hover') || !pop.el.classList.contains('open');
+                setPopupOpen(pop, open);
+            });
+        });
         document.addEventListener('pointerdown', (ev) => {
             popups.forEach(pop => {
                 if (pop.el.classList.contains('open') && !pop.el.contains(ev.target) && !pop.btn.contains(ev.target)) setPopupOpen(pop, false);
@@ -2789,7 +3595,8 @@
 
         function selectScene(name) {
             if (!Object.prototype.hasOwnProperty.call(sceneTargets, name)) return;
-            Object.keys(sceneTargets).forEach(key => { sceneTargets[key] = key === name ? 1 : 0; });
+            SCENE_NAMES.forEach(key => { sceneTargets[key] = key === name ? 1 : 0; });
+            sceneTransitionPending = true;
             groundControl.classList.toggle('scene-hidden', name !== 'classic');
             sceneOptions.forEach(option => {
                 const selected = option.dataset.scene === name;
@@ -2866,6 +3673,7 @@
             camera.position.copy(controls.target).addScaledVector(cameraOffset, cameraScale / cameraLayoutScale);
             cameraLayoutScale = cameraScale;
             controls.update();
+            invalidateReflections();
             positionOptions.forEach(option => {
                 const selected = option.dataset.position === position;
                 option.classList.toggle('selected', selected);
@@ -2877,83 +3685,105 @@
             setPopupOpen(popups[2], false);
         }));
 
+        const _waterFrustum = new THREE.Frustum();
+        const _waterProjView = new THREE.Matrix4();
+        const _waterSphere = new THREE.Sphere();
+        let _waterWavesEverUpdated = false;
+        function waterWavesNeedUpdate() {
+            if (!_waterWavesEverUpdated) { _waterWavesEverUpdated = true; return true; }
+            // The box reflection capture can see the pond, so keep it current on those frames.
+            if (shadersEnabled && boxReflectionDirty) return true;
+            _waterProjView.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+            _waterFrustum.setFromProjectionMatrix(_waterProjView);
+            // Pond is ~5.5 units across; the larger radius is a safety margin for camera movement.
+            _waterSphere.center.set(pondX, pondGroup.position.y, pondZ);
+            _waterSphere.radius = 9;
+            return _waterFrustum.intersectsSphere(_waterSphere);
+        }
+
+        let sceneTransitionPending = false;
         function updateEnvironment(dt) {
             const sceneBlend = 1 - Math.exp(-Math.min(dt, 0.1) * 2.8);
-            Object.keys(sceneWeights).forEach(name => {
+            let sceneTransitioning = false;
+            for (let sceneIndex = 0; sceneIndex < SCENE_NAMES.length; sceneIndex++) {
+                const name = SCENE_NAMES[sceneIndex];
                 sceneWeights[name] += (sceneTargets[name] - sceneWeights[name]) * sceneBlend;
-            });
+                if (Math.abs(sceneTargets[name] - sceneWeights[name]) > 0.005) sceneTransitioning = true;
+            }
+            if (sceneTransitionPending && !sceneTransitioning) {
+                sceneTransitionPending = false;
+                invalidateReflections();
+            }
             const meadowOpacity = sceneWeights.meadow;
             const desertOpacity = sceneWeights.desert;
             sceneDecor.meadow.visible = meadowOpacity > 0.005;
             sceneDecor.desert.visible = desertOpacity > 0.005;
             decorMaterials.meadow.forEach(material => { material.opacity = meadowOpacity; });
             decorMaterials.desert.forEach(material => { material.opacity = desertOpacity; });
+            pondWaterMat.opacity = meadowOpacity * 0.82;
             if (desertMats._extraMats) desertMats._extraMats.forEach(m => { m.opacity = desertOpacity; });
 
-            meadowMotion.forEach(item => {
-                item.object.rotation.z = Math.sin(envTime * 1.4 + item.phase) * item.amount;
-            });
-            // Wind-driven crossing swells plus small circular ripples. Vertex normals
-            // change every frame, so the reflected scenery bends with the waves.
-            const waterPulse = 0.5 + 0.5 * Math.sin(envTime * 1.25);
-            pondWaterMat.roughness = 0.105 + waterPulse * 0.035;
-            // Richer blue water, while keeping enough green to feel natural in a meadow.
-            pondWaterMat.color.setRGB(0.13 + waterPulse * 0.015, 0.30 + waterPulse * 0.025, 0.57 + waterPulse * 0.04);
-            const waterPositions = waterGeo.attributes.position.array;
-            for (let i = 0; i < waterPositions.length / 3; i++) {
-                const base = i * 3;
-                const x = waterBasePositions[base];
-                const z = waterBasePositions[base + 2];
-                // Broader crossing swells create a more readable moving water surface.
-                const swellA = Math.sin(x * 1.05 + z * 0.52 + envTime * 1.35) * 0.022;
-                const swellB = Math.sin(z * 1.55 - x * 0.82 - envTime * 1.08) * 0.016;
-                const swellC = Math.sin(x * 2.05 - z * 1.72 + envTime * 1.72) * 0.0065;
-                const rippleAX = x + 1.2, rippleAZ = z - 0.55;
-                const rippleBX = x - 1.55, rippleBZ = z + 0.9;
-                const rippleA = Math.sin(Math.hypot(rippleAX, rippleAZ) * 5.4 - envTime * 2.25)
-                    * 0.010 * Math.exp(-Math.hypot(rippleAX, rippleAZ) * 0.19);
-                const rippleB = Math.sin(Math.hypot(rippleBX, rippleBZ) * 6.1 - envTime * 1.85)
-                    * 0.008 * Math.exp(-Math.hypot(rippleBX, rippleBZ) * 0.22);
-                waterPositions[base + 1] = swellA + swellB + swellC + rippleA + rippleB;
+            if (meadowOpacity > 0.005) {
+                meadowMotion.forEach(item => {
+                    item.object.rotation.z = Math.sin(envTime * 1.4 + item.phase) * item.amount;
+                });
+                updateInstancedGrass(envTime);
+                // Wind-driven crossing swells plus small circular ripples.
+                const waterPulse = 0.5 + 0.5 * Math.sin(envTime * 1.25);
+                pondWaterMat.roughness = 0.105 + waterPulse * 0.035;
+                pondWaterMat.color.setRGB(0.06 + waterPulse * 0.01, 0.17 + waterPulse * 0.02, 0.34 + waterPulse * 0.04);
+                if (waterWavesNeedUpdate()) {
+                const waterPositions = waterGeo.attributes.position.array;
+                for (let i = 0; i < waterGeo.attributes.position.count; i++) {
+                    const positionIndex = i * 3;
+                    const waveIndex = i * 7;
+                    const swellA = Math.sin(waterWaveData[waveIndex] + envTime * 1.35) * 0.022;
+                    const swellB = Math.sin(waterWaveData[waveIndex + 1] - envTime * 1.08) * 0.016;
+                    const swellC = Math.sin(waterWaveData[waveIndex + 2] + envTime * 1.72) * 0.0065;
+                    const rippleA = Math.sin(waterWaveData[waveIndex + 3] - envTime * 2.25) * waterWaveData[waveIndex + 5];
+                    const rippleB = Math.sin(waterWaveData[waveIndex + 4] - envTime * 1.85) * waterWaveData[waveIndex + 6];
+                    waterPositions[positionIndex + 1] = swellA + swellB + swellC + rippleA + rippleB;
+                }
+                waterGeo.attributes.position.needsUpdate = true;
+                waterGeo.computeVertexNormals();
+                }
+                rippleVisuals.forEach(ripple => {
+                    const progress = (envTime * ripple.speed + ripple.phase) % 1;
+                    const radius = 0.22 + progress * 1.18;
+                    ripple.mesh.scale.setScalar(radius);
+                    ripple.material.opacity = meadowOpacity * 0.23 * Math.pow(1 - progress, 1.35);
+                });
+                water.position.y = 0.018 + Math.sin(envTime * 1.05) * 0.0025;
+                water.scale.set(1 + Math.sin(envTime * 0.7) * 0.0015, 1, 1 + Math.cos(envTime * 0.8) * 0.0015);
+                flyMotion.forEach(fly => {
+                    const t = envTime * fly.speed + fly.phase;
+                    fly.object.position.set(
+                        Math.cos(t) * fly.radius,
+                        0.1 + Math.sin(t * 1.7) * 0.16,
+                        Math.sin(t * 0.83) * fly.radius
+                    );
+                });
             }
-            waterGeo.attributes.position.needsUpdate = true;
-            waterGeo.computeVertexNormals();
-            // Each source emits a sequence of soft expanding rings that fade naturally.
-            rippleVisuals.forEach(ripple => {
-                const progress = (envTime * ripple.speed + ripple.phase) % 1;
-                const radius = 0.22 + progress * 1.18;
-                ripple.mesh.scale.setScalar(radius);
-                ripple.material.opacity = meadowOpacity * 0.23 * Math.pow(1 - progress, 1.35);
-            });
-            water.position.y = 0.018 + Math.sin(envTime * 1.05) * 0.0025;
-            water.scale.set(1 + Math.sin(envTime * 0.7) * 0.0015, 1, 1 + Math.cos(envTime * 0.8) * 0.0015);
-            flyMotion.forEach(fly => {
-                const t = envTime * fly.speed + fly.phase;
-                fly.object.position.set(
-                    Math.cos(t) * fly.radius,
-                    0.1 + Math.sin(t * 1.7) * 0.16,
-                    Math.sin(t * 0.83) * fly.radius
-                );
-            });
-            // Tumbleweed rolling
-            tumbleweedMotion.forEach(tw => {
-                const t = envTime * tw.speed + tw.phase;
-                tw.object.position.x = tw.startX + Math.sin(t * 0.3) * 2;
-                tw.object.position.z = tw.startZ + Math.cos(t * 0.2) * 1.5;
-                tw.object.rotation.x = t * 1.2;
-                tw.object.rotation.z = t * 0.8;
-                // Re-seat from the rotated mesh bounds each frame. This compensates
-                // for both changing dune height and the tumbleweed's changing shape profile.
-                const twGround = desertSurfaceY(tw.object.position.x, tw.object.position.z);
-                tw.object.position.y = twGround + tw.size * 0.35;
-                tw.object.updateMatrixWorld(true);
-                const twBounds = new THREE.Box3().setFromObject(tw.object);
-                tw.object.position.y += twGround - twBounds.min.y - 0.002;
-            });
+            if (desertOpacity > 0.005) {
+                tumbleweedMotion.forEach(tw => {
+                    const t = envTime * tw.speed + tw.phase;
+                    tw.object.position.x = tw.startX + Math.sin(t * 0.3) * 2;
+                    tw.object.position.z = tw.startZ + Math.cos(t * 0.2) * 1.5;
+                    tw.object.rotation.x = t * 1.2;
+                    tw.object.rotation.z = t * 0.8;
+                    const twGround = desertSurfaceY(tw.object.position.x, tw.object.position.z);
+                    tw.object.position.y = twGround + tw.size * 0.35;
+                    tw.object.updateMatrixWorld(true);
+                    tumbleweedBounds.setFromObject(tw.object);
+                    tw.object.position.y += twGround - tumbleweedBounds.min.y - 0.002;
+                });
+            }
 
             if (env.cycleOn) env.time = (env.time + Math.min(dt, 0.1) * 24 / env.cycleLen) % 24;
             const t = env.time;
+            const wasNight = env.isNight;
             env.isNight = !(t >= 6 && t < 18);
+            if (env.isNight !== wasNight) invalidateReflections();
             env.sunAngle = THREE.MathUtils.clamp((t - 6) / 12 * 180, 0, 180);
             env.moonAngle = THREE.MathUtils.clamp((t >= 18 ? t - 18 : t + 6) / 12 * 180, 0, 180);
             updateClockUI();
@@ -2963,6 +3793,16 @@
 
             const eSun = Math.min(env.sunAngle, 180 - env.sunAngle);
             const eMoon = Math.min(env.moonAngle, 180 - env.moonAngle);
+            sunLight.shadow.radius = THREE.MathUtils.lerp(1.5, 5.5, 1 - smooth(8, 55, eSun));
+            moonLight.shadow.radius = THREE.MathUtils.lerp(1.5, 5.5, 1 - smooth(8, 55, eMoon));
+            const sunriseSunset = 1 - smooth(0, 38, eSun);
+            if (shadersEnabled) {
+                const atmosphereTarget = nightF + dayF * sunriseSunset;
+                atmosphereStrength += (atmosphereTarget - atmosphereStrength)
+                    * (1 - Math.exp(-Math.min(dt, 0.1) * 0.45));
+            } else {
+                atmosphereStrength = 0;
+            }
 
             arcDirection(env.sunAngle, _dir);
             sunLight.position.copy(_dir).multiplyScalar(20);
@@ -2977,6 +3817,8 @@
             arcDirection(env.moonAngle, _dir);
             moonLight.position.copy(_dir).multiplyScalar(20);
             moonLight.intensity = nightF * (0.08 + 0.32 * smooth(0, 30, eMoon));
+            sunLight.castShadow = sunLight.intensity >= moonLight.intensity;
+            moonLight.castShadow = !sunLight.castShadow;
             moonDisc.position.copy(_dir).multiplyScalar(130);
             moonDisc.material.opacity = nightF;
             moonDisc.visible = nightF > 0.02;
@@ -2994,7 +3836,8 @@
             sceneDaySky.setRGB(0, 0, 0);
             sceneDawnSky.setRGB(0, 0, 0);
             sceneNightSky.setRGB(0, 0, 0);
-            Object.keys(sceneWeights).forEach(name => {
+            for (let sceneIndex = 0; sceneIndex < SCENE_NAMES.length; sceneIndex++) {
+                const name = SCENE_NAMES[sceneIndex];
                 sceneDaySky.r += sceneDaySkies[name].r * sceneWeights[name];
                 sceneDaySky.g += sceneDaySkies[name].g * sceneWeights[name];
                 sceneDaySky.b += sceneDaySkies[name].b * sceneWeights[name];
@@ -3004,12 +3847,17 @@
                 sceneNightSky.r += sceneNightSkies[name].r * sceneWeights[name];
                 sceneNightSky.g += sceneNightSkies[name].g * sceneWeights[name];
                 sceneNightSky.b += sceneNightSkies[name].b * sceneWeights[name];
-            });
+            }
             _skyDay.copy(sceneDawnSky).lerp(sceneDaySky, smooth(0, 35, eSun));
             _skyNight.copy(sceneDawnSky).lerp(sceneNightSky, smooth(0, 25, eMoon));
             _skyDay.lerp(_skyNight, nightF);
             scene.background.copy(_skyDay);
-            scene.fog.color.copy(_skyDay);
+            const atmosphereScale = atmosphereAmount / 100;
+            const meadowMist = atmosphereStrength * atmosphereScale * meadowOpacity;
+            const desertSand = atmosphereStrength * atmosphereScale * desertOpacity;
+            scene.fog.color.copy(_skyDay).lerp(_atmosphereSandTint, desertSand * 0.32);
+            scene.fog.near = 25 - meadowMist * 11 - desertSand * 6;
+            scene.fog.far = 75 - meadowMist * 27 - desertSand * 18;
 
             sceneColorScratch.setRGB(
                 customGroundColor.r * sceneWeights.classic + sceneGroundColors.meadow.r * meadowOpacity + sceneGroundColors.desert.r * desertOpacity,
@@ -3020,7 +3868,7 @@
 
             // Ground-coloured bounce follows the combined sun/moon direction. The
             // ground tint is blended with the source light rather than multiplied,
-            // so the reflected colour stays visible without becoming muddy or strong.
+            // so the reflected colour stays visible without becoming muddy or harsh.
             const bounceSunPower = sunLight.intensity;
             const bounceMoonPower = moonLight.intensity;
             const bouncePower = bounceSunPower + bounceMoonPower;
@@ -3032,7 +3880,10 @@
                 _bounceSourceColor.setRGB(0, 0, 0);
             }
             _bounceGroundTint.copy(ground.material.color);
-            _bounceColor.copy(_bounceSourceColor).lerp(_bounceGroundTint, 0.64).multiplyScalar(0.72);
+            _bounceColor.copy(_bounceSourceColor).lerp(_bounceGroundTint, 0.72).multiplyScalar(0.8);
+            const bounceShaderFactor = shadersEnabled ? bounceAmount / 100 : 0;
+            lowerBounceUniforms.color.value.copy(_bounceColor);
+            lowerBounceUniforms.intensity.value = bouncePower * 0.48 * bounceShaderFactor;
 
             // Average the visible box positions so the bounce remains attached to
             // upright, lying and paired layouts, including a rotated turntable.
@@ -3045,40 +3896,6 @@
                 bounceBoxCount++;
             }
             if (bounceBoxCount > 0) _bounceBoxCenter.multiplyScalar(1 / bounceBoxCount);
-
-            // The ground patch sits on the side facing the strongest combined
-            // sunlight/moonlight direction, so its coloured fill moves through the day.
-            arcDirection(env.sunAngle, _bounceSunDir);
-            arcDirection(env.moonAngle, _bounceMoonDir);
-            _bounceDirection.copy(_bounceSunDir).multiplyScalar(bounceSunPower)
-                .addScaledVector(_bounceMoonDir, bounceMoonPower);
-            _bounceDirection.y = 0;
-            if (_bounceDirection.lengthSq() < 0.000001) _bounceDirection.set(0, 0, 1);
-            else _bounceDirection.normalize();
-
-            groundBounceLight.color.copy(_bounceColor);
-            groundBounceLight.intensity = bouncePower * 0.055;
-            groundBounceLight.position.set(
-                _bounceBoxCenter.x + _bounceDirection.x * 1.25,
-                floorY + 0.16,
-                _bounceBoxCenter.z + _bounceDirection.z * 1.25
-            );
-            groundBounceLight.target.position.copy(_bounceBoxCenter);
-            groundBounceLight.target.updateMatrixWorld();
-
-            groundBouncePoint.color.copy(_bounceColor);
-            groundBouncePoint.intensity = bouncePower * 0.22;
-            groundBouncePoint.position.set(
-                _bounceBoxCenter.x + _bounceDirection.x * 0.78,
-                floorY + 0.24,
-                _bounceBoxCenter.z + _bounceDirection.z * 0.78
-            );
-
-            // Hemisphere ground colour softly reaches the underside and lower
-            // faces of the box without a hard hotspot or a strong direct beam.
-            groundBounceHemi.color.setRGB(0, 0, 0);
-            groundBounceHemi.groundColor.copy(_bounceColor);
-            groundBounceHemi.intensity = bouncePower * 0.12;
 
             hemiLight.color.copy(_skyDay).lerp(WHITE, 0.55);
             hemiLight.groundColor.copy(ground.material.color).multiplyScalar(0.85);
@@ -3157,6 +3974,7 @@
         const turntableSpeedSlider = document.getElementById('turntableSpeedSlider');
         const turntableSpeedVal = document.getElementById('turntableSpeedVal');
         let turntableSpeed = TURNTABLE_SPEED;
+        let lastReflectionTurntableAngle = layoutGroup.rotation.y;
         turntableSpeedSlider.value = TURNTABLE_SPEED;
         turntableSpeedVal.innerText = TURNTABLE_SPEED;
         turntableSpeedSlider.addEventListener('input', (e) => {
@@ -3168,16 +3986,23 @@
             turntableBtn.classList.toggle('on', turntableOn);
             turntableReveal.classList.toggle('open', turntableOn);
         }
-        turntableBtn.addEventListener('click', () => { turntableOn = !turntableOn; updateTurntableBtn(); });
+        turntableBtn.addEventListener('click', () => {
+            turntableOn = !turntableOn;
+            lastReflectionTurntableAngle = layoutGroup.rotation.y;
+            updateTurntableBtn();
+            invalidateReflections();
+        });
         updateTurntableBtn();
         const clock = new THREE.Clock();
 
         // --- LID CONTROLS ---
         const targetOpens = [0, 0], currentOpens = [0, 0];
+        let lidReflectionPending = false;
         const lidSlider = document.getElementById('lidSlider');
         const angleVal = document.getElementById('angleVal');
         const lidReveal = document.getElementById('lidReveal');
         function toggleLid(boxIndex) {
+            lidReflectionPending = true;
             if (boxIndex === undefined) {
                 const nextOpen = targetOpens[0] > 0.5 ? 0 : 1;
                 targetOpens.forEach((_, index) => { targetOpens[index] = nextOpen; });
@@ -3190,8 +4015,17 @@
         lidSlider.addEventListener('input', (e) => {
             const openAmount = parseInt(e.target.value) / 75;
             targetOpens.forEach((_, index) => { targetOpens[index] = openAmount; });
+            lidReflectionPending = true;
         });
         document.getElementById('toggleLidBtn').addEventListener('click', () => toggleLid());
+        function bindHoverReveal(button, reveal) {
+            const wrapper = button.closest('.bar-item');
+            wrapper.addEventListener('pointerenter', () => reveal.classList.add('open'));
+            wrapper.addEventListener('pointerleave', () => reveal.classList.remove('open'));
+        }
+        bindHoverReveal(turntableBtn, turntableReveal);
+        bindHoverReveal(document.getElementById('toggleLidBtn'), lidReveal);
+        bindHoverReveal(cycleBtn, cycleReveal);
 
         // Click lid
         const raycaster = new THREE.Raycaster();
@@ -3218,40 +4052,175 @@
             const lidIndex = clickedLidIndex(ev);
             if (lidIndex !== -1) toggleLid(lidIndex);
         });
+        let lastHoverCheck = 0;
         renderer.domElement.addEventListener('pointermove', (ev) => {
             if (ev.buttons) return;
+            const hoverNow = performance.now();
+            if (hoverNow - lastHoverCheck < 50) return;
+            lastHoverCheck = hoverNow;
             renderer.domElement.style.cursor = clickedLidIndex(ev) !== -1 ? 'pointer' : 'default';
         });
 
-        function animate() {
-            requestAnimationFrame(animate);
+        lowerBounceUniforms.minY.value = floorY;
+        lowerBounceUniforms.maxY.value = floorY + boxHeight * 0.42;
+        function addLowerBounceFade(material) {
+            if (!material.isMeshStandardMaterial && !material.isMeshPhysicalMaterial) return;
+
+            const originalOnBeforeCompile = material.onBeforeCompile;
+            const originalProgramCacheKey = material.customProgramCacheKey;
+            material.onBeforeCompile = function (shader, activeRenderer) {
+                originalOnBeforeCompile.call(this, shader, activeRenderer);
+                shader.uniforms.uLowerBounceColor = lowerBounceUniforms.color;
+                shader.uniforms.uLowerBounceIntensity = lowerBounceUniforms.intensity;
+                shader.uniforms.uLowerBounceMinY = lowerBounceUniforms.minY;
+                shader.uniforms.uLowerBounceMaxY = lowerBounceUniforms.maxY;
+                shader.vertexShader = shader.vertexShader.replace(
+                    '#include <common>',
+                    '#include <common>\nvarying vec3 vLowerBounceWorldPosition;'
+                ).replace(
+                    '#include <project_vertex>',
+                    '#include <project_vertex>\n#ifdef USE_INSTANCING\nvLowerBounceWorldPosition = ( modelMatrix * instanceMatrix * vec4( transformed, 1.0 ) ).xyz;\n#else\nvLowerBounceWorldPosition = ( modelMatrix * vec4( transformed, 1.0 ) ).xyz;\n#endif'
+                );
+                shader.fragmentShader = shader.fragmentShader.replace(
+                    '#include <common>',
+                    '#include <common>\nvarying vec3 vLowerBounceWorldPosition;\nuniform vec3 uLowerBounceColor;\nuniform float uLowerBounceIntensity;\nuniform float uLowerBounceMinY;\nuniform float uLowerBounceMaxY;'
+                ).replace(
+                    '#include <lights_fragment_end>',
+                    '#include <lights_fragment_end>\nfloat lowerBounceFade = 1.0 - smoothstep( uLowerBounceMinY, uLowerBounceMaxY, vLowerBounceWorldPosition.y );\nreflectedLight.indirectDiffuse += diffuseColor.rgb * uLowerBounceColor * uLowerBounceIntensity * lowerBounceFade;'
+                );
+            };
+            material.customProgramCacheKey = function () {
+                return `${originalProgramCacheKey.call(this)}|lower-bounce-height-fade`;
+            };
+            material.needsUpdate = true;
+        }
+        const lowerBounceMaterials = new Set();
+        scene.traverse(object => {
+            if (!object.isMesh) return;
+            const objectMaterials = Array.isArray(object.material) ? object.material : [object.material];
+            objectMaterials.forEach(material => {
+                if (material && !lowerBounceMaterials.has(material)) {
+                    lowerBounceMaterials.add(material);
+                    addLowerBounceFade(material);
+                }
+            });
+        });
+
+        // Shadow scheduling: always refreshed on the same frame when the box, lid,
+        // lights, scene or day/night cycle move; only gentle ambient motion (grass and
+        // branch sway) is refreshed at ~30-40 Hz, which is below one shadow texel of drift.
+        const SHADOW_AMBIENT_INTERVAL_MS = 25;
+        let lastShadowUpdateTimestamp = -Infinity;
+        let lastShadowCastKey = 0;
+        const lastShadowSunPosition = new THREE.Vector3(NaN, NaN, NaN);
+        const lastShadowMoonPosition = new THREE.Vector3(NaN, NaN, NaN);
+
+        const MAX_RENDER_FPS = 90;
+        const MIN_RENDER_FRAME_MS = 1000 / MAX_RENDER_FPS;
+        let lastRenderedFrameTimestamp = 0;
+        function animate(timestamp) {
+            animationFrameId = null;
+            if (document.hidden) return;
+            const elapsedSinceLastFrame = timestamp - lastRenderedFrameTimestamp;
+            if (elapsedSinceLastFrame < MIN_RENDER_FRAME_MS) {
+                animationFrameId = requestAnimationFrame(animate);
+                return;
+            }
+            // Preserve the cap without accumulating scheduling drift.
+            lastRenderedFrameTimestamp = timestamp - (elapsedSinceLastFrame % MIN_RENDER_FRAME_MS);
             const dt = clock.getDelta();
             updateEnvironment(dt);
             placeOpenPopups();
-            if (turntableOn) layoutGroup.rotation.y += THREE.MathUtils.degToRad(turntableSpeed) * dt;
+            if (turntableOn) {
+                layoutGroup.rotation.y += THREE.MathUtils.degToRad(turntableSpeed) * dt;
+                if (Math.abs(layoutGroup.rotation.y - lastReflectionTurntableAngle) >= THREE.MathUtils.degToRad(15)) {
+                    lastReflectionTurntableAngle = layoutGroup.rotation.y;
+                    invalidateReflections();
+                }
+            } else {
+                lastReflectionTurntableAngle = layoutGroup.rotation.y;
+            }
             contactMat.opacity = 0.55 * env.dayF + 0.38 * (1 - env.dayF);
+            const lidEase = 1 - Math.pow(0.9, dt * 60);
+            let lidsAreMoving = false;
             currentOpens.forEach((currentOpen, index) => {
-                currentOpens[index] += (targetOpens[index] - currentOpen) * 0.1;
+                currentOpens[index] += (targetOpens[index] - currentOpen) * lidEase;
+                if (Math.abs(targetOpens[index] - currentOpens[index]) > 0.001) lidsAreMoving = true;
                 lidGroups[index].rotation.x = -currentOpens[index] * THREE.MathUtils.degToRad(65);
             });
-            angleVal.innerText = Math.round(currentOpens[0] * 65);
+            if (lidReflectionPending && !lidsAreMoving) {
+                lidReflectionPending = false;
+                invalidatePondReflection();
+            }
+            const displayedAngle = Math.round(currentOpens[0] * 65);
+            if (angleVal.dataset.angle !== String(displayedAngle)) {
+                angleVal.dataset.angle = String(displayedAngle);
+                angleVal.innerText = displayedAngle;
+            }
+            const controlsDamping = controls.dampingFactor;
+            controls.dampingFactor = 1 - Math.pow(1 - controlsDamping, dt * 60);
             controls.update();
-            // Refresh the reflection a few times per second while the meadow is
-            // visible. Hiding the water during capture prevents recursive self-reflection.
-            if (sceneWeights.meadow > 0.06 && envTime - lastPondReflectionUpdate > 0.65) {
-                lastPondReflectionUpdate = envTime;
+            controls.dampingFactor = controlsDamping;
+            updateTerrainLOD();
+            let shadowTouchedByCapture = false;
+            if (shadersEnabled && boxReflectionDirty) {
+                const boxVisibility = boxGroups.map(group => group.visible);
+                boxGroups.forEach(group => { group.visible = false; });
+                try {
+                    boxReflectionCamera.position.copy(_bounceBoxCenter);
+                    renderer.shadowMap.needsUpdate = true; // one shadow pass for all 6 cube faces
+                    shadowTouchedByCapture = true;
+                    boxReflectionCamera.update(renderer, scene);
+                    boxReflectionDirty = false;
+                } finally {
+                    boxGroups.forEach((group, index) => { group.visible = boxVisibility[index]; });
+                }
+            }
+            if (!sceneTransitionPending && sceneWeights.meadow > 0.06 && pondReflectionDirty) {
                 const waterWasVisible = water.visible;
                 water.visible = false;
                 try {
                     pondReflectionCamera.position.set(pondX, pondGroup.position.y + water.position.y + 0.10, pondZ);
+                    renderer.shadowMap.needsUpdate = true; // one shadow pass for all 6 cube faces
+                    shadowTouchedByCapture = true;
                     pondReflectionCamera.update(renderer, scene);
+                    pondReflectionDirty = false;
                 } finally {
                     water.visible = waterWasVisible;
                 }
             }
+            const shadowCastKey = sunLight.castShadow ? 1 : 2;
+            const shadowLightsChanged = shadowCastKey !== lastShadowCastKey
+                || !lastShadowSunPosition.equals(sunLight.position)
+                || !lastShadowMoonPosition.equals(moonLight.position);
+            if (shadowLightsChanged) {
+                lastShadowCastKey = shadowCastKey;
+                lastShadowSunPosition.copy(sunLight.position);
+                lastShadowMoonPosition.copy(moonLight.position);
+            }
+            if (shadowForceUpdate || shadowTouchedByCapture || shadowLightsChanged ||
+                turntableOn || lidsAreMoving || env.cycleOn || sceneTransitionPending ||
+                timestamp - lastShadowUpdateTimestamp >= SHADOW_AMBIENT_INTERVAL_MS) {
+                renderer.shadowMap.needsUpdate = true;
+                shadowForceUpdate = false;
+                lastShadowUpdateTimestamp = timestamp;
+            }
             renderer.render(scene, camera);
+            if (!document.hidden) animationFrameId = requestAnimationFrame(animate);
         }
-        animate();
+        let animationFrameId = null;
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                if (animationFrameId !== null) cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+                clock.stop();
+                return;
+            }
+            clock.start();
+            invalidateReflections();
+            if (animationFrameId === null) animationFrameId = requestAnimationFrame(animate);
+        });
+        if (!document.hidden) animationFrameId = requestAnimationFrame(animate);
 
         // Reset
         const resetBtn = document.getElementById('resetBtn');
@@ -3284,18 +4253,13 @@
             cycleBtn.classList.remove('on');
             cycleReveal.classList.remove('open');
 
-            dustOn = true;
-            dustBtn.innerText = '✨ Dust: ON';
-            dustBtn.classList.add('on');
+            setMagicParticlesEnabled(false);
 
             hdrEnabled = false;
             hdrBtn.innerText = '🌅 HDR: OFF';
             hdrBtn.classList.remove('on');
 
-            shadersEnabled = false;
-            shadersBtn.innerText = '🎬 Shaders: OFF';
-            shadersBtn.classList.remove('on');
-            updatePostProcessing();
+            setShadersEnabled(false, true);
 
             popups.forEach(pop => setPopupOpen(pop, false));
 
@@ -3304,30 +4268,10 @@
         }
         resetBtn.addEventListener('click', resetEverything);
 
-        // Welcome dialog
-        const welcomeOverlay = document.getElementById('welcomeOverlay');
-        const welcomeDialog = document.getElementById('welcomeDialog');
-        function openWelcome() {
-            welcomeOverlay.classList.add('open');
-            welcomeDialog.classList.add('open');
-        }
-        function closeWelcome() {
-            welcomeOverlay.classList.remove('open');
-            welcomeDialog.classList.remove('open');
-        }
-        document.getElementById('welcomeAllBtn').addEventListener('click', () => document.getElementById('batchInput').click());
-        document.getElementById('batchInput').addEventListener('change', (e) => { if (e.target.files && e.target.files.length) closeWelcome(); });
-        document.getElementById('welcomeEachBtn').addEventListener('click', () => {
-            closeWelcome();
-            setPopupOpen(popups.find(pop => pop.el === imagesPanel), true);
-        });
-        welcomeOverlay.addEventListener('click', closeWelcome);
-        window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && welcomeDialog.classList.contains('open')) closeWelcome(); });
-        requestAnimationFrame(() => requestAnimationFrame(openWelcome));
-
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, RENDER_PIXEL_RATIO_CAP));
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
             } catch (error) {
