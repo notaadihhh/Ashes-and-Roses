@@ -1,4 +1,4 @@
-        <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -259,7 +259,9 @@
 
             .popup-glass { padding: 9px 11px; font-size: 10.5px; max-width: calc(100vw - 20px); }
             #controlsPopup { white-space: normal; width: min(360px, calc(100vw - 20px)); max-height: 34vh; line-height: 1.5; }
-            #boxPositionPopup, #scenePopup { width: calc(100vw - 20px); max-height: 34vh; }
+            #boxPositionPopup, #scenePopup, #soundPopup { width: calc(100vw - 20px); max-height: 34vh; }
+            .sound-row { grid-template-columns: 74px minmax(0, 1fr); gap: 6px; min-height: 32px; }
+            .sound-row label { font-size: 10px; }
             #positionOptions { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
             .position-option { padding: 5px; gap: 3px; }
             .position-option svg { height: 40px; }
@@ -271,12 +273,19 @@
         @media (max-height: 520px) and (orientation: landscape) {
             #bottom-bar > button, #bottom-bar .bar-item > button { padding: 4px 8px; font-size: 10.5px; }
             #imagesPanel, #visualsPanel { max-height: calc(100vh - 140px); }
-            #boxPositionPopup, #scenePopup, #controlsPopup { max-height: calc(100vh - 110px); }
+            #boxPositionPopup, #scenePopup, #controlsPopup, #soundPopup { max-height: calc(100vh - 110px); }
         }
 
         /* ---------- desktop / mobile specific text ---------- */
         .mobile-only { display: none; }
         #soundBtn { white-space: nowrap; }
+        #soundPopup { box-sizing: border-box; width: min(320px, calc(100vw - 24px)); max-height: calc(100vh - 150px); overflow-y: auto; white-space: normal; }
+        #soundPopup .sound-toggle-row { margin-top: 8px; }
+        .sound-row {
+            display: grid; grid-template-columns: 90px minmax(0, 1fr); align-items: center;
+            gap: 8px; min-height: 36px; margin-top: 6px;
+        }
+        .sound-row label { margin: 0; color: #eee; font-size: 11px; }
         @media (max-width: 700px) {
             .desk-only { display: none; }
             .mobile-only { display: block; }
@@ -445,7 +454,7 @@
         </div>
 
         <button id="controlsBtn">ℹ Controls</button>
-        <button id="soundBtn" class="on" title="Turn the background music and sound effects on / off">🔊 Sound: ON</button>
+        <button id="soundBtn" aria-haspopup="true" aria-expanded="false" title="Sound settings">🔊 Sound: ON</button>
     </div>
 
     <!-- Glass popups -->
@@ -468,7 +477,7 @@
         • <b>Best View</b> (in Visuals): turns on HDR, Shaders, Magic particles and the day/night cycle<br>
         • <b>Visuals</b>: hover or click to open; holds HDR, Shaders (hover for Atmosphere, Gloss, Bounce and Cinematic Grain) and Magic particles<br>
         • A panel opened with a click stays open until you click its button again<br>
-        • <b>Sound</b>: toggles the background music and lid sound effects (autoplay may require interaction)
+        • <b>Sound</b>: hover or click to open the sound panel with an on/off switch and volume sliders for the music and the lid sound effects (autoplay may require interaction)
         </div>
         <div class="mobile-only">
         • <b>One finger drag</b>: rotate the view<br>
@@ -478,10 +487,10 @@
         • <b>Turntable</b>: spins the box, a speed slider slides out<br>
         • <b>Drag the clock hand</b>: set the time (sun by day, moon by night)<br>
         • <b>Cycle</b>: plays a full day/night; the <b>time button</b> (top-left) jumps to the present time and stops it<br>
-        • <b>Panel buttons</b> (Panel Images, Visuals, Box Position, Scenes, Ground, Controls): tap to open, tap again or tap outside to close<br>
+        • <b>Panel buttons</b> (Panel Images, Visuals, Box Position, Scenes, Ground, Controls, Sound): tap to open, tap again or tap outside to close<br>
         • <b>Scenes</b>: meadows, desert dunes, the Moon, classic background<br>
         • <b>Best View</b> (in Visuals): turns on HDR, Shaders, Magic particles and the cycle<br>
-        • <b>Sound</b>: toggles the background music and lid sound effects (autoplay may require interaction)
+        • <b>Sound</b>: tap to open the sound panel with an on/off switch and volume sliders for the music and the lid sound effects (autoplay may require interaction)
         </div>
     </div>
     <div id="boxPositionPopup" class="popup-glass">
@@ -546,6 +555,33 @@
                     <circle cx="99" cy="57" r="5" fill="#555a60"/><circle cx="99" cy="56" r="2.8" fill="#858990"/>
                 </svg><span>Moon</span>
             </button>
+        </div>
+    </div>
+
+    <div id="soundPopup" class="popup-glass">
+        <label>Sound</label>
+        <div class="visual-toggle-row sound-toggle-row">
+            <button id="soundToggleBtn" class="on" title="Turn the background music and sound effects on / off">🔊 Sound: ON</button>
+        </div>
+        <div class="sound-row">
+            <label for="musicSlider">Music</label>
+            <div class="visual-slider-control">
+                <div class="visual-range-wrap">
+                    <span class="visual-default-marker" style="--default-position:20%"></span>
+                    <input id="musicSlider" type="range" min="0" max="100" value="20" step="1" aria-label="Background music volume">
+                </div>
+                <span id="musicValue" class="visual-value">20%</span>
+            </div>
+        </div>
+        <div class="sound-row">
+            <label for="sfxSlider">Sound effects</label>
+            <div class="visual-slider-control">
+                <div class="visual-range-wrap">
+                    <span class="visual-default-marker" style="--default-position:25%"></span>
+                    <input id="sfxSlider" type="range" min="0" max="100" value="25" step="1" aria-label="Lid opening and closing sound volume">
+                </div>
+                <span id="sfxValue" class="visual-value">25%</span>
+            </div>
         </div>
     </div>
 
@@ -3827,6 +3863,8 @@
         const sceneBtn = document.getElementById('sceneBtn');
         const scenePopup = document.getElementById('scenePopup');
         const sceneOptions = document.querySelectorAll('.scene-option');
+        const soundBtn = document.getElementById('soundBtn');
+        const soundPopup = document.getElementById('soundPopup');
 
         // MEADOW is now the default scene
         const sceneWeights = { classic: 0, meadow: 1, desert: 0, moon: 0 };
@@ -3896,6 +3934,7 @@
             if (controlsPopup.classList.contains('open')) placePopup(controlsPopup, controlsBtn);
             if (boxPositionPopup.classList.contains('open')) placePopup(boxPositionPopup, boxPositionBtn);
             if (scenePopup.classList.contains('open')) placePopup(scenePopup, sceneBtn);
+            if (soundPopup.classList.contains('open')) placePopup(soundPopup, soundBtn);
         }
 
         // Clock
@@ -4122,7 +4161,8 @@
             { el: boxPositionPopup, btn: boxPositionBtn, floating: true },
             { el: scenePopup, btn: sceneBtn, floating: true },
             { el: imagesPanel, btn: imagesBtn, floating: false },
-            { el: visualsPanel, btn: visualsBtn, floating: false }
+            { el: visualsPanel, btn: visualsBtn, floating: false },
+            { el: soundPopup, btn: soundBtn, floating: true }
         ];
         // pop.pinned = the panel was opened with a click: it stays open (even when the pointer
         // leaves) until its button is clicked again. Hover alone only previews a panel.
@@ -4193,7 +4233,7 @@
                 [imagesPanel, visualsPanel].forEach(p => {
                     if (p.classList.contains('open')) top = Math.max(top, p.getBoundingClientRect().bottom + 6);
                 });
-                [palettePopup, controlsPopup, boxPositionPopup, scenePopup].forEach(p => {
+                [palettePopup, controlsPopup, boxPositionPopup, scenePopup, soundPopup].forEach(p => {
                     if (p.classList.contains('open')) bottom = Math.min(bottom, p.getBoundingClientRect().top - 6);
                 });
                 if (bottom - top < 140) bottom = top + 140;
@@ -4974,15 +5014,20 @@
 
 
         // =============== SOUND ===============
-        const soundBtn = document.getElementById('soundBtn');
+        const soundToggleBtn = document.getElementById('soundToggleBtn');
+        const musicSlider = document.getElementById('musicSlider');
+        const sfxSlider = document.getElementById('sfxSlider');
+        const musicValue = document.getElementById('musicValue');
+        const sfxValue = document.getElementById('sfxValue');
         let soundOn = true;
-        const MUSIC_LEVEL = 0.2, SFX_LEVEL = 1;
+        const MUSIC_LEVEL = 0.2, SFX_LEVEL = 0.25;
+        let musicLevel = MUSIC_LEVEL, sfxLevel = SFX_LEVEL;
         const backgroundMusic = document.getElementById('backgroundMusic');
         const lidOpenAudio = new Audio(new URL('lid-open.mp3', PANEL_IMAGE_BASE_URL).href);
         const lidCloseAudio = new Audio(new URL('lid-close.mp3', PANEL_IMAGE_BASE_URL).href);
         backgroundMusic.loop = true;
         backgroundMusic.preload = 'auto';
-        backgroundMusic.volume = MUSIC_LEVEL;
+        backgroundMusic.volume = musicLevel;
         lidOpenAudio.preload = lidCloseAudio.preload = 'auto';
         function reportAudioError(error, label) {
             if (error.name !== 'NotAllowedError') console.error(`${label} playback failed:`, error);
@@ -4998,15 +5043,26 @@
         }
         function setSoundEnabled(enabled) {
             soundOn = enabled;
-            soundBtn.innerText = soundOn ? '🔊 Sound: ON' : '🔇 Sound: OFF';
-            soundBtn.classList.toggle('on', soundOn);
+            const soundLabel = soundOn ? '🔊 Sound: ON' : '🔇 Sound: OFF';
+            soundBtn.innerText = soundLabel;
+            soundToggleBtn.innerText = soundLabel;
+            soundToggleBtn.classList.toggle('on', soundOn);
             if (soundOn) {
                 startMusic();
             } else {
                 backgroundMusic.pause();
             }
         }
-        soundBtn.addEventListener('click', () => setSoundEnabled(!soundOn));
+        soundToggleBtn.addEventListener('click', () => setSoundEnabled(!soundOn));
+        musicSlider.addEventListener('input', () => {
+            musicLevel = Number(musicSlider.value) / 100;
+            musicValue.innerText = `${musicSlider.value}%`;
+            backgroundMusic.volume = musicLevel;
+        });
+        sfxSlider.addEventListener('input', () => {
+            sfxLevel = Number(sfxSlider.value) / 100;
+            sfxValue.innerText = `${sfxSlider.value}%`;
+        });
         function unlockAudio() { if (soundOn) startMusic(); }
         ['pointerdown', 'keydown', 'touchend'].forEach(type => window.addEventListener(type, unlockAudio, true));
         startMusic();
@@ -5018,7 +5074,7 @@
         function playLidSound(opening) {
             if (!soundOn) return;
             const sound = (opening ? lidOpenAudio : lidCloseAudio).cloneNode();
-            sound.volume = SFX_LEVEL;
+            sound.volume = sfxLevel;
             const playback = sound.play();
             if (playback && typeof playback.catch === 'function') {
                 playback.catch(error => reportAudioError(error, opening ? 'Lid opening sound' : 'Lid closing sound'));
