@@ -274,6 +274,38 @@
             #boxPositionPopup, #scenePopup, #controlsPopup { max-height: calc(100vh - 110px); }
         }
 
+        /* ---------- desktop / mobile specific text ---------- */
+        .mobile-only { display: none; }
+        #soundBtn { white-space: nowrap; }
+        @media (max-width: 700px) {
+            .desk-only { display: none; }
+            .mobile-only { display: block; }
+
+            /* Panel Images: compact two-column list (folder picking is not supported on phones) */
+            #imagesPanel { display: grid; grid-template-columns: 1fr 1fr; gap: 5px 6px; align-content: start; }
+            #imagesPanel .batch-btn, #imagesPanel .status, #imagesPanel > label { grid-column: 1 / -1; margin: 0; }
+            #chooseImageFolderBtn { display: none; }
+            #imagesPanel .batch-btn { padding: 8px 10px; }
+            #imagesPanel .file-row {
+                flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 2px;
+                margin: 0; padding: 5px 6px; min-width: 0;
+            }
+            #imagesPanel .file-row span { font-size: 10px; line-height: 1.2; }
+            #imagesPanel .file-row input[type="file"] { width: 100%; min-width: 0; font-size: 9.5px; }
+            #imagesPanel .file-row input[type="file"]::file-selector-button { padding: 2px 6px; font-size: 9.5px; margin-right: 4px; }
+
+            /* Visuals: the four toggles sit in a 2 x 2 grid, sliders below */
+            #visualsPanel { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; align-content: start; }
+            #visualsPanel .visual-toggle-row { display: contents; }
+            #visualsPanel .visual-extra-row { margin-top: 0; }
+            #visualsPanel .visual-toggle-row button { padding: 8px 4px; font-size: 10px; min-width: 0; }
+            #visualsPanel .shader-sliders { grid-column: 1 / -1; }
+            #visualsPanel .shader-sliders.open { margin-top: 2px; }
+            #visualsPanel .visual-row { grid-template-columns: 74px minmax(0, 1fr); gap: 6px; min-height: 32px; }
+            #visualsPanel .visual-row label { font-size: 10px; }
+            #visualsPanel .visual-value { min-width: 28px; font-size: 9.5px; }
+        }
+
     </style>
 
 </head>
@@ -420,6 +452,7 @@
         <button id="snapshotBtn" title="Save the current view as an image">📷 Snapshot</button>
         <button id="resetBtn" title="Reset the view and settings (your images, theme and box position are kept)">↺ Reset</button>
         <button id="controlsBtn">ℹ Controls</button>
+        <button id="soundBtn" class="on" title="Turn the background music and sound effects on / off">🔊 Sound: ON</button>
     </div>
 
     <!-- Glass popups -->
@@ -430,6 +463,7 @@
         <div id="paletteGrid"></div>
     </div>
     <div id="controlsPopup" class="popup-glass">
+        <div class="desk-only">
         • <b>Left-click + drag</b>: rotate the view<br>
         • <b>Scroll</b>: zoom • <b>Right-click + drag</b>: pan<br>
         • <b>Click the lid</b> (or the lid button): open / close it, a hinge slider slides out<br>
@@ -443,7 +477,23 @@
         • <b>Best View</b> (in Visuals): turns on HDR, Shaders, Magic particles and the day/night cycle<br>
         • <b>Visuals</b>: hover or click to open; holds HDR, Shaders (hover for Atmosphere, Gloss, Bounce and Cinematic Grain) and Magic particles<br>
         • <b>Snapshot</b>: downloads the current view as a PNG<br>
-        • A panel opened with a click stays open until you click its button again
+        • A panel opened with a click stays open until you click its button again<br>
+        • <b>Sound</b>: toggles the background music and sound effects (the music starts after your first click)
+        </div>
+        <div class="mobile-only">
+        • <b>One finger drag</b>: rotate the view<br>
+        • <b>Pinch</b>: zoom • <b>Two-finger drag</b>: pan<br>
+        • <b>Double-tap</b> anywhere: zoom in step by step; at maximum zoom, a double-tap zooms back out<br>
+        • <b>Tap the box lid</b> (or the lid button): open / close it, a hinge slider slides out<br>
+        • <b>Turntable</b>: spins the box, a speed slider slides out<br>
+        • <b>Drag the clock hand</b>: set the time (sun by day, moon by night)<br>
+        • <b>Cycle</b>: plays a full day/night; the <b>time button</b> (top-left) jumps to the present time and stops it<br>
+        • <b>Panel buttons</b> (Panel Images, Visuals, Box Position, Scenes, Ground, Controls): tap to open, tap again or tap outside to close<br>
+        • <b>Scenes</b>: meadows, desert dunes, the Moon, classic background<br>
+        • <b>Best View</b> (in Visuals): turns on HDR, Shaders, Magic particles and the cycle<br>
+        • <b>Snapshot</b>: saves the current view as a PNG<br>
+        • <b>Sound</b>: toggles the background music and sound effects (the music starts after your first tap)
+        </div>
     </div>
     <div id="boxPositionPopup" class="popup-glass">
         <label>Choose box positioning</label>
@@ -4733,11 +4783,69 @@
             }
             return -1;
         }
-        renderer.domElement.addEventListener('pointerdown', (ev) => { downX = ev.clientX; downY = ev.clientY; });
+        // Touch screens: double-tap anywhere to zoom in step by step; at maximum zoom the next
+        // double-tap zooms back out. (A single tap on the lid waits a moment, so a double-tap on
+        // the box zooms instead of opening / closing the lid twice.)
+        let zoomTargetDist = null, dtZoomBase = null;
+        let lastTapTime = 0, lastTapX = 0, lastTapY = 0, pendingLidTimer = null;
+        let activeTouches = 0, multiTouch = false;
+        const DOUBLE_TAP_MS = 320, ZOOM_STEP = 0.62;
+        function doubleTapZoom() {
+            const dist = camera.position.distanceTo(controls.target);
+            const minD = controls.minDistance;
+            if (dist <= minD * 1.12) {
+                // already at maximum zoom -> zoom out
+                const home = defaultCameraPosition.distanceTo(defaultControlsTarget) * cameraLayoutScale;
+                zoomTargetDist = Math.min(controls.maxDistance, dtZoomBase && dtZoomBase > dist * 1.3 ? dtZoomBase : Math.max(home, dist * 2));
+                dtZoomBase = null;
+            } else {
+                if (dtZoomBase === null) dtZoomBase = dist;
+                zoomTargetDist = Math.max(minD, dist * ZOOM_STEP);
+            }
+        }
+        function updateDoubleTapZoom(dt) {
+            if (zoomTargetDist === null) return;
+            const offset = camera.position.clone().sub(controls.target);
+            const dist = offset.length();
+            let next = dist + (zoomTargetDist - dist) * (1 - Math.exp(-Math.min(dt, 0.1) * 7));
+            if (Math.abs(zoomTargetDist - next) < 0.01) { next = zoomTargetDist; zoomTargetDist = null; }
+            camera.position.copy(controls.target).addScaledVector(offset.normalize(), next);
+        }
+        renderer.domElement.addEventListener('pointerdown', (ev) => {
+            downX = ev.clientX; downY = ev.clientY;
+            if (ev.pointerType === 'touch') {
+                activeTouches++;
+                if (activeTouches > 1) multiTouch = true;
+                zoomTargetDist = null;     // a new touch takes over from a running zoom animation
+            }
+        });
+        renderer.domElement.addEventListener('pointercancel', (ev) => {
+            if (ev.pointerType === 'touch') { activeTouches = 0; multiTouch = false; lastTapTime = 0; }
+        });
         renderer.domElement.addEventListener('pointerup', (ev) => {
-            if (Math.hypot(ev.clientX - downX, ev.clientY - downY) > 5) return;
+            const isTouch = ev.pointerType === 'touch';
+            const moved = Math.hypot(ev.clientX - downX, ev.clientY - downY) > (isTouch ? 10 : 5);
+            if (isTouch) {
+                activeTouches = Math.max(0, activeTouches - 1);
+                if (activeTouches > 0) return;
+                const wasMulti = multiTouch;
+                multiTouch = false;
+                if (wasMulti || moved) { lastTapTime = 0; return; }
+                const now = performance.now();
+                if (now - lastTapTime < DOUBLE_TAP_MS && Math.hypot(ev.clientX - lastTapX, ev.clientY - lastTapY) < 40) {
+                    lastTapTime = 0;
+                    clearTimeout(pendingLidTimer); pendingLidTimer = null;
+                    doubleTapZoom();
+                    return;
+                }
+                lastTapTime = now; lastTapX = ev.clientX; lastTapY = ev.clientY;
+            } else if (moved) return;
             const lidIndex = clickedLidIndex(ev);
-            if (lidIndex !== -1) toggleLid(lidIndex);
+            if (lidIndex === -1) return;
+            if (isTouch) {
+                clearTimeout(pendingLidTimer);
+                pendingLidTimer = setTimeout(() => { pendingLidTimer = null; toggleLid(lidIndex); }, DOUBLE_TAP_MS);
+            } else toggleLid(lidIndex);
         });
         let lastHoverCheck = 0;
         renderer.domElement.addEventListener('pointermove', (ev) => {
@@ -4819,6 +4927,8 @@
             updateEnvironment(dt);
             placeOpenPopups();
             updateMobileViewOffset(dt);
+            updateLidSound();
+            updateDoubleTapZoom(dt);
             if (turntableOn) {
                 layoutGroup.rotation.y += THREE.MathUtils.degToRad(turntableSpeed) * dt;
                 if (Math.abs(layoutGroup.rotation.y - lastReflectionTurntableAngle) >= THREE.MathUtils.degToRad(15)) {
@@ -4910,6 +5020,190 @@
         });
         if (!document.hidden) animationFrameId = requestAnimationFrame(animate);
 
+
+        // =============== SOUND: gentle background tune + lid sound effect ===============
+        // Everything is synthesised with the Web Audio API (no audio files needed). Browsers only
+        // allow sound after a first tap / click, so the music starts on the first interaction.
+        const soundBtn = document.getElementById('soundBtn');
+        const audio = { ctx: null, master: null, music: null, sfx: null, reverb: null, noise: null, timer: null, chordAt: 0, chordIndex: 0, bellAt: 0 };
+        let soundOn = true;
+        const MUSIC_LEVEL = 0.2, SFX_LEVEL = 0.9;
+        const CHORDS = [
+            [130.81, 196.00, 261.63, 329.63, 493.88],   // Cmaj7
+            [110.00, 164.81, 261.63, 329.63, 392.00],   // Am7
+            [87.31, 174.61, 261.63, 349.23, 440.00],    // Fmaj7
+            [98.00, 196.00, 293.66, 329.63, 493.88]     // G6/9
+        ];
+        const BELL_NOTES = [523.25, 587.33, 659.25, 783.99, 880.00, 1046.50, 1174.66];
+        function ensureAudio() {
+            if (!audio.ctx) {
+                const AC = window.AudioContext || window.webkitAudioContext;
+                if (!AC) return false;
+                const ctx = new AC();
+                audio.ctx = ctx;
+                audio.master = ctx.createGain();
+                audio.master.gain.value = soundOn ? 1 : 0;
+                audio.master.connect(ctx.destination);
+                audio.music = ctx.createGain(); audio.music.gain.value = MUSIC_LEVEL; audio.music.connect(audio.master);
+                audio.sfx = ctx.createGain(); audio.sfx.gain.value = SFX_LEVEL; audio.sfx.connect(audio.master);
+                // soft hall reverb from generated noise
+                const len = Math.floor(ctx.sampleRate * 3.2);
+                const impulse = ctx.createBuffer(2, len, ctx.sampleRate);
+                for (let c = 0; c < 2; c++) {
+                    const d = impulse.getChannelData(c);
+                    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.6);
+                }
+                audio.reverb = ctx.createConvolver();
+                audio.reverb.buffer = impulse;
+                const reverbGain = ctx.createGain(); reverbGain.gain.value = 0.55;
+                audio.reverb.connect(reverbGain); reverbGain.connect(audio.master);
+                const noiseLen = ctx.sampleRate;
+                audio.noise = ctx.createBuffer(1, noiseLen, ctx.sampleRate);
+                const nd = audio.noise.getChannelData(0);
+                for (let i = 0; i < noiseLen; i++) nd[i] = Math.random() * 2 - 1;
+                audio.chordAt = audio.bellAt = ctx.currentTime + 0.2;
+            }
+            if (audio.ctx.state === 'suspended') audio.ctx.resume();
+            return true;
+        }
+        function playTone(freq, start, duration, peak, attack, type, destination, sendToReverb) {
+            const ctx = audio.ctx;
+            const osc = ctx.createOscillator(), gain = ctx.createGain();
+            osc.type = type; osc.frequency.value = freq;
+            osc.detune.value = (Math.random() - 0.5) * 8;
+            gain.gain.setValueAtTime(0.0001, start);
+            gain.gain.linearRampToValueAtTime(peak, start + attack);
+            gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+            osc.connect(gain); gain.connect(destination);
+            if (sendToReverb) gain.connect(audio.reverb);
+            osc.start(start); osc.stop(start + duration + 0.1);
+        }
+        function scheduleMusic() {
+            const ctx = audio.ctx;
+            if (!ctx || !soundOn || ctx.state !== 'running') return;
+            const horizon = ctx.currentTime + 2.5;
+            while (audio.chordAt < horizon) {
+                const chord = CHORDS[audio.chordIndex % CHORDS.length];
+                chord.forEach((freq, i) => {
+                    playTone(freq, audio.chordAt + i * 0.18, 9.5, i === 0 ? 0.16 : 0.09, 3.2, i < 2 ? 'sine' : 'triangle', audio.music, true);
+                });
+                audio.chordIndex++;
+                audio.chordAt += 8;
+            }
+            while (audio.bellAt < horizon) {
+                const freq = BELL_NOTES[Math.floor(Math.random() * BELL_NOTES.length)];
+                playTone(freq, audio.bellAt, 3.2, 0.07, 0.015, 'sine', audio.music, true);
+                playTone(freq * 2, audio.bellAt, 1.4, 0.015, 0.01, 'sine', audio.music, true);
+                audio.bellAt += 1.6 + Math.random() * 2.6;
+            }
+        }
+        function startMusic() {
+            if (!soundOn || !ensureAudio()) return;
+            audio.chordAt = Math.max(audio.chordAt, audio.ctx.currentTime + 0.1);
+            audio.bellAt = Math.max(audio.bellAt, audio.ctx.currentTime + 1.0);
+            if (audio.timer === null) audio.timer = setInterval(scheduleMusic, 400);
+            scheduleMusic();
+        }
+        function stopMusicTimer() {
+            if (audio.timer !== null) { clearInterval(audio.timer); audio.timer = null; }
+        }
+        function setSoundEnabled(enabled) {
+            soundOn = enabled;
+            soundBtn.innerText = soundOn ? '🔊 Sound: ON' : '🔇 Sound: OFF';
+            soundBtn.classList.toggle('on', soundOn);
+            if (soundOn) {
+                if (audio.ctx) {
+                    audio.ctx.resume();
+                    audio.master.gain.cancelScheduledValues(audio.ctx.currentTime);
+                    audio.master.gain.setTargetAtTime(1, audio.ctx.currentTime, 0.15);
+                    audio.chordAt = audio.bellAt = audio.ctx.currentTime + 0.2;
+                }
+                startMusic();
+            } else {
+                stopMusicTimer();
+                if (audio.ctx) {
+                    audio.master.gain.cancelScheduledValues(audio.ctx.currentTime);
+                    audio.master.gain.setTargetAtTime(0, audio.ctx.currentTime, 0.12);
+                    const ctx = audio.ctx;
+                    setTimeout(() => { if (!soundOn) ctx.suspend(); }, 700);
+                }
+            }
+        }
+        soundBtn.addEventListener('click', () => setSoundEnabled(!soundOn));
+        // first tap / click anywhere unlocks audio and starts the tune
+        const unlockAudio = () => {
+            if (soundOn) startMusic();
+            ['pointerdown', 'keydown', 'touchend'].forEach(t => window.removeEventListener(t, unlockAudio, true));
+        };
+        ['pointerdown', 'keydown', 'touchend'].forEach(t => window.addEventListener(t, unlockAudio, true));
+        document.addEventListener('visibilitychange', () => {
+            if (!audio.ctx) return;
+            if (document.hidden) audio.ctx.suspend();
+            else if (soundOn) audio.ctx.resume();
+        });
+
+        // Cardboard box lid: a papery swoosh, a crisp tick and a soft thump, plus a little
+        // chime when the box opens.
+        function playLidSound(opening) {
+            if (!soundOn || !audio.ctx || audio.ctx.state !== 'running') return;
+            const ctx = audio.ctx, t = ctx.currentTime;
+            const swoosh = ctx.createBufferSource();
+            swoosh.buffer = audio.noise;
+            const band = ctx.createBiquadFilter();
+            band.type = 'bandpass'; band.Q.value = 1.1;
+            band.frequency.setValueAtTime(opening ? 650 : 2400, t);
+            band.frequency.exponentialRampToValueAtTime(opening ? 2400 : 650, t + 0.3);
+            const swooshGain = ctx.createGain();
+            swooshGain.gain.setValueAtTime(0.0001, t);
+            swooshGain.gain.linearRampToValueAtTime(opening ? 0.55 : 0.4, t + 0.07);
+            swooshGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.38);
+            swoosh.connect(band); band.connect(swooshGain); swooshGain.connect(audio.sfx); swooshGain.connect(audio.reverb);
+            swoosh.start(t); swoosh.stop(t + 0.45);
+
+            const tick = ctx.createBufferSource();
+            tick.buffer = audio.noise;
+            const high = ctx.createBiquadFilter(); high.type = 'highpass'; high.frequency.value = 3200;
+            const tickGain = ctx.createGain();
+            const tickAt = opening ? t : t + 0.26;
+            tickGain.gain.setValueAtTime(0.0001, tickAt);
+            tickGain.gain.linearRampToValueAtTime(0.5, tickAt + 0.004);
+            tickGain.gain.exponentialRampToValueAtTime(0.0001, tickAt + 0.05);
+            tick.connect(high); high.connect(tickGain); tickGain.connect(audio.sfx);
+            tick.start(tickAt); tick.stop(tickAt + 0.08);
+
+            const thump = ctx.createOscillator(), thumpGain = ctx.createGain();
+            const thumpAt = t + (opening ? 0.3 : 0.28);
+            thump.type = 'sine';
+            thump.frequency.setValueAtTime(170, thumpAt);
+            thump.frequency.exponentialRampToValueAtTime(55, thumpAt + 0.14);
+            thumpGain.gain.setValueAtTime(0.0001, thumpAt);
+            thumpGain.gain.linearRampToValueAtTime(0.55, thumpAt + 0.01);
+            thumpGain.gain.exponentialRampToValueAtTime(0.0001, thumpAt + 0.2);
+            thump.connect(thumpGain); thumpGain.connect(audio.sfx);
+            thump.start(thumpAt); thump.stop(thumpAt + 0.25);
+
+            if (opening) {
+                playTone(1046.5, t + 0.32, 1.6, 0.08, 0.01, 'sine', audio.sfx, true);
+                playTone(1568.0, t + 0.42, 1.8, 0.05, 0.01, 'sine', audio.sfx, true);
+            }
+        }
+        let lidSoundOpen = false;
+        function updateLidSound() {
+            const openNow = targetOpens.some(v => v > 0.02);
+            if (openNow !== lidSoundOpen) {
+                lidSoundOpen = openNow;
+                playLidSound(openNow);
+            }
+        }
+
+        // Touch screens: tapping anywhere outside an open panel closes it
+        document.addEventListener('pointerdown', (ev) => {
+            if (ev.pointerType !== 'touch' && !mobileQuery.matches) return;
+            popups.forEach(pop => {
+                if (!pop.tip && pop.el.classList.contains('open') && !pop.el.contains(ev.target) && !pop.btn.contains(ev.target)) setPopupOpen(pop, false);
+            });
+        }, true);
+
         // Reset
         const resetBtn = document.getElementById('resetBtn');
         function resetEverything() {
@@ -4954,6 +5248,7 @@
             camera.position.copy(defaultCameraPosition);
             controls.target.copy(defaultControlsTarget);
             cameraLayoutScale = 1;
+            zoomTargetDist = null; dtZoomBase = null;
             selectBoxPosition(currentBoxPosition);
 
             resetBtn.innerText = '✔ Reset';
