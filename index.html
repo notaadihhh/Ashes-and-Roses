@@ -24,7 +24,7 @@
         input[type="range"] { width: 100%; accent-color: #e50914; }
 
         /* liquid-glass look shared by the title, top buttons, panels and bottom bar */
-        #title-card, #imagesBtn, #visualsBtn, #bottom-bar, #imagesPanel, #visualsPanel, .popup-glass {
+        #title-card, #imagesBtn, #visualsBtn, #bottom-bar, #imagesPanel, #visualsPanel, #bestViewHint, .popup-glass {
             background: linear-gradient(135deg, rgba(52, 58, 76, 0.46), rgba(18, 20, 28, 0.30));
             -webkit-backdrop-filter: blur(10px) saturate(170%);
             backdrop-filter: blur(10px) saturate(170%);
@@ -101,6 +101,26 @@
             background: rgba(74,222,128,0.85); transform: translateX(-50%);
         }
         .visual-value { min-width: 32px; color: #eee; font-size: 10px; text-align: right; }
+        .visual-extra-row { margin-top: 8px; }
+        .visual-toggle-row #bestViewBtn {
+            background: linear-gradient(135deg, rgba(255,176,64,0.42), rgba(229,9,20,0.34));
+            border-color: rgba(255,190,110,0.6);
+        }
+        .visual-toggle-row #bestViewBtn.on { background: rgba(22,163,74,0.65); border-color: rgba(74,222,128,0.6); }
+        .visual-toggle-row #bestViewBtn:hover { background: linear-gradient(135deg, rgba(255,190,90,0.6), rgba(229,9,20,0.5)); }
+        #bestViewHint {
+            position: absolute; top: 112px; right: 16px; z-index: 11;
+            padding: 8px 14px; border-radius: 14px; font-size: 11px; color: #f2f2f2;
+            white-space: nowrap; text-shadow: 0 1px 2px rgba(0,0,0,0.4); pointer-events: none; cursor: pointer;
+            transform-origin: top right; opacity: 0; visibility: hidden;
+            transform: translateY(-8px) scale(0.94);
+            transition: opacity 0.26s ease, transform 0.3s cubic-bezier(.4,0,.6,1), visibility 0s linear 0.3s;
+        }
+        #bestViewHint.show {
+            opacity: 1; visibility: visible; transform: none; pointer-events: auto;
+            transition: opacity 0.3s ease, transform 0.42s cubic-bezier(.2,.9,.3,1.18), visibility 0s;
+        }
+        #bestViewHint.show:hover { background: linear-gradient(135deg, rgba(80, 88, 110, 0.55), rgba(30, 33, 44, 0.40)); }
         .batch-btn { width: 100%; margin-bottom: 10px; }
         .file-row {
             display: flex; align-items: center; justify-content: space-between;
@@ -217,10 +237,17 @@
         <div class="file-row"><span>Inner Sides (innerside)</span><input type="file" accept="image/*" data-panel="innerSide"></div>
         <div class="file-row"><span>Inner Curve (inner)</span><input type="file" accept="image/*" data-panel="inner"></div>
     </div>
+    <div id="bestViewHint" role="button">Adapt for best viewing in one click</div>
     <div id="visualsPanel">
         <div class="visual-toggle-row">
             <button id="hdrBtn" title="Toggle HDR tone mapping">🌅 HDR: OFF</button>
             <button id="shadersBtn" title="Toggle atmosphere, bounce lighting, and box gloss">🎬 Shaders: OFF</button>
+        </div>
+        <div class="visual-toggle-row visual-extra-row">
+            <button id="dustBtn" title="Show / hide the magic particles around the box">✨ Magic particles: OFF</button>
+        </div>
+        <div class="visual-toggle-row visual-extra-row">
+            <button id="bestViewBtn" title="Turns on HDR, Shaders, Magic particles and the day/night cycle">🌟 Best View</button>
         </div>
         <div id="shaderSliders" class="shader-sliders">
             <div class="visual-row">
@@ -317,13 +344,14 @@
             </div></div>
         </div>
 
-        <button id="dustBtn" title="Show / hide the magic particles around the box">✨ Magic particles: OFF</button>
         <button id="snapshotBtn" title="Save the current view as an image">📷 Snapshot</button>
         <button id="resetBtn" title="Reset the view and every setting (your images are kept)">↺ Reset</button>
         <button id="controlsBtn">ℹ Controls</button>
     </div>
 
     <!-- Glass popups -->
+    <div id="snapshotTip" class="popup-glass">Save the Current POV as Image</div>
+    <div id="resetTip" class="popup-glass">Resets the Visuals and Every Setting</div>
     <div id="palettePopup" class="popup-glass">
         <label>Ground colour</label>
         <div id="paletteGrid"></div>
@@ -339,8 +367,8 @@
         • <b>Hover over lid, Turntable or Cycle</b>: reveal their sliders<br>
         • <b>Scenes</b>: switch between meadows, desert dunes, and the classic background<br>
         • <b>Ground</b>: pick the surface colour<br>
-        • <b>Magic particles</b>: toggles the floating particles around the box<br>
-        • <b>Visuals</b>: hover to open; hover Shaders to reveal Atmosphere, Gloss, Bounce and Cinematic Grain<br>
+        • <b>Best View</b> (in Visuals): turns on HDR, Shaders, Magic particles and the day/night cycle<br>
+        • <b>Visuals</b>: hover to open; holds HDR, Shaders (hover for Atmosphere, Gloss, Bounce and Cinematic Grain) and Magic particles<br>
         • <b>Snapshot</b>: downloads the current view as a PNG<br>
         • Move away from a panel button and its panel to close it
     </div>
@@ -3545,7 +3573,9 @@
             { el: boxPositionPopup, btn: boxPositionBtn, floating: true },
             { el: scenePopup, btn: sceneBtn, floating: true },
             { el: imagesPanel, btn: imagesBtn, floating: false },
-            { el: visualsPanel, btn: visualsBtn, floating: false }
+            { el: visualsPanel, btn: visualsBtn, floating: false },
+            { el: document.getElementById('snapshotTip'), btn: snapshotBtn, floating: true },
+            { el: document.getElementById('resetTip'), btn: document.getElementById('resetBtn'), floating: true }
         ];
         const popupCloseTimers = new Map();
         function clearPopupCloseTimer(pop) {
@@ -3593,6 +3623,75 @@
             });
         }, true);
         function closeImagesPanel() { setPopupOpen(popups.find(pop => pop.el === imagesPanel), false); }
+
+        // "Best View" hint under the Visuals button: 5 s on load, then again every 45 s,
+        // never while HDR, Shaders and Magic particles are all on.
+        const bestViewHint = document.getElementById('bestViewHint');
+        const bestViewBtn = document.getElementById('bestViewBtn');
+        let bestViewHintTimer;
+        function hideBestViewHint() {
+            clearTimeout(bestViewHintTimer);
+            bestViewHint.classList.remove('show');
+        }
+        function showBestViewHint() {
+            if ((hdrEnabled && shadersEnabled && dustOn) || visualsPanel.classList.contains('open')) return;
+            bestViewHint.classList.add('show');
+            clearTimeout(bestViewHintTimer);
+            bestViewHintTimer = setTimeout(hideBestViewHint, 5000);
+        }
+        showBestViewHint();
+        setInterval(showBestViewHint, 45000);
+        visualsBtn.addEventListener('pointerenter', hideBestViewHint);
+        visualsBtn.addEventListener('click', hideBestViewHint);
+        // Best View is a toggle: the first click remembers the current visual settings and
+        // applies HDR + Shaders + Magic particles + day/night cycle; clicking again restores them.
+        let bestViewSaved = null;
+        function clearBestViewState() {
+            bestViewSaved = null;
+            bestViewBtn.classList.remove('on');
+        }
+        function applyBestView() {
+            if (!bestViewSaved) {
+                bestViewSaved = {
+                    hdr: hdrEnabled, shaders: shadersEnabled, dust: dustOn,
+                    cycle: env.cycleOn, time: env.time,
+                    atmosphere: atmosphereSlider.value, gloss: glossSlider.value,
+                    bounce: bounceSlider.value, grain: cinematicGrainSlider.value
+                };
+            }
+            if (!hdrEnabled) hdrBtn.click();
+            if (!shadersEnabled) shadersBtn.click();
+            setMagicParticlesEnabled(true);
+            if (!env.cycleOn) cycleBtn.click();
+            bestViewBtn.classList.add('on');
+        }
+        // Clicking the hint popup applies Best View (it never undoes it).
+        bestViewHint.addEventListener('click', () => {
+            hideBestViewHint();
+            applyBestView();
+        });
+        bestViewBtn.addEventListener('click', () => {
+            hideBestViewHint();
+            if (!bestViewSaved) {
+                applyBestView();
+                return;
+            }
+            const saved = bestViewSaved;
+            clearBestViewState();
+            if (hdrEnabled !== saved.hdr) hdrBtn.click();
+            if (shadersEnabled !== saved.shaders) shadersBtn.click();
+            atmosphereSlider.value = saved.atmosphere; atmosphereAmount = Number(saved.atmosphere);
+            glossSlider.value = saved.gloss; boxGlossAmount = Number(saved.gloss);
+            bounceSlider.value = saved.bounce; bounceAmount = Number(saved.bounce);
+            cinematicGrainSlider.value = saved.grain; grainAmount = Number(saved.grain);
+            updateVisualSliderLabels();
+            updateCinematicGrain();
+            setBoxGleam(shadersEnabled, boxGlossAmount / 100);
+            setMagicParticlesEnabled(saved.dust);
+            if (env.cycleOn !== saved.cycle) cycleBtn.click();
+            env.time = saved.time;
+            invalidateReflections();
+        });
 
         function selectScene(name) {
             if (!Object.prototype.hasOwnProperty.call(sceneTargets, name)) return;
@@ -4226,6 +4325,7 @@
         // Reset
         const resetBtn = document.getElementById('resetBtn');
         function resetEverything() {
+            clearBestViewState();
             selectBoxPosition('upright');
             camera.position.copy(defaultCameraPosition);
             controls.target.copy(defaultControlsTarget);
