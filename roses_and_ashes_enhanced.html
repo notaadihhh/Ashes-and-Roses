@@ -1,0 +1,2826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roses and Ashes - Perfectly Aligned & Mirrored Viewer</title>
+    <style>
+        body {
+            margin: 0; padding: 0; overflow: hidden;
+            background-color: #141414;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: #e0e0e0;
+        }
+        #canvas-container { width: 100vw; height: 100vh; display: block; }
+        h1 { font-size: 17px; margin: 0; color: #fff; }
+        label { display: block; font-size: 11px; margin-bottom: 4px; color: #ccc; font-weight: 600; }
+        button {
+            background: #2b2b2b; color: white; border: 1px solid #444; padding: 9px 14px;
+            border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 12px; font-family: inherit;
+        }
+        button:hover { background: #383838; }
+        button.on { background: #16a34a; border-color: #16a34a; }
+        input[type="range"] { width: 100%; accent-color: #e50914; }
+
+        /* liquid-glass look shared by the title, the panel-images button and the bottom bar */
+        #title-card, #imagesBtn, #bottom-bar, #imagesPanel, #welcomeDialog, .popup-glass {
+            background: linear-gradient(135deg, rgba(52, 58, 76, 0.46), rgba(18, 20, 28, 0.30));
+            -webkit-backdrop-filter: blur(10px) saturate(170%);
+            backdrop-filter: blur(10px) saturate(170%);
+            border: 1px solid rgba(255, 255, 255, 0.28);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.40), inset 0 -1px 0 rgba(255,255,255,0.06), 0 8px 28px rgba(0,0,0,0.28);
+        }
+        #title-card { position: absolute; top: 16px; left: 16px; z-index: 10; padding: 10px 18px; border-radius: 16px; }
+        #title-card h1 { text-shadow: 0 1px 3px rgba(0,0,0,0.45); }
+
+        /* top-right: panel images button + popup */
+        #imagesBtn { position: absolute; top: 16px; right: 16px; z-index: 11; padding: 10px 16px; border-radius: 16px; text-shadow: 0 1px 3px rgba(0,0,0,0.45); }
+        #imagesBtn:hover { background: linear-gradient(135deg, rgba(80, 88, 110, 0.55), rgba(30, 33, 44, 0.40)); }
+        #imagesBtn.on { background: linear-gradient(135deg, rgba(34, 197, 94, 0.55), rgba(21, 128, 61, 0.45)); }
+        #imagesPanel {
+            position: absolute; top: 66px; right: 16px; width: 320px; z-index: 11;
+            max-height: calc(100vh - 220px); overflow-y: auto;
+            padding: 14px; border-radius: 18px;
+            transform-origin: top right; opacity: 0; visibility: hidden; pointer-events: none;
+            transform: translateY(-12px) scale(0.9);
+            transition: opacity 0.26s ease, transform 0.3s cubic-bezier(.4,0,.6,1), visibility 0s linear 0.3s;
+        }
+        #imagesPanel.open {
+            opacity: 1; visibility: visible; pointer-events: auto; transform: none;
+            transition: opacity 0.3s ease, transform 0.42s cubic-bezier(.2,.9,.3,1.18), visibility 0s;
+        }
+        .batch-btn { width: 100%; margin-bottom: 10px; }
+        .file-row {
+            display: flex; align-items: center; justify-content: space-between;
+            background: rgba(255,255,255,0.04); padding: 6px 8px;
+            border-radius: 6px; margin-bottom: 6px; font-size: 11px;
+        }
+        .file-row span { color: #ddd; font-weight: 500; }
+        .file-row input[type="file"] { width: 145px; font-size: 10px; color: #aaa; }
+        .status { font-size: 11px; color: #4ade80; margin-bottom: 10px; min-height: 14px; }
+
+        /* bottom bar */
+        #bottom-bar {
+            position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); z-index: 10;
+            display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: nowrap;
+            padding: 4px 10px; border-radius: 18px;
+        }
+        @media (max-width: 900px) { #bottom-bar { flex-wrap: wrap; max-width: calc(100vw - 20px); } }
+        #bottom-bar > button, #bottom-bar .bar-item > button {
+            padding: 5px 10px; font-size: 11px; white-space: nowrap; border-radius: 10px;
+            background: rgba(255,255,255,0.10); border: 1px solid rgba(255,255,255,0.22);
+            text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+        }
+        #bottom-bar > button:hover, #bottom-bar .bar-item > button:hover { background: rgba(255,255,255,0.22); }
+        #bottom-bar > button.on, #bottom-bar .bar-item > button.on { background: rgba(22,163,74,0.65); border-color: rgba(74,222,128,0.6); }
+        .bar-item { position: relative; display: flex; align-items: center; gap: 0; }
+        .reveal { width: 0; opacity: 0; overflow: hidden; flex-shrink: 0; transition: width 0.4s cubic-bezier(.4,0,.2,1), opacity 0.3s ease; }
+        .reveal.open { width: 128px; opacity: 1; }
+        .rv-inner { display: flex; align-items: center; gap: 6px; padding-left: 8px; white-space: nowrap; }
+        .rv-label { font-size: 10px; color: #eee; min-width: 34px; text-shadow: 0 1px 2px rgba(0,0,0,0.4); }
+        .rv-inner .mini-slider { width: 72px; flex: 0 0 72px; margin: 0; }
+        .dot { display: inline-block; width: 11px; height: 11px; border-radius: 50%; border: 1px solid #fff; vertical-align: -1px; margin-left: 4px; }
+        .popup-glass {
+            position: fixed; z-index: 12;
+            padding: 12px 14px; border-radius: 16px;
+            font-size: 11px; color: #f2f2f2; white-space: nowrap; text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+            transform-origin: bottom center; opacity: 0; visibility: hidden; pointer-events: none;
+            transform: translateX(-50%) translateY(12px) scale(0.9);
+            transition: opacity 0.26s ease, transform 0.3s cubic-bezier(.4,0,.6,1), visibility 0s linear 0.3s;
+        }
+        .popup-glass.open {
+            opacity: 1; visibility: visible; pointer-events: auto; transform: translateX(-50%);
+            transition: opacity 0.3s ease, transform 0.42s cubic-bezier(.2,.9,.3,1.18), visibility 0s;
+        }
+        .popup-glass label { color: #eee; }
+        #controlsPopup { line-height: 1.7; }
+        #controlsPopup b { color: #fff; }
+        #paletteGrid { display: grid; grid-template-columns: repeat(6, 26px); gap: 7px; margin: 8px 0 0; }
+        .pal-swatch { width: 26px; height: 26px; min-width: 26px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.35); padding: 0; cursor: pointer; }
+        .pal-swatch:hover { border-color: #fff; }
+        .pal-swatch.sel { border-color: #e50914; box-shadow: 0 0 0 2px rgba(229,9,20,0.4); }
+        .clock-item { gap: 5px; }
+        #clockSvg { cursor: grab; touch-action: none; user-select: none; display: block; }
+        #clockSvg:active { cursor: grabbing; }
+        #clockText { font-size: 11px; color: #fff; font-weight: 600; min-width: 54px; text-shadow: 0 1px 2px rgba(0,0,0,0.4); }
+        #boxPositionPopup { box-sizing: border-box; width: min(390px, calc(100vw - 24px)); max-height: calc(100vh - 150px); overflow-y: auto; white-space: normal; }
+        #positionOptions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+        .position-option {
+            display: flex; flex-direction: column; align-items: stretch; gap: 5px;
+            padding: 8px; text-align: left; background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.18); border-radius: 12px;
+        }
+        .position-option:hover { background: rgba(255,255,255,0.17); }
+        .position-option.selected { background: rgba(22,163,74,0.32); border-color: rgba(74,222,128,0.8); }
+        .position-option svg { display: block; width: 100%; height: 66px; }
+        .position-option span { font-size: 10px; line-height: 1.3; }
+        #scenePopup { box-sizing: border-box; width: min(390px, calc(100vw - 24px)); max-height: calc(100vh - 150px); overflow-y: auto; white-space: normal; }
+        #sceneOptions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+        .scene-option {
+            display: flex; flex-direction: column; align-items: stretch; gap: 6px;
+            padding: 7px; text-align: left; background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.18); border-radius: 12px;
+        }
+        .scene-option:hover { background: rgba(255,255,255,0.17); }
+        .scene-option.selected { background: rgba(22,163,74,0.32); border-color: rgba(74,222,128,0.8); }
+        .scene-option svg { display: block; width: 100%; height: 66px; overflow: hidden; border-radius: 7px; }
+        .scene-option span { font-size: 10px; line-height: 1.3; }
+        .scene-art .sun { animation: scene-sun-drift 5s ease-in-out infinite alternate; transform-origin: center; }
+        .scene-art .grass-blade, .scene-art .tree-top, .scene-art .cactus-arm { transform-box: fill-box; transform-origin: bottom center; animation: scene-sway 2.4s ease-in-out infinite alternate; }
+        .scene-art .grass-blade:nth-child(odd), .scene-art .tree-top:nth-child(odd) { animation-delay: -1.2s; }
+        @keyframes scene-sway { from { transform: rotate(-5deg); } to { transform: rotate(5deg); } }
+        @keyframes scene-sun-drift { from { transform: translateX(-3px); } to { transform: translateX(3px); } }
+        #groundControl { width: 86px; min-width: 0; flex: 0 0 auto; overflow: hidden; white-space: nowrap; transition: width 0.38s cubic-bezier(.4,0,.2,1), opacity 0.28s ease; }
+        #groundControl.scene-hidden { width: 0; opacity: 0; pointer-events: none; }
+
+        /* welcome dialog */
+        #welcomeOverlay {
+            position: fixed; inset: 0; z-index: 100;
+            background: rgba(14, 20, 34, 0.18);
+            -webkit-backdrop-filter: blur(16px) saturate(160%); backdrop-filter: blur(16px) saturate(160%);
+            opacity: 0; visibility: hidden;
+            transition: opacity 0.4s ease, visibility 0s linear 0.4s;
+        }
+        #welcomeOverlay.open { opacity: 1; visibility: visible; transition: opacity 0.4s ease, visibility 0s; }
+        #welcomeDialog {
+            position: fixed; left: 50%; top: 50%; z-index: 101; width: min(380px, calc(100vw - 32px)); box-sizing: border-box;
+            padding: 26px 24px 22px; border-radius: 22px; text-align: center;
+            transform-origin: center; opacity: 0; visibility: hidden; pointer-events: none;
+            transform: translate(-50%, -50%) scale(0.9);
+            transition: opacity 0.26s ease, transform 0.3s cubic-bezier(.4,0,.6,1), visibility 0s linear 0.3s;
+        }
+        #welcomeDialog.open {
+            opacity: 1; visibility: visible; pointer-events: auto; transform: translate(-50%, -50%);
+            transition: opacity 0.3s ease, transform 0.45s cubic-bezier(.2,.9,.3,1.18), visibility 0s;
+        }
+        #welcomeDialog h1 { font-size: 24px; margin: 0 0 6px; text-shadow: 0 1px 3px rgba(0,0,0,0.45); }
+        #welcomeDialog p { margin: 0 0 18px; font-size: 12px; line-height: 1.5; color: #e6e6e6; text-shadow: 0 1px 2px rgba(0,0,0,0.4); }
+        .welcome-btn {
+            display: block; width: 100%; margin-top: 10px; padding: 11px 14px; font-size: 12px; border-radius: 12px;
+            background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.26); text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+        }
+        .welcome-btn:hover { background: rgba(255,255,255,0.24); }
+        #welcomeDialog .hint { margin: 14px 0 0; font-size: 10px; color: #cfcfcf; }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+
+    <!-- Top-left: title only -->
+    <div id="title-card"><h1>Roses and Ashes</h1></div>
+
+    <!-- Top-right: panel image uploads -->
+    <button id="imagesBtn">🖼 Panel Images</button>
+    <div id="imagesPanel">
+        <button class="batch-btn" onclick="document.getElementById('batchInput').click()">📁 Select All 13 Images at Once</button>
+        <input type="file" id="batchInput" multiple accept="image/*" style="display:none">
+        <div class="status" id="statusText">Waiting for images...</div>
+        <label>Individual Panel Overrides:</label>
+        <div class="file-row"><span>Front</span><input type="file" accept="image/*" data-panel="front"></div>
+        <div class="file-row"><span>Lid Front</span><input type="file" accept="image/*" data-panel="lidFront"></div>
+        <div class="file-row"><span>Top</span><input type="file" accept="image/*" data-panel="top"></div>
+        <div class="file-row"><span>Back</span><input type="file" accept="image/*" data-panel="back"></div>
+        <div class="file-row"><span>Bottom</span><input type="file" accept="image/*" data-panel="bottom"></div>
+        <div class="file-row"><span>Outer Side 1</span><input type="file" accept="image/*" data-panel="side1"></div>
+        <div class="file-row"><span>Outer Side 2</span><input type="file" accept="image/*" data-panel="side2"></div>
+        <div class="file-row"><span>Side 1 Trapezoid (lid)</span><input type="file" accept="image/*" data-panel="side1Trapezoid"></div>
+        <div class="file-row"><span>Side 1 Triangle</span><input type="file" accept="image/*" data-panel="side1Triangle"></div>
+        <div class="file-row"><span>Side 2 Trapezoid (lid)</span><input type="file" accept="image/*" data-panel="side2Trapezoid"></div>
+        <div class="file-row"><span>Side 2 Triangle</span><input type="file" accept="image/*" data-panel="side2Triangle"></div>
+        <div class="file-row"><span>Inner Sides (innerside)</span><input type="file" accept="image/*" data-panel="innerSide"></div>
+        <div class="file-row"><span>Inner Curve (inner)</span><input type="file" accept="image/*" data-panel="inner"></div>
+    </div>
+
+    <!-- Bottom bar -->
+    <div id="bottom-bar">
+        <div class="bar-item">
+            <button id="toggleLidBtn">Open / Close Lid</button>
+            <div class="reveal" id="lidReveal"><div class="rv-inner">
+                <input type="range" id="lidSlider" class="mini-slider" min="0" max="75" value="0" step="1" title="Lid hinge angle">
+                <span class="rv-label"><span id="angleVal">0</span>°</span>
+            </div></div>
+        </div>
+
+        <div class="bar-item">
+            <button id="turntableBtn">⟳ Turntable: OFF</button>
+            <div class="reveal" id="turntableReveal"><div class="rv-inner">
+                <input type="range" id="turntableSpeedSlider" class="mini-slider" min="5" max="180" value="15" step="5" title="Turntable speed">
+                <span class="rv-label"><span id="turntableSpeedVal">15</span>°/s</span>
+            </div></div>
+        </div>
+
+        <button id="boxPositionBtn">📦 Box Position</button>
+        <button id="sceneBtn" aria-haspopup="true" aria-expanded="false">🌄 Scenes</button>
+        <div class="bar-item" id="groundControl"><button id="groundBtn">🎨 Ground<span class="dot" id="groundDot"></span></button></div>
+
+        <div class="bar-item clock-item">
+            <svg id="clockSvg" viewBox="-50 -50 100 100" width="42" height="42">
+                <circle r="48" fill="#141a2e" stroke="#555" stroke-width="2"/>
+                <path d="M -48 0 A 48 48 0 0 1 48 0 Z" fill="#4a90c8" opacity="0.38"/>
+                <g stroke="#888" stroke-width="2">
+                    <line x1="0" y1="-48" x2="0" y2="-41"/><line x1="0" y1="48" x2="0" y2="41"/>
+                    <line x1="-48" y1="0" x2="-41" y2="0"/><line x1="48" y1="0" x2="41" y2="0"/>
+                </g>
+                <g font-size="15" fill="#ddd" text-anchor="middle" font-family="sans-serif">
+                    <text x="0" y="-22">12</text><text x="0" y="34">0</text>
+                    <text x="-27" y="5">6</text><text x="27" y="5">18</text>
+                </g>
+                <g id="clockHand" transform="rotate(0)">
+                    <line x1="0" y1="0" x2="0" y2="-32" stroke="#fff" stroke-width="6" stroke-linecap="round"/>
+                    <circle cx="0" cy="-34" r="13" fill="#e50914" stroke="#fff" stroke-width="3"/>
+                </g>
+                <circle r="4" fill="#fff"/>
+            </svg>
+            <div id="clockText">13:20</div>
+        </div>
+
+        <div class="bar-item">
+            <button id="cycleBtn" title="Play a full day and night">⏱ Cycle: OFF</button>
+            <div class="reveal" id="cycleReveal"><div class="rv-inner">
+                <input type="range" id="cycleLenSlider" class="mini-slider" min="10" max="120" value="40" step="5" title="Cycle length (seconds)">
+                <span class="rv-label"><span id="cycleLenVal">40</span> s</span>
+            </div></div>
+        </div>
+
+        <button id="dustBtn" class="on" title="Show / hide the glittering dust particles">✨ Dust: ON</button>
+        <button id="hdrBtn" class="on" title="Toggle HDR tone mapping">🌅 HDR: ON</button>
+        <button id="shadersBtn" title="Toggle cinematic shaders for vibrant look">🎬 Shaders: OFF</button>
+        <button id="snapshotBtn" title="Save the current view as an image">📷 Snapshot</button>
+        <button id="resetBtn" title="Reset the view and every setting (your images are kept)">↺ Reset</button>
+        <button id="controlsBtn">ℹ Controls</button>
+    </div>
+
+    <!-- Glass popups -->
+    <div id="palettePopup" class="popup-glass">
+        <label>Ground colour</label>
+        <div id="paletteGrid"></div>
+    </div>
+    <div id="controlsPopup" class="popup-glass">
+        • <b>Left-click + drag</b>: rotate the view<br>
+        • <b>Scroll</b>: zoom • <b>Right-click + drag</b>: pan<br>
+        • <b>Click the lid</b> (or the lid button): open / close it, a hinge slider slides out<br>
+        • <b>Turntable</b>: spins the box, a speed slider slides out<br>
+        • <b>Drag the clock hand</b>: set the time (sun by day, moon by night)<br>
+        • <b>Cycle</b>: plays a full day, then a night; a length slider slides out<br>
+        • <b>Scenes</b>: switch between meadows, desert dunes, and the classic background<br>
+        • <b>Ground</b>: pick the surface colour<br>
+        • <b>Dust</b>: turns the glittering dust particles on / off<br>
+        • <b>HDR</b>: toggles HDR tone mapping for high dynamic range lighting<br>
+        • <b>Shaders</b>: toggles cinematic shaders for vibrant, film-like visuals<br>
+        • <b>Snapshot</b>: downloads the current view as a PNG<br>
+        • Click anywhere else on the page to close an open box
+    </div>
+    <div id="boxPositionPopup" class="popup-glass">
+        <label>Choose box positioning</label>
+        <div id="positionOptions">
+            <button class="position-option selected" data-position="upright" aria-pressed="true">
+                <svg viewBox="0 0 120 66" aria-hidden="true"><path d="M8 55H112" stroke="#ddd" stroke-width="2"/><rect x="49" y="12" width="22" height="43" rx="2" fill="#b96666" stroke="#f4d0c0" stroke-width="2"/><path d="M49 18H71" stroke="#f4d0c0" stroke-width="2"/></svg>
+                <span>Standing on its bottom</span>
+            </button>
+            <button class="position-option" data-position="lying" aria-pressed="false">
+                <svg viewBox="0 0 120 66" aria-hidden="true"><path d="M8 55H112" stroke="#ddd" stroke-width="2"/><rect x="28" y="38" width="64" height="17" rx="2" fill="#b96666" stroke="#f4d0c0" stroke-width="2"/><path d="M35 42H85" stroke="#f4d0c0" stroke-width="2"/></svg>
+                <span>Lying on its back</span>
+            </button>
+            <button class="position-option" data-position="leaning-pair" aria-pressed="false">
+                <svg viewBox="0 0 120 66" aria-hidden="true"><path d="M8 55H112" stroke="#ddd" stroke-width="2"/><rect x="69" y="17" width="20" height="38" rx="2" fill="#b96666" stroke="#f4d0c0" stroke-width="2"/><g transform="rotate(-18 49 37)"><rect x="38" y="18" width="22" height="38" rx="2" fill="#9c555b" stroke="#f4d0c0" stroke-width="2"/></g></svg>
+                <span>Two standing, one leaning</span>
+            </button>
+            <button class="position-option" data-position="standing-next-to-lying" aria-pressed="false">
+                <svg viewBox="0 0 120 66" aria-hidden="true"><path d="M8 55H112" stroke="#ddd" stroke-width="2"/><rect x="16" y="40" width="56" height="15" rx="2" fill="#9c555b" stroke="#f4d0c0" stroke-width="2"/><rect x="82" y="18" width="20" height="37" rx="2" fill="#b96666" stroke="#f4d0c0" stroke-width="2"/></svg>
+                <span>Standing beside a lying box</span>
+            </button>
+            <button class="position-option" data-position="leaning-on-lying" aria-pressed="false">
+                <svg viewBox="0 0 120 66" aria-hidden="true"><path d="M8 55H112" stroke="#ddd" stroke-width="2"/><rect x="17" y="40" width="52" height="15" rx="2" fill="#9c555b" stroke="#f4d0c0" stroke-width="2"/><g transform="rotate(-10 72 39)"><rect x="43" y="31" width="58" height="18" rx="2" fill="#b96666" stroke="#f4d0c0" stroke-width="2"/></g></svg>
+                <span>Lying box with another tilted against it</span>
+            </button>
+        </div>
+    </div>
+    <div id="scenePopup" class="popup-glass">
+        <label>Choose a background scene</label>
+        <div id="sceneOptions">
+            <button class="scene-option selected" data-scene="meadow" aria-pressed="true">
+                <svg class="scene-art" viewBox="0 0 120 66" aria-hidden="true">
+                    <rect width="120" height="66" fill="#82c7ed"/><circle class="sun" cx="96" cy="15" r="8" fill="#ffe38a"/>
+                    <path d="M0 39Q25 23 48 39T96 35T140 40V66H0Z" fill="#78ad59"/><path d="M0 48Q26 38 53 49T120 45V66H0Z" fill="#397d43"/>
+                    <g fill="#735438"><path d="M18 45h3V26h-3z"/><path class="tree-top" d="M11 30q-2-9 5-10 1-9 8-5 8 4 3 12 3 7-5 7-8 3-11-4z" fill="#34794a"/></g>
+                    <g stroke="#d7f48b" stroke-width="2"><path class="grass-blade" d="M52 62q-4-10-2-14"/><path class="grass-blade" d="M57 63q4-11 7-13"/><path class="grass-blade" d="M82 61q-3-8-2-13"/></g>
+                    <g fill="#fff1bc"><circle cx="45" cy="52" r="2"/><circle cx="72" cy="56" r="2"/><circle cx="104" cy="51" r="2"/></g>
+                </svg><span>Green meadows</span>
+            </button>
+            <button class="scene-option" data-scene="desert" aria-pressed="false">
+                <svg class="scene-art" viewBox="0 0 120 66" aria-hidden="true">
+                    <rect width="120" height="66" fill="#f3a978"/><circle class="sun" cx="95" cy="15" r="8" fill="#ffe6a1"/>
+                    <path d="M0 43Q24 20 52 43T108 37T145 45V66H0Z" fill="#d99a55"/><path d="M0 52Q29 36 59 52T120 46V66H0Z" fill="#b9763e"/>
+                    <path d="M24 52V34q0-5 4-5t4 5v18m-8-9q-8 0-8-7m16 2q8 0 8-7" fill="none" stroke="#47764d" stroke-width="4" stroke-linecap="round"/>
+                    <path d="M83 51V30q0-5 4-5t4 5v21m-8-10q-7 0-7-7m15 3q7 0 7-7" fill="none" stroke="#47764d" stroke-width="4" stroke-linecap="round"/>
+                </svg><span>Desert dunes</span>
+            </button>
+            <button class="scene-option" data-scene="classic" aria-pressed="false">
+                <svg class="scene-art" viewBox="0 0 120 66" aria-hidden="true">
+                    <rect width="120" height="66" fill="#87ceeb"/><circle class="sun" cx="96" cy="15" r="8" fill="#fff2a1"/>
+                    <path d="M0 45Q30 38 60 45T120 42V66H0Z" fill="#777d82"/><path d="M47 24l23-7 15 9v25H47z" fill="#a95252" stroke="#f0c5ae" stroke-width="2"/>
+                    <path d="M47 24l23-7v9l-23 7z" fill="#823f47"/><path d="M73 40l12-5v7l-12 5z" fill="#679b50"/>
+                </svg><span>Classic</span>
+            </button>
+        </div>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <!-- Welcome dialog -->
+    <div id="welcomeOverlay"></div>
+    <div id="welcomeDialog" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle">
+        <h1 id="welcomeTitle">Roses and Ashes</h1>
+        <p>Upload the images for the box.</p>
+        <button class="welcome-btn" id="welcomeAllBtn">📁 Upload all images at once</button>
+        <button class="welcome-btn" id="welcomeEachBtn">🖼 Upload each image separately</button>
+        <p class="hint">Click anywhere outside this box to skip and see the box as it is.</p>
+    </div>
+
+    <script>
+        const container = document.getElementById('canvas-container');
+        // ================= ENVIRONMENT SETTINGS =================
+        const SKY_COLOR = 0x87ceeb;
+        const GROUND_COLOR = 0x9a9da1;
+        const CIGARETTE_COLOR = 0xff8c1a;
+        const INTERIOR_COLOR = 0xffffff;
+        const NIGHT_SKY_COLOR = 0x070b1f;
+        const SUNRISE_SUNSET_SKY = 0xf0916a;
+        const MOON_COLOR = 0xb8c6ff;
+        const START_TIME_HOURS = 13.3;
+        const CYCLE_DURATION_SECONDS = 40;
+        const SUN_COLOR_STOPS = [
+            [0,  0xff4d1a], [6,  0xff7a2e], [15, 0xffb066],
+            [30, 0xffdba8], [50, 0xfff3e0], [90, 0xffffff]
+        ];
+        const LEAN_TILT_DEG = 20;
+        const CLOUDS_ON = true;
+        const CLOUD_COUNT = 30;
+        const CLOUD_SPEED = 1.4;
+        const TURNTABLE_SPEED = 15;
+        const TURNTABLE_ON_START = false;
+        // ====================================================================
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(SKY_COLOR);
+        scene.fog = new THREE.Fog(SKY_COLOR, 25, 75);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(3.4, 2.6, 7.6);
+        scene.add(camera);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.outputEncoding = THREE.sRGBEncoding;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 0.85;
+        renderer.physicallyCorrectLights = true;
+
+        // HDR & Shaders state
+        let hdrEnabled = true;
+        let shadersEnabled = false;
+
+        function updatePostProcessing() {
+            if (hdrEnabled) {
+                renderer.toneMapping = THREE.ACESFilmicToneMapping;
+                renderer.toneMappingExposure = shadersEnabled ? 1.18 : 0.92;
+            } else {
+                renderer.toneMapping = THREE.NoToneMapping;
+                renderer.toneMappingExposure = 1.0;
+            }
+            if (shadersEnabled) {
+                renderer.domElement.style.filter = 'saturate(1.32) contrast(1.12) brightness(1.035) sepia(0.035)';
+            } else {
+                renderer.domElement.style.filter = 'saturate(1.12) contrast(1.045)';
+            }
+            // Force material recompilation
+            scene.traverse(obj => {
+                if (obj.isMesh && obj.material) {
+                    obj.material.needsUpdate = true;
+                }
+            });
+        }
+        updatePostProcessing();
+
+        container.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        const defaultCameraPosition = camera.position.clone();
+        const defaultControlsTarget = controls.target.clone();
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.08;
+        controls.maxPolarAngle = Math.PI / 2 - 0.02;
+        controls.minDistance = 3;
+        controls.maxDistance = 30;
+
+        // Shadows
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
+        scene.add(ambientLight);
+        const hemiLight = new THREE.HemisphereLight(0xbfdcff, 0xffffff, 0.3);
+        scene.add(hemiLight);
+        const rimLight = new THREE.DirectionalLight(0xffffff, 0);
+        scene.add(rimLight);
+
+        // Ground bounce light - reflects sunlight/moonlight onto the box from below
+        const groundBounceLight = new THREE.DirectionalLight(0xffffff, 0);
+        groundBounceLight.position.set(0, -5, 0);
+        scene.add(groundBounceLight);
+        // Localized ground-reflection fill: lifts the lower faces of the box with the
+        // colour and intensity of the active sun/moon, rather than lighting only the terrain.
+        const groundBouncePoint = new THREE.PointLight(0xffffff, 0, 11, 2);
+        groundBouncePoint.position.set(0, -1.25, 0.35);
+        scene.add(groundBouncePoint);
+
+        function makeShadowLight(color, intensity) {
+            const l = new THREE.DirectionalLight(color, intensity);
+            l.position.set(5, 10, 7);
+            l.castShadow = true;
+            l.shadow.mapSize.set(4096, 4096);
+            l.shadow.camera.left = -32;
+            l.shadow.camera.right = 32;
+            l.shadow.camera.top = 32;
+            l.shadow.camera.bottom = -32;
+            l.shadow.camera.near = 1;
+            l.shadow.camera.far = 90;
+            l.shadow.camera.updateProjectionMatrix();
+            l.shadow.bias = -0.0002;
+            l.shadow.normalBias = 0.02;
+            l.shadow.radius = 4;
+            scene.add(l);
+            return l;
+        }
+        const sunLight = makeShadowLight(0xffffff, 0.8);
+        const moonLight = makeShadowLight(MOON_COLOR, 0);
+        const backLight = new THREE.DirectionalLight(0xffffff, 0.4);
+        backLight.position.set(-5, -3, -6);
+        scene.add(backLight);
+
+        // Fill light for cinematic look
+        const fillLight = new THREE.DirectionalLight(0x8ecbff, 0.15);
+        fillLight.position.set(-8, 4, -3);
+        scene.add(fillLight);
+
+        // Materials
+        const materials = {
+            front: new THREE.MeshPhysicalMaterial({ color: 0xeeeeee, roughness: 0.35, clearcoat: 0.55, clearcoatRoughness: 0.22 }),
+            lidFront: new THREE.MeshPhysicalMaterial({ color: 0xdddddd, roughness: 0.35, clearcoat: 0.55, clearcoatRoughness: 0.22 }),
+            top: new THREE.MeshPhysicalMaterial({ color: 0xcccccc, roughness: 0.35, clearcoat: 0.55, clearcoatRoughness: 0.22 }),
+            back: new THREE.MeshPhysicalMaterial({ color: 0xeeeeee, roughness: 0.35, clearcoat: 0.55, clearcoatRoughness: 0.22 }),
+            bottom: new THREE.MeshPhysicalMaterial({ color: 0xcccccc, roughness: 0.35, clearcoat: 0.55, clearcoatRoughness: 0.22 }),
+            side1: new THREE.MeshPhysicalMaterial({ color: 0xe5e5e5, roughness: 0.35, clearcoat: 0.55, clearcoatRoughness: 0.22 }),
+            side2: new THREE.MeshPhysicalMaterial({ color: 0xe5e5e5, roughness: 0.35, clearcoat: 0.55, clearcoatRoughness: 0.22 }),
+            side1Trapezoid: new THREE.MeshPhysicalMaterial({ color: 0xdc2626, roughness: 0.4, alphaTest: 0.5, clearcoat: 0.45, clearcoatRoughness: 0.25 }),
+            side2Trapezoid: new THREE.MeshPhysicalMaterial({ color: 0xdc2626, roughness: 0.4, alphaTest: 0.5, clearcoat: 0.45, clearcoatRoughness: 0.25 }),
+            side1Triangle:  new THREE.MeshPhysicalMaterial({ color: 0x16a34a, roughness: 0.4, alphaTest: 0.5, clearcoat: 0.45, clearcoatRoughness: 0.25 }),
+            side2Triangle:  new THREE.MeshPhysicalMaterial({ color: 0x16a34a, roughness: 0.4, alphaTest: 0.5, clearcoat: 0.45, clearcoatRoughness: 0.25 }),
+            innerSide: new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, metalness: 0, side: THREE.DoubleSide, alphaTest: 0.5 }),
+            inner:     new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, metalness: 0, side: THREE.DoubleSide, alphaTest: 0.5 })
+        };
+        const LINER_KEYS = new Set(['innerSide', 'inner']);
+        const LINER_DARK_CUTOFF = 45;
+        const LINER_ALPHA_CUTOFF = 200;
+        const linerDepthMats = {
+            innerSide: new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, alphaTest: 0.5, side: THREE.DoubleSide }),
+            inner:     new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, alphaTest: 0.5, side: THREE.DoubleSide })
+        };
+        const innerMaterials = {};
+        for (const key in materials) {
+            if (LINER_KEYS.has(key)) continue;
+            const m = new THREE.MeshStandardMaterial({
+                color: INTERIOR_COLOR, roughness: 1, metalness: 0, side: THREE.BackSide,
+                alphaTest: materials[key].alphaTest
+            });
+            m.onBeforeCompile = (shader) => {
+                shader.fragmentShader = shader.fragmentShader.replace(
+                    '#include <map_fragment>',
+                    '#ifdef USE_MAP\n diffuseColor.a *= texture2D( map, vUv ).a;\n#endif'
+                );
+            };
+            m.customProgramCacheKey = () => 'interior-alpha-only';
+            innerMaterials[key] = m;
+        }
+        const TRIM_PANELS = new Set(['side1Trapezoid', 'side2Trapezoid', 'side1Triangle', 'side2Triangle']);
+
+        function normalizeUVs(geometry) {
+            geometry.computeBoundingBox();
+            const bb = geometry.boundingBox;
+            const w = bb.max.x - bb.min.x, h = bb.max.y - bb.min.y;
+            const pos = geometry.attributes.position, uv = geometry.attributes.uv;
+            for (let i = 0; i < pos.count; i++) {
+                uv.setXY(i, (pos.getX(i) - bb.min.x) / w, (pos.getY(i) - bb.min.y) / h);
+            }
+            uv.needsUpdate = true;
+            return geometry;
+        }
+
+        const boxWidth = 2.2;
+        const PX = boxWidth / 1920;
+        const boxHeight = 3840 * PX;
+        const boxDepth = boxWidth * 1080 / 2986;
+        const lidFrontHeight = 1062 * PX;
+        const lidBackHeight = 0.35;
+        const bodyHeight = boxHeight - lidFrontHeight;
+
+        const layoutGroup = new THREE.Group();
+        scene.add(layoutGroup);
+        const masterGroup = new THREE.Group();
+        layoutGroup.add(masterGroup);
+
+        function cropPlaneV(geometry, v0, v1) {
+            const uv = geometry.attributes.uv;
+            for (let i = 0; i < uv.count; i++) uv.setY(i, v0 + uv.getY(i) * (v1 - v0));
+            uv.needsUpdate = true;
+            return geometry;
+        }
+        const backSplitV = (boxHeight - lidBackHeight) / boxHeight;
+
+        const backMesh = new THREE.Mesh(
+            cropPlaneV(new THREE.PlaneGeometry(boxWidth, boxHeight - lidBackHeight), 0, backSplitV),
+            materials.back
+        );
+        backMesh.position.set(0, -lidBackHeight / 2, -boxDepth / 2);
+        backMesh.rotation.y = Math.PI;
+        masterGroup.add(backMesh);
+
+        const lowerBodyGroup = new THREE.Group();
+        masterGroup.add(lowerBodyGroup);
+
+        // Inner liner
+        const LINER_GAP = 0.03;
+        const LINER_SINK = 0.5;
+        const linerSideW = boxDepth - 2 * LINER_GAP;
+        const linerSideH = linerSideW * 4434 / 1920;
+        const linerFrontW = boxWidth - 2 * LINER_GAP;
+        const linerFrontH = linerFrontW * 842 / 1117;
+        const bodyTopY = boxHeight / 2 - lidFrontHeight;
+        const linerBottomY = bodyTopY - LINER_SINK;
+
+        [-1, 1].forEach(dir => {
+            const wall = new THREE.Mesh(new THREE.PlaneGeometry(linerSideW, linerSideH), materials.innerSide);
+            wall.position.set(dir * (boxWidth / 2 - LINER_GAP), linerBottomY + linerSideH / 2, 0);
+            wall.rotation.y = -dir * Math.PI / 2;
+            wall.customDepthMaterial = linerDepthMats.innerSide;
+            wall.receiveShadow = true;
+            lowerBodyGroup.add(wall);
+        });
+
+        const linerFront = new THREE.Mesh(new THREE.PlaneGeometry(linerFrontW, linerFrontH), materials.inner);
+        linerFront.position.set(0, linerBottomY + linerFrontH / 2, boxDepth / 2 - LINER_GAP);
+        linerFront.rotation.y = Math.PI;
+        linerFront.customDepthMaterial = linerDepthMats.inner;
+        linerFront.receiveShadow = true;
+        lowerBodyGroup.add(linerFront);
+
+        // Cigarettes
+        const CIGS_PER_ROW = 6;
+        const CIGS_ROWS = 2;
+        const PACK_LENGTH_MM = 94;
+        const CIGARETTE_LENGTH_MM = 84;
+        const cigHeight = boxHeight * CIGARETTE_LENGTH_MM / PACK_LENGTH_MM;
+        const cigRadius = Math.min(linerFrontW / (2 * CIGS_PER_ROW), linerSideW / (2 * CIGS_ROWS));
+        const cigBaseY = -boxHeight / 2 + 0.005;
+        for (let r = 0; r < CIGS_ROWS; r++) {
+            for (let c = 0; c < CIGS_PER_ROW; c++) {
+                const cig = new THREE.Mesh(
+                    new THREE.CylinderGeometry(cigRadius, cigRadius, cigHeight, 24),
+                    new THREE.MeshStandardMaterial({ color: CIGARETTE_COLOR, roughness: 0.6, metalness: 0 })
+                );
+                cig.position.set(
+                    (c - (CIGS_PER_ROW - 1) / 2) * 2 * cigRadius,
+                    cigBaseY + cigHeight / 2,
+                    (r - (CIGS_ROWS - 1) / 2) * 2 * cigRadius
+                );
+                cig.receiveShadow = true;
+                lowerBodyGroup.add(cig);
+            }
+        }
+
+        const frontMesh = new THREE.Mesh(new THREE.PlaneGeometry(boxWidth, bodyHeight), materials.front);
+        frontMesh.position.set(0, -lidFrontHeight / 2, boxDepth / 2);
+        lowerBodyGroup.add(frontMesh);
+
+        const bottomMesh = new THREE.Mesh(new THREE.PlaneGeometry(boxWidth, boxDepth), materials.bottom);
+        bottomMesh.position.set(0, -boxHeight / 2, 0);
+        bottomMesh.rotation.x = Math.PI / 2;
+        lowerBodyGroup.add(bottomMesh);
+
+        function createLowerSideWithGreenFiller(isLeft) {
+            const group = new THREE.Group();
+            const rectMesh = new THREE.Mesh(
+                new THREE.PlaneGeometry(boxDepth, bodyHeight),
+                materials[isLeft ? 'side1' : 'side2']
+            );
+            rectMesh.position.set(0, -lidFrontHeight / 2, 0);
+            group.add(rectMesh);
+            const frontX = isLeft ? boxDepth / 2 : -boxDepth / 2;
+            const backX = isLeft ? -boxDepth / 2 : boxDepth / 2;
+            const slopeHeight = lidFrontHeight - lidBackHeight;
+            const triShape = new THREE.Shape();
+            triShape.moveTo(frontX, 0);
+            triShape.lineTo(backX, 0);
+            triShape.lineTo(backX, slopeHeight);
+            triShape.closePath();
+            const triMesh = new THREE.Mesh(normalizeUVs(new THREE.ShapeGeometry(triShape)), materials[isLeft ? 'side1Triangle' : 'side2Triangle']);
+            triMesh.position.set(0, boxHeight / 2 - lidFrontHeight, 0.001);
+            group.add(triMesh);
+            return group;
+        }
+
+        const lowerSide1 = createLowerSideWithGreenFiller(true);
+        lowerSide1.position.set(-boxWidth / 2, 0, 0);
+        lowerSide1.rotation.y = -Math.PI / 2;
+        lowerBodyGroup.add(lowerSide1);
+
+        const lowerSide2 = createLowerSideWithGreenFiller(false);
+        lowerSide2.position.set(boxWidth / 2, 0, 0);
+        lowerSide2.rotation.y = Math.PI / 2;
+        lowerBodyGroup.add(lowerSide2);
+
+        // --- HINGED TRAPEZOIDAL LID ---
+        const lidGroup = new THREE.Group();
+        lidGroup.name = 'boxLid';
+        lidGroup.position.set(0, boxHeight / 2 - lidBackHeight, -boxDepth / 2);
+        masterGroup.add(lidGroup);
+
+        const backLidStrip = new THREE.Mesh(
+            cropPlaneV(new THREE.PlaneGeometry(boxWidth, lidBackHeight), backSplitV, 1),
+            materials.back
+        );
+        backLidStrip.position.set(0, lidBackHeight / 2, 0);
+        backLidStrip.rotation.y = Math.PI;
+        lidGroup.add(backLidStrip);
+
+        const lidContents = new THREE.Group();
+        lidContents.position.set(0, 0, boxDepth / 2);
+        lidGroup.add(lidContents);
+
+        const lidFrontMesh = new THREE.Mesh(new THREE.PlaneGeometry(boxWidth, lidFrontHeight), materials.lidFront);
+        lidFrontMesh.position.set(0, -lidFrontHeight / 2 + lidBackHeight, boxDepth / 2);
+        lidContents.add(lidFrontMesh);
+
+        const lidTopMesh = new THREE.Mesh(new THREE.PlaneGeometry(boxWidth, boxDepth), materials.top);
+        lidTopMesh.position.set(0, lidBackHeight, 0);
+        lidTopMesh.rotation.x = -Math.PI / 2;
+        lidContents.add(lidTopMesh);
+
+        function createLidSideRedFlap(isLeft) {
+            const frontX = isLeft ? boxDepth / 2 : -boxDepth / 2;
+            const backX = isLeft ? -boxDepth / 2 : boxDepth / 2;
+            const shape = new THREE.Shape();
+            shape.moveTo(backX, 0);
+            shape.lineTo(frontX, -lidFrontHeight + lidBackHeight);
+            shape.lineTo(frontX, lidBackHeight);
+            shape.lineTo(backX, lidBackHeight);
+            shape.closePath();
+            return new THREE.Mesh(normalizeUVs(new THREE.ShapeGeometry(shape)), materials[isLeft ? 'side1Trapezoid' : 'side2Trapezoid']);
+        }
+
+        const lidSide1 = createLidSideRedFlap(true);
+        lidSide1.position.set(-boxWidth / 2, 0, 0);
+        lidSide1.rotation.y = -Math.PI / 2;
+        lidContents.add(lidSide1);
+
+        const lidSide2 = createLidSideRedFlap(false);
+        lidSide2.position.set(boxWidth / 2, 0, 0);
+        lidSide2.rotation.y = Math.PI / 2;
+        lidContents.add(lidSide2);
+
+        // --- IMAGE LOADER ---
+        function cleanLinerImage(img) {
+            const c = document.createElement('canvas');
+            c.width = img.naturalWidth; c.height = img.naturalHeight;
+            const ctx = c.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            const data = ctx.getImageData(0, 0, c.width, c.height);
+            const d = data.data;
+            for (let i = 0; i < d.length; i += 4) {
+                const isDark = Math.max(d[i], d[i + 1], d[i + 2]) < LINER_DARK_CUTOFF;
+                if (d[i + 3] < LINER_ALPHA_CUTOFF || isDark) { d[i] = 255; d[i + 1] = 255; d[i + 2] = 255; d[i + 3] = 0; }
+                else d[i + 3] = 255;
+            }
+            ctx.putImageData(data, 0, 0);
+            return c;
+        }
+
+        function trimTransparent(img) {
+            const c = document.createElement('canvas');
+            c.width = img.naturalWidth; c.height = img.naturalHeight;
+            const ctx = c.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            const d = ctx.getImageData(0, 0, c.width, c.height).data;
+            let minX = c.width, minY = c.height, maxX = -1, maxY = -1;
+            for (let y = 0; y < c.height; y++) {
+                for (let x = 0; x < c.width; x++) {
+                    if (d[(y * c.width + x) * 4 + 3] > 10) {
+                        if (x < minX) minX = x; if (x > maxX) maxX = x;
+                        if (y < minY) minY = y; if (y > maxY) maxY = y;
+                    }
+                }
+            }
+            if (maxX < 0) return c;
+            const w = maxX - minX + 1, h = maxY - minY + 1;
+            const out = document.createElement('canvas');
+            out.width = w; out.height = h;
+            out.getContext('2d').drawImage(c, minX, minY, w, h, 0, 0, w, h);
+            return out;
+        }
+
+        const ALL_PANEL_KEYS = ['front', 'lidFront', 'top', 'back', 'bottom', 'side1', 'side2',
+            'side1Trapezoid', 'side1Triangle', 'side2Trapezoid', 'side2Triangle', 'innerSide', 'inner'];
+        const loadedPanelKeys = new Set();
+        let allPanelsHandled = false;
+        function onPanelImageLoaded(key) {
+            loadedPanelKeys.add(key);
+            if (!allPanelsHandled && ALL_PANEL_KEYS.every(k => loadedPanelKeys.has(k))) {
+                allPanelsHandled = true;
+                document.getElementById('statusText').innerText = `All ${ALL_PANEL_KEYS.length} images loaded ✔`;
+                setTimeout(closeImagesPanel, 900);
+            }
+        }
+
+        function applyImageFile(panelKey, file) {
+            if (!file || !materials[panelKey]) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    let source = img;
+                    if (TRIM_PANELS.has(panelKey)) source = trimTransparent(img);
+                    if (LINER_KEYS.has(panelKey)) source = cleanLinerImage(img);
+                    const tex = new THREE.Texture(source);
+                    tex.encoding = THREE.sRGBEncoding;
+                    tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+                    tex.needsUpdate = true;
+                    materials[panelKey].map = tex;
+                    materials[panelKey].color.setHex(0xffffff);
+                    materials[panelKey].needsUpdate = true;
+                    onPanelImageLoaded(panelKey);
+                    if (LINER_KEYS.has(panelKey)) {
+                        linerDepthMats[panelKey].map = tex;
+                        linerDepthMats[panelKey].needsUpdate = true;
+                    }
+                    if (TRIM_PANELS.has(panelKey)) {
+                        innerMaterials[panelKey].map = tex;
+                        innerMaterials[panelKey].needsUpdate = true;
+                    }
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        document.querySelectorAll('input[data-panel]').forEach(input => {
+            input.addEventListener('change', (e) => {
+                if (e.target.files[0]) {
+                    applyImageFile(e.target.dataset.panel, e.target.files[0]);
+                    document.getElementById('statusText').innerText = `Updated ${e.target.dataset.panel}`;
+                }
+            });
+        });
+
+        document.getElementById('batchInput').addEventListener('change', (e) => {
+            const files = Array.from(e.target.files);
+            let matched = 0;
+            files.forEach(file => {
+                const name = file.name.toLowerCase().replace(/[\s_-]/g, '');
+                let key = null;
+                if (name.includes('innerside')) key = 'innerSide';
+                else if (name.includes('inner')) key = 'inner';
+                else if (name.includes('side1trapezoid')) key = 'side1Trapezoid';
+                else if (name.includes('side1triangle')) key = 'side1Triangle';
+                else if (name.includes('side2trapezoid')) key = 'side2Trapezoid';
+                else if (name.includes('side2triangle')) key = 'side2Triangle';
+                else if (name.includes('lidfront')) key = 'lidFront';
+                else if (name.includes('front')) key = 'front';
+                else if (name.includes('top')) key = 'top';
+                else if (name.includes('back')) key = 'back';
+                else if (name.includes('bottom')) key = 'bottom';
+                else if (name.includes('side1')) key = 'side1';
+                else if (name.includes('side2')) key = 'side2';
+                if (key) { applyImageFile(key, file); matched++; }
+            });
+            document.getElementById('statusText').innerText = `Loaded ${matched} of ${files.length} images!`;
+        });
+
+        // --- TEXTURES ---
+        function makeGroundTexture(size) {
+            const c = document.createElement('canvas');
+            c.width = c.height = size;
+            const ctx = c.getContext('2d');
+            const img = ctx.createImageData(size, size);
+            let sd = 987654321;
+            const r01 = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+            const octaves = [[6, 0.45], [12, 0.28], [24, 0.17], [48, 0.10]];
+            const grids = octaves.map(([n]) => { const g = new Float32Array(n * n); for (let i = 0; i < g.length; i++) g[i] = r01(); return g; });
+            const sample = (g, n, x, y) => {
+                const fx = x * n, fy = y * n, ix = Math.floor(fx), iy = Math.floor(fy);
+                let tx = fx - ix, ty = fy - iy;
+                tx = tx * tx * (3 - 2 * tx); ty = ty * ty * (3 - 2 * ty);
+                const x0 = ix % n, x1 = (ix + 1) % n, y0 = iy % n, y1 = (iy + 1) % n;
+                const a = g[y0 * n + x0] + (g[y0 * n + x1] - g[y0 * n + x0]) * tx;
+                const b = g[y1 * n + x0] + (g[y1 * n + x1] - g[y1 * n + x0]) * tx;
+                return a + (b - a) * ty;
+            };
+            for (let y = 0; y < size; y++) {
+                for (let x = 0; x < size; x++) {
+                    let v = 0;
+                    for (let o = 0; o < octaves.length; o++) v += octaves[o][1] * sample(grids[o], octaves[o][0], x / size, y / size);
+                    let b = 0.78 + 0.22 * Math.min(1, Math.max(0, v));
+                    b += (r01() - 0.5) * 0.07;
+                    if (r01() < 0.012) b -= 0.14;
+                    const g = Math.max(0, Math.min(255, Math.round(b * 255)));
+                    const i = (y * size + x) * 4;
+                    img.data[i] = img.data[i + 1] = img.data[i + 2] = g; img.data[i + 3] = 255;
+                }
+            }
+            ctx.putImageData(img, 0, 0);
+            const tex = new THREE.CanvasTexture(c);
+            tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+            tex.repeat.set(48, 48);
+            tex.encoding = THREE.sRGBEncoding;
+            tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+            return tex;
+        }
+        const groundTex = makeGroundTexture(512);
+
+        function makeSandTexture(size) {
+            const canvas = document.createElement('canvas');
+            canvas.width = canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            const image = ctx.createImageData(size, size);
+            let seed = 9841;
+            const random = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+            const grids = [8, 32, 128].map(cells => {
+                const values = new Float32Array(cells * cells);
+                for (let i = 0; i < values.length; i++) values[i] = random();
+                return { cells, values };
+            });
+            const sampleNoise = (grid, u, v) => {
+                const x = u * grid.cells, y = v * grid.cells;
+                const x0 = Math.floor(x), y0 = Math.floor(y);
+                const tx0 = x - x0, ty0 = y - y0;
+                const tx = tx0 * tx0 * (3 - 2 * tx0), ty = ty0 * ty0 * (3 - 2 * ty0);
+                const ix = x0 % grid.cells, iy = y0 % grid.cells;
+                const x1 = (ix + 1) % grid.cells, y1 = (iy + 1) % grid.cells;
+                const a = grid.values[iy * grid.cells + ix] + (grid.values[iy * grid.cells + x1] - grid.values[iy * grid.cells + ix]) * tx;
+                const b = grid.values[y1 * grid.cells + ix] + (grid.values[y1 * grid.cells + x1] - grid.values[y1 * grid.cells + ix]) * tx;
+                return a + (b - a) * ty;
+            };
+            for (let y = 0; y < size; y++) {
+                for (let x = 0; x < size; x++) {
+                    const u = x / size, v = y / size;
+                    const ripple = Math.sin(Math.PI * 2 * (u * 4 + Math.sin(v * Math.PI * 4) * 0.32)) * 0.022;
+                    const coarseGrain = (sampleNoise(grids[0], u, v) - 0.5) * 0.075;
+                    const mediumGrain = (sampleNoise(grids[1], u, v) - 0.5) * 0.09;
+                    const fineGrain = (sampleNoise(grids[2], u, v) - 0.5) * 0.07 + (random() - 0.5) * 0.045;
+                    const fleck = random() < 0.012 ? -0.07 : 0;
+                    const value = Math.max(0, Math.min(255, Math.round(224 * (0.95 + ripple + coarseGrain + mediumGrain + fineGrain + fleck))));
+                    const index = (y * size + x) * 4;
+                    image.data[index] = image.data[index + 1] = image.data[index + 2] = value;
+                    image.data[index + 3] = 255;
+                }
+            }
+            ctx.putImageData(image, 0, 0);
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+            texture.encoding = THREE.sRGBEncoding;
+            texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+            return texture;
+        }
+
+        function makeBarkTexture(size) {
+            const canvas = document.createElement('canvas');
+            canvas.width = canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            const image = ctx.createImageData(size, size);
+            let seed = 44291;
+            const random = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+            for (let y = 0; y < size; y++) {
+                for (let x = 0; x < size; x++) {
+                    const u = x / size, v = y / size;
+                    const groove = Math.sin(Math.PI * 2 * (u * 34 + Math.sin(v * Math.PI * 6) * 0.08));
+                    const fineGrain = Math.sin(Math.PI * 2 * (u * 137 + v * 17)) * 0.045
+                        + Math.sin(Math.PI * 2 * (u * 211 - v * 29)) * 0.025;
+                    const knot = Math.exp(-Math.pow((u - 0.3) * 8, 2) - Math.pow((v - 0.6) * 8, 2)) * 0.12;
+                    const crack = Math.abs(Math.sin(v * 42 + Math.sin(u * 7) * 3)) < 0.04 ? -0.08 : 0;
+                    const value = Math.max(0, Math.min(255, Math.round(195 * (0.92 + groove * 0.08 + fineGrain + knot + crack + (random() - 0.5) * 0.04))));
+                    const index = (y * size + x) * 4;
+                    image.data[index] = image.data[index + 1] = image.data[index + 2] = value;
+                    image.data[index + 3] = 255;
+                }
+            }
+            ctx.putImageData(image, 0, 0);
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+            texture.encoding = THREE.sRGBEncoding;
+            texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+            return texture;
+        }
+
+        function makeFoliageTexture(size) {
+            const canvas = document.createElement('canvas');
+            canvas.width = canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            const image = ctx.createImageData(size, size);
+            let seed = 17531;
+            const random = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+            const grids = [12, 48, 160].map(cells => {
+                const values = new Float32Array(cells * cells);
+                for (let i = 0; i < values.length; i++) values[i] = random();
+                return { cells, values };
+            });
+            const sampleNoise = (grid, u, v) => {
+                const x = u * grid.cells, y = v * grid.cells;
+                const x0 = Math.floor(x), y0 = Math.floor(y);
+                const tx0 = x - x0, ty0 = y - y0;
+                const tx = tx0 * tx0 * (3 - 2 * tx0), ty = ty0 * ty0 * (3 - 2 * ty0);
+                const ix = x0 % grid.cells, iy = y0 % grid.cells;
+                const x1 = (ix + 1) % grid.cells, y1 = (iy + 1) % grid.cells;
+                const a = grid.values[iy * grid.cells + ix] + (grid.values[iy * grid.cells + x1] - grid.values[iy * grid.cells + ix]) * tx;
+                const b = grid.values[y1 * grid.cells + ix] + (grid.values[y1 * grid.cells + x1] - grid.values[y1 * grid.cells + ix]) * tx;
+                return a + (b - a) * ty;
+            };
+            for (let y = 0; y < size; y++) {
+                for (let x = 0; x < size; x++) {
+                    const u = x / size, v = y / size;
+                    const broad = (sampleNoise(grids[0], u, v) - 0.5) * 0.05;
+                    const leafMottle = (sampleNoise(grids[1], u, v) - 0.5) * 0.06;
+                    const fine = (sampleNoise(grids[2], u, v) - 0.5) * 0.035 + (random() - 0.5) * 0.025;
+                    const value = Math.max(0, Math.min(255, Math.round(220 * (0.96 + broad + leafMottle + fine))));
+                    const index = (y * size + x) * 4;
+                    image.data[index] = image.data[index + 1] = image.data[index + 2] = value;
+                    image.data[index + 3] = 255;
+                }
+            }
+            ctx.putImageData(image, 0, 0);
+            for (let i = 0; i < 520; i++) {
+                const x = random() * size, y = random() * size;
+                const length = 3 + random() * 6, width = 0.8 + random() * 1.6;
+                const angle = random() * Math.PI;
+                const tone = random() < 0.55 ? 255 : 70;
+                const alpha = 0.12 + random() * 0.12;
+                const xCopies = [x], yCopies = [y];
+                if (x < length) xCopies.push(x + size);
+                if (x > size - length) xCopies.push(x - size);
+                if (y < length) yCopies.push(y + size);
+                if (y > size - length) yCopies.push(y - size);
+                xCopies.forEach(cx => yCopies.forEach(cy => {
+                    ctx.save();
+                    ctx.translate(cx, cy);
+                    ctx.rotate(angle);
+                    ctx.fillStyle = `rgba(${tone},${tone},${tone},${alpha})`;
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, length / 2, width / 2, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = `rgba(90,90,90,${alpha * 0.45})`;
+                    ctx.lineWidth = 0.45;
+                    ctx.beginPath();
+                    ctx.moveTo(-length * 0.3, 0);
+                    ctx.lineTo(length * 0.3, 0);
+                    ctx.stroke();
+                    ctx.restore();
+                }));
+            }
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+            texture.encoding = THREE.sRGBEncoding;
+            texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+            return texture;
+        }
+
+        function makeCactusTexture(size) {
+            const canvas = document.createElement('canvas');
+            canvas.width = canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            const image = ctx.createImageData(size, size);
+            let seed = 29611;
+            const random = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+            for (let y = 0; y < size; y++) {
+                for (let x = 0; x < size; x++) {
+                    const u = x / size, v = y / size;
+                    const ribs = Math.sin(Math.PI * 2 * (u * 10 + Math.sin(v * Math.PI * 4) * 0.06));
+                    const speckles = (random() - 0.5) * 0.045 + Math.sin(Math.PI * 2 * (u * 67 + v * 91)) * 0.018;
+                    const pores = Math.exp(-Math.pow(Math.sin(u * 30) * 5, 2) - Math.pow(Math.sin(v * 30) * 5, 2)) * 0.03;
+                    const value = Math.max(0, Math.min(255, Math.round(220 * (0.97 + ribs * 0.035 + speckles + pores))));
+                    const index = (y * size + x) * 4;
+                    image.data[index] = image.data[index + 1] = image.data[index + 2] = value;
+                    image.data[index + 3] = 255;
+                }
+            }
+            ctx.putImageData(image, 0, 0);
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+            texture.encoding = THREE.sRGBEncoding;
+            texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+            return texture;
+        }
+
+        const sandTexture = makeSandTexture(512);
+        const sandGroundTexture = sandTexture.clone();
+        sandGroundTexture.repeat.set(26, 26);
+        sandGroundTexture.needsUpdate = true;
+        const sandDuneTexture = sandTexture.clone();
+        sandDuneTexture.repeat.set(14, 12);
+        sandDuneTexture.needsUpdate = true;
+        const barkTexture = makeBarkTexture(256);
+        const foliageTexture = makeFoliageTexture(256);
+        const cactusTexture = makeCactusTexture(256);
+
+        const ground = new THREE.Mesh(
+            new THREE.CircleGeometry(90, 64),
+            new THREE.MeshStandardMaterial({ color: GROUND_COLOR, roughness: 1, metalness: 0, map: groundTex, bumpMap: groundTex, bumpScale: 0.9 })
+        );
+        ground.rotation.x = -Math.PI / 2;
+        ground.position.y = -boxHeight / 2 - 0.002;
+        ground.receiveShadow = true;
+        scene.add(ground);
+        const floorY = ground.position.y;
+
+        const sceneDecor = {
+            meadow: new THREE.Group(),
+            desert: new THREE.Group()
+        };
+        Object.values(sceneDecor).forEach(group => scene.add(group));
+
+        const meadowMats = {
+            ground: new THREE.MeshStandardMaterial({ color: 0x4a7d32, roughness: 0.98, map: groundTex, bumpMap: groundTex, bumpScale: 0.34, transparent: true, opacity: 0 }),
+            grass: new THREE.MeshStandardMaterial({ color: 0x3d8b38, roughness: 0.88, transparent: true, opacity: 0 }),
+            grassLight: new THREE.MeshStandardMaterial({ color: 0x7ab540, roughness: 0.88, transparent: true, opacity: 0 }),
+            grassDark: new THREE.MeshStandardMaterial({ color: 0x2d6b28, roughness: 0.92, transparent: true, opacity: 0 }),
+            trunk: new THREE.MeshStandardMaterial({ color: 0x5e3d22, roughness: 0.95, map: barkTexture, bumpMap: barkTexture, bumpScale: 0.12, transparent: true, opacity: 0 }),
+            trunkDark: new THREE.MeshStandardMaterial({ color: 0x3d2814, roughness: 0.97, map: barkTexture, bumpMap: barkTexture, bumpScale: 0.12, transparent: true, opacity: 0 }),
+            leaves: new THREE.MeshStandardMaterial({ color: 0x2d6b38, roughness: 0.88, map: foliageTexture, bumpMap: foliageTexture, bumpScale: 0.045, transparent: true, opacity: 0 }),
+            leavesLight: new THREE.MeshStandardMaterial({ color: 0x4d9a42, roughness: 0.88, map: foliageTexture, bumpMap: foliageTexture, bumpScale: 0.045, transparent: true, opacity: 0 }),
+            leavesDeep: new THREE.MeshStandardMaterial({ color: 0x1e4d2a, roughness: 0.92, map: foliageTexture, bumpMap: foliageTexture, bumpScale: 0.045, transparent: true, opacity: 0 }),
+            leavesAutumn: new THREE.MeshStandardMaterial({ color: 0x8b6914, roughness: 0.9, map: foliageTexture, bumpMap: foliageTexture, bumpScale: 0.045, transparent: true, opacity: 0 }),
+            flower: new THREE.MeshStandardMaterial({ color: 0xf3d97b, roughness: 0.75, transparent: true, opacity: 0 }),
+            flowerPink: new THREE.MeshStandardMaterial({ color: 0xe8708a, roughness: 0.75, transparent: true, opacity: 0 }),
+            flowerWhite: new THREE.MeshStandardMaterial({ color: 0xfff0d7, roughness: 0.75, transparent: true, opacity: 0 }),
+            flowerRed: new THREE.MeshStandardMaterial({ color: 0xcc3344, roughness: 0.78, transparent: true, opacity: 0 }),
+            flowerPurple: new THREE.MeshStandardMaterial({ color: 0x9955cc, roughness: 0.78, transparent: true, opacity: 0 }),
+            blossom: new THREE.MeshStandardMaterial({ color: 0xf3a5b7, roughness: 0.86, transparent: true, opacity: 0 }),
+            rock: new THREE.MeshStandardMaterial({ color: 0x5e5a4d, roughness: 1, transparent: true, opacity: 0 }),
+            rockLight: new THREE.MeshStandardMaterial({ color: 0x8a8272, roughness: 1, transparent: true, opacity: 0 }),
+            moss: new THREE.MeshStandardMaterial({ color: 0x3f762f, roughness: 1, map: foliageTexture, bumpMap: foliageTexture, bumpScale: 0.03, transparent: true, opacity: 0 }),
+            mossLight: new THREE.MeshStandardMaterial({ color: 0x7ba94d, roughness: 1, map: foliageTexture, bumpMap: foliageTexture, bumpScale: 0.03, transparent: true, opacity: 0 }),
+            rootMat: new THREE.MeshStandardMaterial({ color: 0x4a3018, roughness: 0.95, transparent: true, opacity: 0 })
+        };
+
+        const desertMats = {
+            dune: new THREE.MeshStandardMaterial({ color: 0xc18a46, roughness: 1, map: sandDuneTexture, bumpMap: sandDuneTexture, bumpScale: 0.06, transparent: true, opacity: 0 }),
+            sandGround: new THREE.MeshStandardMaterial({ color: 0xd6a15f, roughness: 1, map: sandGroundTexture, bumpMap: sandGroundTexture, bumpScale: 0.075, transparent: true, opacity: 0 }),
+            cactus: new THREE.MeshStandardMaterial({ color: 0x28512d, roughness: 0.85, map: cactusTexture, bumpMap: cactusTexture, bumpScale: 0.075, transparent: true, opacity: 0 }),
+            cactusLight: new THREE.MeshStandardMaterial({ color: 0x3d6c3c, roughness: 0.85, map: cactusTexture, bumpMap: cactusTexture, bumpScale: 0.075, transparent: true, opacity: 0 }),
+            cactusPale: new THREE.MeshStandardMaterial({ color: 0x567b47, roughness: 0.88, map: cactusTexture, bumpMap: cactusTexture, bumpScale: 0.075, transparent: true, opacity: 0 }),
+            cactusDark: new THREE.MeshStandardMaterial({ color: 0x1e3d22, roughness: 0.9, map: cactusTexture, bumpMap: cactusTexture, bumpScale: 0.075, transparent: true, opacity: 0 }),
+            rock: new THREE.MeshStandardMaterial({ color: 0x8a6940, roughness: 1, transparent: true, opacity: 0 }),
+            rockLight: new THREE.MeshStandardMaterial({ color: 0xb18a5c, roughness: 1, transparent: true, opacity: 0 }),
+            rockRed: new THREE.MeshStandardMaterial({ color: 0xa05535, roughness: 0.95, transparent: true, opacity: 0 }),
+            dryBranch: new THREE.MeshStandardMaterial({ color: 0x6b4020, roughness: 1, transparent: true, opacity: 0 }),
+            spine: new THREE.MeshStandardMaterial({ color: 0xd7d0a0, roughness: 0.9, transparent: true, opacity: 0 }),
+            deadGrass: new THREE.MeshStandardMaterial({ color: 0xb8a060, roughness: 0.92, transparent: true, opacity: 0 }),
+            desertFlower: new THREE.MeshStandardMaterial({ color: 0xe8558a, roughness: 0.8, transparent: true, opacity: 0 }),
+            desertFlowerYellow: new THREE.MeshStandardMaterial({ color: 0xf0c840, roughness: 0.8, transparent: true, opacity: 0 }),
+            skull: new THREE.MeshStandardMaterial({ color: 0xe8dcc8, roughness: 0.9, transparent: true, opacity: 0 }),
+            tumbleweed: new THREE.MeshStandardMaterial({ color: 0x8b7340, roughness: 1, wireframe: true, transparent: true, opacity: 0 })
+        };
+
+        const meadowMotion = [];
+        const flyMotion = [];
+        const tumbleweedMotion = [];
+
+        function meadowHeightAt(x, z) {
+            const centreT = THREE.MathUtils.clamp((Math.hypot(x, z) - 3.5) / 4.5, 0, 1);
+            const centreFade = centreT * centreT * (3 - 2 * centreT);
+            const broadRolls = 0.26 * Math.sin(x * 0.13 + Math.sin(z * 0.08) * 1.1) * Math.cos(z * 0.12 - x * 0.04);
+            const fineRolls = 0.14 * Math.sin(x * 0.34 + z * 0.17) * Math.cos(z * 0.29 - x * 0.11);
+            const irregularRidge = 0.08 * Math.sin(x * 0.51 + Math.sin(z * 0.27)) * Math.cos(z * 0.43 - x * 0.16);
+            const hillA = 0.95 * Math.exp(-Math.pow((x + 14) / 10, 2) - Math.pow((z + 11) / 12, 2));
+            const hillB = 1.1 * Math.exp(-Math.pow((x - 15) / 11, 2) - Math.pow((z + 18) / 10, 2));
+            const hillC = 0.82 * Math.exp(-Math.pow((x + 25) / 9, 2) - Math.pow((z - 4) / 11, 2));
+            const hillD = 0.9 * Math.exp(-Math.pow((x - 30) / 13, 2) - Math.pow((z + 3) / 10, 2));
+            const hillE = 0.68 * Math.exp(-Math.pow((x + 4) / 11, 2) - Math.pow((z + 33) / 9, 2));
+            const hillF = 0.62 * Math.exp(-Math.pow((x - 27) / 12, 2) - Math.pow((z - 21) / 13, 2));
+            const hillG = 0.74 * Math.exp(-Math.pow((x + 34) / 11, 2) - Math.pow((z + 28) / 12, 2));
+            const hillH = 1.75 * Math.exp(-Math.pow((x + 7) / 7, 2) - Math.pow((z + 10) / 8, 2));
+            const hillI = 1.95 * Math.exp(-Math.pow((x - 11) / 8, 2) - Math.pow((z + 14) / 9, 2));
+            const hillJ = 0.8 * Math.exp(-Math.pow((x - 2) / 13, 2) - Math.pow((z + 34) / 11, 2));
+            const hillK = 1.55 * Math.exp(-Math.pow((x + 23) / 21, 2) - Math.pow((z + 57) / 14, 2));
+            const hillL = 1.35 * Math.exp(-Math.pow((x - 18) / 18, 2) - Math.pow((z + 49) / 12, 2));
+            const hillM = 0.95 * Math.exp(-Math.pow((x - 2) / 25, 2) - Math.pow((z + 73) / 14, 2));
+            return centreFade * Math.max(0.035, 0.14 + broadRolls + fineRolls + irregularRidge + hillA + hillB + hillC + hillD + hillE + hillF + hillG + hillH + hillI + hillJ + hillK + hillL + hillM);
+        }
+
+        const meadowGroundGeometry = new THREE.PlaneGeometry(180, 180, 160, 160);
+        meadowGroundGeometry.rotateX(-Math.PI / 2);
+        const meadowGroundPositions = meadowGroundGeometry.attributes.position;
+        for (let i = 0; i < meadowGroundPositions.count; i++) {
+            const x = meadowGroundPositions.getX(i);
+            const z = meadowGroundPositions.getZ(i);
+            meadowGroundPositions.setY(i, 0.012 + meadowHeightAt(x, z));
+        }
+        meadowGroundPositions.needsUpdate = true;
+        meadowGroundGeometry.computeVertexNormals();
+        const meadowGround = new THREE.Mesh(meadowGroundGeometry, meadowMats.ground);
+        meadowGround.position.set(0, floorY, 0);
+        meadowGround.receiveShadow = true;
+        sceneDecor.meadow.add(meadowGround);
+
+        // ====== ENHANCED REALISTIC TREES ======
+        function addMeadowTree(x, z, size, style) {
+            const tree = new THREE.Group();
+            tree.position.set(x, floorY + 0.012 + meadowHeightAt(x, z), z);
+
+            if (style === 1) {
+                // Pine / Conifer - detailed with multiple tiers and irregular shape
+                const trunkHeight = size * 2.4;
+                const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.08 * size, 0.22 * size, trunkHeight, 8), meadowMats.trunk);
+                trunk.position.y = trunkHeight / 2;
+                trunk.castShadow = true;
+                tree.add(trunk);
+
+                // Exposed roots at base
+                for (let r = 0; r < 4; r++) {
+                    const rootAngle = r * Math.PI / 2 + (x * 0.3);
+                    const root = new THREE.Mesh(new THREE.CylinderGeometry(0.02 * size, 0.06 * size, 0.5 * size, 5), meadowMats.trunkDark);
+                    root.position.set(Math.cos(rootAngle) * 0.18 * size, 0.12 * size, Math.sin(rootAngle) * 0.18 * size);
+                    root.rotation.z = Math.cos(rootAngle) * 0.7;
+                    root.rotation.x = Math.sin(rootAngle) * 0.7;
+                    root.castShadow = true;
+                    tree.add(root);
+                }
+
+                const crown = new THREE.Group();
+                crown.position.y = trunkHeight * 0.45;
+                for (let tier = 0; tier < 6; tier++) {
+                    const tierRadius = size * (0.95 - tier * 0.12);
+                    const tierHeight = size * (0.75 - tier * 0.06);
+                    const cone = new THREE.Mesh(
+                        new THREE.ConeGeometry(tierRadius, tierHeight, 8),
+                        tier % 3 === 0 ? meadowMats.leavesDeep : tier % 3 === 1 ? meadowMats.leaves : meadowMats.leavesLight
+                    );
+                    cone.position.y = tier * size * 0.38;
+                    cone.rotation.y = tier * 0.4;
+                    cone.castShadow = true;
+                    crown.add(cone);
+                }
+                tree.add(crown);
+                meadowMotion.push({ object: crown, phase: x * 0.7 + z, amount: 0.012 });
+            } else if (style === 0 || style === 2) {
+                // Broad oak / deciduous - with gnarled trunk and detailed canopy clusters
+                const trunkHeight = size * (1.8 + style * 0.1);
+                const trunkGeo = new THREE.CylinderGeometry(0.1 * size, 0.24 * size, trunkHeight, 8);
+                // Slightly warp the trunk for a natural look
+                const trunkPositions = trunkGeo.attributes.position;
+                for (let i = 0; i < trunkPositions.count; i++) {
+                    const y = trunkPositions.getY(i);
+                    const normalizedY = (y + trunkHeight / 2) / trunkHeight;
+                    trunkPositions.setX(i, trunkPositions.getX(i) + Math.sin(normalizedY * 4 + x) * 0.04 * size);
+                    trunkPositions.setZ(i, trunkPositions.getZ(i) + Math.cos(normalizedY * 3.7 + z) * 0.03 * size);
+                }
+                trunkPositions.needsUpdate = true;
+                const trunk = new THREE.Mesh(trunkGeo, meadowMats.trunk);
+                trunk.position.y = trunkHeight / 2;
+                trunk.castShadow = true;
+                tree.add(trunk);
+
+                // Major branches
+                for (let b = 0; b < 3; b++) {
+                    const branchAngle = b * Math.PI * 2 / 3 + x * 0.5;
+                    const branchLen = size * (0.6 + b * 0.15);
+                    const branch = new THREE.Mesh(
+                        new THREE.CylinderGeometry(0.03 * size, 0.08 * size, branchLen, 6),
+                        meadowMats.trunkDark
+                    );
+                    branch.position.set(
+                        Math.cos(branchAngle) * 0.2 * size,
+                        trunkHeight * (0.6 + b * 0.08),
+                        Math.sin(branchAngle) * 0.2 * size
+                    );
+                    branch.rotation.z = Math.cos(branchAngle) * 0.6;
+                    branch.rotation.x = Math.sin(branchAngle) * 0.6;
+                    branch.castShadow = true;
+                    tree.add(branch);
+                }
+
+                // Exposed roots
+                for (let r = 0; r < 5; r++) {
+                    const rootAngle = r * Math.PI * 2 / 5 + z * 0.2;
+                    const root = new THREE.Mesh(new THREE.CylinderGeometry(0.015 * size, 0.05 * size, 0.55 * size, 5), meadowMats.rootMat);
+                    root.position.set(Math.cos(rootAngle) * 0.2 * size, 0.1 * size, Math.sin(rootAngle) * 0.2 * size);
+                    root.rotation.z = Math.cos(rootAngle) * 0.8;
+                    root.rotation.x = Math.sin(rootAngle) * 0.8;
+                    root.castShadow = true;
+                    tree.add(root);
+                }
+
+                // Detailed canopy - lots of icosahedron clusters
+                const crown = new THREE.Group();
+                crown.position.y = trunkHeight * 0.72;
+                const canopyParts = [
+                    [0, 0.2, 0, 1.0], [-0.6, 0.1, 0.3, 0.7], [0.55, 0.15, -0.2, 0.75],
+                    [-0.3, 0.5, -0.25, 0.6], [0.35, 0.45, 0.2, 0.65], [0, 0.7, 0, 0.5],
+                    [-0.45, -0.1, -0.15, 0.55], [0.4, -0.05, 0.15, 0.58]
+                ];
+                canopyParts.forEach(([cx, cy, cz, radius], i) => {
+                    const mat = i % 4 === 0 ? meadowMats.leavesDeep : i % 4 === 1 ? meadowMats.leaves : i % 4 === 2 ? meadowMats.leavesLight : meadowMats.leaves;
+                    const foliage = new THREE.Mesh(new THREE.IcosahedronGeometry(radius * size, 2), mat);
+                    foliage.position.set(cx * size, cy * size, cz * size);
+                    foliage.scale.set(1, 0.82, 0.9);
+                    foliage.castShadow = true;
+                    crown.add(foliage);
+                });
+                tree.add(crown);
+                meadowMotion.push({ object: crown, phase: x * 0.7 + z, amount: 0.03 });
+            } else if (style === 3) {
+                // Blossom / cherry tree
+                const trunkHeight = size * 1.6;
+                const trunkGeo = new THREE.CylinderGeometry(0.09 * size, 0.18 * size, trunkHeight, 7);
+                const trunk = new THREE.Mesh(trunkGeo, meadowMats.trunkDark);
+                trunk.position.y = trunkHeight / 2;
+                trunk.castShadow = true;
+                tree.add(trunk);
+
+                // Forked upper trunk
+                for (let fork = -1; fork <= 1; fork += 2) {
+                    const forkBranch = new THREE.Mesh(
+                        new THREE.CylinderGeometry(0.04 * size, 0.08 * size, 0.7 * size, 6),
+                        meadowMats.trunkDark
+                    );
+                    forkBranch.position.set(fork * 0.12 * size, trunkHeight * 0.85, 0);
+                    forkBranch.rotation.z = fork * -0.35;
+                    forkBranch.castShadow = true;
+                    tree.add(forkBranch);
+                }
+
+                const crown = new THREE.Group();
+                crown.position.y = trunkHeight * 0.7;
+                const blossomParts = [
+                    [0, 0.15, 0, 0.85], [-0.5, 0.2, 0.1, 0.55], [0.48, 0.18, -0.12, 0.6],
+                    [-0.2, 0.55, 0.12, 0.48], [0.25, 0.5, -0.1, 0.52], [0, 0.75, 0.05, 0.4]
+                ];
+                blossomParts.forEach(([cx, cy, cz, radius], i) => {
+                    const mat = i % 2 === 0 ? meadowMats.blossom : meadowMats.flowerPink;
+                    const foliage = new THREE.Mesh(new THREE.IcosahedronGeometry(radius * size, 2), mat);
+                    foliage.position.set(cx * size, cy * size, cz * size);
+                    foliage.scale.set(1, 0.78, 0.88);
+                    foliage.castShadow = true;
+                    crown.add(foliage);
+                });
+                // Some green leaves mixed in
+                [[-0.35, 0.35, 0.2, 0.35], [0.3, 0.4, -0.15, 0.32]].forEach(([cx, cy, cz, radius]) => {
+                    const foliage = new THREE.Mesh(new THREE.IcosahedronGeometry(radius * size, 1), meadowMats.leavesLight);
+                    foliage.position.set(cx * size, cy * size, cz * size);
+                    foliage.castShadow = true;
+                    crown.add(foliage);
+                });
+                tree.add(crown);
+                meadowMotion.push({ object: crown, phase: x * 0.7 + z, amount: 0.028 });
+            } else if (style === 4) {
+                // Willow-like drooping tree
+                const trunkHeight = size * 1.9;
+                const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.1 * size, 0.2 * size, trunkHeight, 8), meadowMats.trunk);
+                trunk.position.y = trunkHeight / 2;
+                trunk.castShadow = true;
+                tree.add(trunk);
+
+                const crown = new THREE.Group();
+                crown.position.y = trunkHeight * 0.75;
+                // Central canopy
+                const centralFoliage = new THREE.Mesh(new THREE.IcosahedronGeometry(0.7 * size, 2), meadowMats.leavesLight);
+                centralFoliage.scale.set(1.2, 0.7, 1.1);
+                centralFoliage.castShadow = true;
+                crown.add(centralFoliage);
+                // Drooping branches
+                for (let d = 0; d < 8; d++) {
+                    const dAngle = d * Math.PI * 2 / 8 + x;
+                    const droop = new THREE.Mesh(
+                        new THREE.CylinderGeometry(0.01 * size, 0.025 * size, 1.2 * size, 4),
+                        meadowMats.leavesDeep
+                    );
+                    droop.position.set(
+                        Math.cos(dAngle) * 0.55 * size,
+                        -0.35 * size,
+                        Math.sin(dAngle) * 0.55 * size
+                    );
+                    droop.castShadow = true;
+                    crown.add(droop);
+                    meadowMotion.push({ object: droop, phase: d + x, amount: 0.06 });
+                }
+                tree.add(crown);
+                meadowMotion.push({ object: crown, phase: x * 0.7 + z, amount: 0.02 });
+            }
+
+            sceneDecor.meadow.add(tree);
+        }
+
+        // More trees, more variety, placed naturally
+        addMeadowTree(-10, -13, 1.6, 0);
+        addMeadowTree(-17, -20, 2.1, 1);
+        addMeadowTree(11, -16, 1.8, 2);
+        addMeadowTree(19, -21, 2.2, 3);
+        addMeadowTree(-19, 3, 1.4, 1);
+        addMeadowTree(18, 1, 1.5, 2);
+        addMeadowTree(-7, -3, 1.3, 3);
+        addMeadowTree(7, -5, 1.45, 0);
+        addMeadowTree(-10, 4, 1.25, 4);
+        addMeadowTree(-28, -15, 1.8, 0);
+        addMeadowTree(26, -18, 1.7, 1);
+        addMeadowTree(-14, -28, 1.55, 4);
+        addMeadowTree(22, -28, 1.9, 2);
+        addMeadowTree(-32, 8, 1.35, 1);
+        addMeadowTree(32, -6, 1.45, 3);
+
+        // Fireflies
+        const flyMaterial = new THREE.MeshBasicMaterial({ color: 0xffe6a1, transparent: true, opacity: 0, depthWrite: false });
+        const flyGeometry = new THREE.SphereGeometry(0.035, 8, 6);
+        [[-10, -13, 1.6], [11, -16, 1.8], [7, -5, 1.45], [-14, -28, 1.55]].forEach(([x, z, size], treeIndex) => {
+            const swarm = new THREE.Group();
+            swarm.position.set(x, floorY + 0.012 + meadowHeightAt(x, z) + size * 2.45, z);
+            sceneDecor.meadow.add(swarm);
+            for (let i = 0; i < 5; i++) {
+                const fly = new THREE.Mesh(flyGeometry, flyMaterial);
+                flyMotion.push({
+                    object: fly,
+                    phase: treeIndex * 1.7 + i * Math.PI / 2.5,
+                    radius: 0.2 + i * 0.03,
+                    speed: 0.9 + i * 0.12
+                });
+                swarm.add(fly);
+            }
+        });
+
+        // Enhanced grass tufts
+        let meadowSeed = 3471;
+        const meadowRandom = () => (meadowSeed = (meadowSeed * 16807) % 2147483647) / 2147483647;
+        for (let i = 0; i < 65; i++) {
+            const angle = meadowRandom() * Math.PI * 2;
+            const radius = 4.0 + meadowRandom() * 18;
+            const tuft = new THREE.Group();
+            const x = Math.cos(angle) * radius, z = Math.sin(angle) * radius;
+            tuft.position.set(x, floorY + 0.012 + meadowHeightAt(x, z), z);
+            const bladeCount = 5 + Math.floor(meadowRandom() * 4);
+            for (let blade = 0; blade < bladeCount; blade++) {
+                const height = 0.2 + meadowRandom() * 0.45;
+                const grassMat = blade % 4 === 0 ? meadowMats.grassDark : blade % 3 ? meadowMats.grass : meadowMats.grassLight;
+                const grassBlade = new THREE.Mesh(new THREE.ConeGeometry(0.05, height, 4), grassMat);
+                grassBlade.position.set((meadowRandom() - 0.5) * 0.35, height / 2, (meadowRandom() - 0.5) * 0.35);
+                grassBlade.rotation.z = (meadowRandom() - 0.5) * 0.7;
+                grassBlade.rotation.x = (meadowRandom() - 0.5) * 0.15;
+                grassBlade.castShadow = true;
+                tuft.add(grassBlade);
+            }
+            if (i % 4 === 0) {
+                const flowerMats = [meadowMats.flower, meadowMats.flowerPink, meadowMats.flowerWhite, meadowMats.flowerRed, meadowMats.flowerPurple];
+                const flower = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 6), flowerMats[i % flowerMats.length]);
+                flower.position.set(0, 0.32, 0);
+                tuft.add(flower);
+            }
+            sceneDecor.meadow.add(tuft);
+            meadowMotion.push({ object: tuft, phase: angle, amount: 0.08 });
+        }
+
+        // Enhanced bushes with varied shapes
+        const bushGeometry = new THREE.IcosahedronGeometry(0.34, 2);
+        for (let i = 0; i < 16; i++) {
+            const angle = meadowRandom() * Math.PI * 2;
+            const radius = 5.5 + meadowRandom() * 16;
+            const x = Math.cos(angle) * radius, z = Math.sin(angle) * radius;
+            const size = 0.7 + meadowRandom() * 0.6;
+            const bush = new THREE.Group();
+            bush.position.set(x, floorY + 0.012 + meadowHeightAt(x, z), z);
+            const clusters = [[0, 0.28, 0, 1], [-0.3, 0.18, 0.1, 0.78], [0.28, 0.2, -0.14, 0.82],
+                [0.02, 0.44, 0.16, 0.68], [-0.18, 0.38, -0.08, 0.55]];
+            clusters.forEach(([bx, by, bz, scale], index) => {
+                const foliage = new THREE.Mesh(bushGeometry,
+                    index % 3 === 0 ? meadowMats.leavesDeep : index % 3 === 1 ? meadowMats.leavesLight : meadowMats.leaves);
+                foliage.position.set(bx * size, by * size, bz * size);
+                foliage.scale.setScalar(size * scale);
+                foliage.castShadow = true;
+                bush.add(foliage);
+            });
+            sceneDecor.meadow.add(bush);
+            meadowMotion.push({ object: bush, phase: angle, amount: 0.03 });
+        }
+
+        // Enhanced rocks with better geometry
+        const meadowRockGeo = new THREE.IcosahedronGeometry(0.48, 2);
+        const mossGeometry = new THREE.SphereGeometry(0.5, 12, 8);
+        [
+            [-9, -9, 1.05], [11, -11, 1.25], [-16, -16, 1.2], [18, -19, 1.35],
+            [-25, -8, 1.4], [27, -13, 1.15], [-7, -27, 0.95], [9, -30, 1.1],
+            [-30, -24, 1.25], [31, -27, 1.3], [-20, -30, 0.9], [24, -25, 1.0]
+        ].forEach(([x, z, size], index) => {
+            const rockGroup = new THREE.Group();
+            rockGroup.position.set(x, floorY + 0.012 + meadowHeightAt(x, z), z);
+            const rock = new THREE.Mesh(meadowRockGeo, index % 2 ? meadowMats.rock : meadowMats.rockLight);
+            rock.scale.set(size * (0.82 + index % 3 * 0.09), size * (0.55 + index % 2 * 0.1), size * (0.76 + index % 4 * 0.05));
+            rock.position.y = size * 0.24;
+            rock.rotation.y = index * 0.71;
+            rock.castShadow = rock.receiveShadow = true;
+            rockGroup.add(rock);
+
+            // Small pebbles around the base
+            for (let p = 0; p < 3; p++) {
+                const pebble = new THREE.Mesh(new THREE.IcosahedronGeometry(size * 0.12, 1), meadowMats.rock);
+                pebble.position.set((p - 1) * size * 0.4, size * 0.06, (p % 2 - 0.5) * size * 0.3);
+                pebble.scale.set(1, 0.6, 0.8);
+                pebble.rotation.y = p * 1.2;
+                pebble.castShadow = true;
+                rockGroup.add(pebble);
+            }
+
+            const moss = new THREE.Mesh(mossGeometry, index % 2 ? meadowMats.moss : meadowMats.mossLight);
+            moss.position.set(-size * 0.07, size * 0.48, size * 0.04);
+            moss.scale.set(size * 0.5, size * 0.14, size * 0.42);
+            moss.rotation.z = -0.18 + index * 0.035;
+            moss.castShadow = true;
+            rockGroup.add(moss);
+            const mossPatch = new THREE.Mesh(mossGeometry, meadowMats.moss);
+            mossPatch.position.set(size * 0.23, size * 0.45, -size * 0.18);
+            mossPatch.scale.set(size * 0.26, size * 0.09, size * 0.22);
+            mossPatch.castShadow = true;
+            rockGroup.add(mossPatch);
+            sceneDecor.meadow.add(rockGroup);
+        });
+
+        // Enhanced detailed flowers
+        const flowerStemGeometry = new THREE.CylinderGeometry(0.012, 0.02, 0.28, 5);
+        const flowerPetalGeometry = new THREE.SphereGeometry(0.055, 10, 7);
+        const flowerCenterGeometry = new THREE.SphereGeometry(0.04, 10, 7);
+        const flowerPetalMats = [meadowMats.flower, meadowMats.flowerPink, meadowMats.flowerWhite, meadowMats.flowerRed, meadowMats.flowerPurple];
+        for (let i = 0; i < 48; i++) {
+            const angle = meadowRandom() * Math.PI * 2;
+            const radius = 4.2 + meadowRandom() * 19;
+            const x = Math.cos(angle) * radius, z = Math.sin(angle) * radius;
+            const flower = new THREE.Group();
+            flower.position.set(x, floorY + 0.012 + meadowHeightAt(x, z), z);
+            const stem = new THREE.Mesh(flowerStemGeometry, meadowMats.grass);
+            stem.position.y = 0.14;
+            stem.rotation.z = (meadowRandom() - 0.5) * 0.15;
+            stem.castShadow = true;
+            flower.add(stem);
+            // Leaf on stem
+            const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 4), meadowMats.grassLight);
+            leaf.position.set(0.04, 0.12, 0);
+            leaf.scale.set(1.5, 0.3, 0.8);
+            flower.add(leaf);
+
+            const petals = flowerPetalMats[i % flowerPetalMats.length];
+            const petalCount = 5 + (i % 3);
+            for (let petal = 0; petal < petalCount; petal++) {
+                const petalAngle = petal * Math.PI * 2 / petalCount;
+                const bloom = new THREE.Mesh(flowerPetalGeometry, petals);
+                bloom.position.set(Math.cos(petalAngle) * 0.065, 0.30, Math.sin(petalAngle) * 0.065);
+                bloom.scale.set(1, 0.6, 1);
+                bloom.castShadow = true;
+                flower.add(bloom);
+            }
+            const center = new THREE.Mesh(flowerCenterGeometry, meadowMats.flower);
+            center.position.y = 0.32;
+            center.castShadow = true;
+            flower.add(center);
+            sceneDecor.meadow.add(flower);
+            meadowMotion.push({ object: flower, phase: angle + i, amount: 0.05 });
+        }
+
+        // ====== DESERT TERRAIN ======
+        function duneHeightAt(x, z) {
+            const xFade = Math.max(0, 1 - Math.pow(Math.abs(x) / 60, 6));
+            const zFade = Math.max(0, 1 - Math.pow(Math.abs(z + 25) / 55, 6));
+            const centreT = THREE.MathUtils.clamp((Math.hypot(x, z) - 4) / 4, 0, 1);
+            const centreFade = centreT * centreT * (3 - 2 * centreT);
+            const ridgeA = 2.6 * Math.exp(-Math.pow((z + 11 - Math.sin(x * 0.13) * 5) / 8, 2));
+            const ridgeB = 1.8 * Math.exp(-Math.pow((z + 25 + Math.sin(x * 0.09) * 6) / 7, 2));
+            const ridgeC = 1.2 * Math.exp(-Math.pow((z + 38 - Math.sin(x * 0.11) * 4) / 9, 2));
+            return (ridgeA + ridgeB + ridgeC) * xFade * zFade * centreFade;
+        }
+
+        const duneGeometry = new THREE.PlaneGeometry(120, 110, 120, 100);
+        duneGeometry.rotateX(-Math.PI / 2);
+        const dunePositions = duneGeometry.attributes.position;
+        for (let i = 0; i < dunePositions.count; i++) {
+            const x = dunePositions.getX(i);
+            const z = dunePositions.getZ(i) - 25;
+            dunePositions.setY(i, 0.012 + duneHeightAt(x, z));
+        }
+        dunePositions.needsUpdate = true;
+        duneGeometry.computeVertexNormals();
+        const duneLandscape = new THREE.Mesh(duneGeometry, desertMats.dune);
+        duneLandscape.position.set(0, floorY, -25);
+        duneLandscape.receiveShadow = true;
+        const sandGround = new THREE.Mesh(new THREE.CircleGeometry(90, 128), desertMats.sandGround);
+        sandGround.rotation.x = -Math.PI / 2;
+        sandGround.position.y = floorY + 0.006;
+        sandGround.receiveShadow = true;
+        sceneDecor.desert.add(sandGround);
+        sceneDecor.desert.add(duneLandscape);
+
+        // Cactus helpers
+        const cactusSpineGeometry = new THREE.ConeGeometry(0.008, 0.09, 4);
+        const cactusSpineAxis = new THREE.Vector3(0, 1, 0);
+        function addCactusThorn(parent, x, y, z, direction, size) {
+            const thorn = new THREE.Mesh(cactusSpineGeometry, desertMats.spine);
+            thorn.position.set(x, y, z).addScaledVector(direction, size * 0.045);
+            thorn.quaternion.setFromUnitVectors(cactusSpineAxis, direction);
+            thorn.scale.setScalar(size);
+            thorn.castShadow = true;
+            parent.add(thorn);
+        }
+        function addColumnarCactusSpines(parent, x, z, height, radius, size, rows, count) {
+            for (let row = 0; row < rows; row++) {
+                const y = height * (row + 1) / (rows + 1);
+                const rowRadius = radius * (1 - 0.1 * y / height);
+                for (let i = 0; i < count; i++) {
+                    const angle = (i + row % 2 * 0.5) * Math.PI * 2 / count;
+                    const nx = Math.cos(angle), nz = Math.sin(angle);
+                    const direction = new THREE.Vector3(nx, 0, nz);
+                    addCactusThorn(parent, x + nx * rowRadius, y, z + nz * rowRadius, direction, size);
+                }
+            }
+        }
+        function addPadCactusSpines(parent, px, py, pz, size, sx, sy, tilt) {
+            const radius = 0.52 * size;
+            const scaleX = sx * 1.6, scaleY = sy * 1.4, scaleZ = 0.55;
+            const cosTilt = Math.cos(tilt), sinTilt = Math.sin(tilt);
+            for (let i = 0; i < 10; i++) {
+                const angle = i * Math.PI / 5;
+                let nx = Math.cos(angle) * 0.55, ny = Math.sin(angle) * 0.55, nz = 0.63;
+                const normalLength = Math.hypot(nx, ny, nz);
+                nx /= normalLength; ny /= normalLength; nz /= normalLength;
+                const localX = radius * scaleX * nx, localY = radius * scaleY * ny, localZ = radius * scaleZ * nz;
+                const direction = new THREE.Vector3(
+                    (nx / scaleX) * cosTilt - (ny / scaleY) * sinTilt,
+                    (nx / scaleX) * sinTilt + (ny / scaleY) * cosTilt,
+                    nz / scaleZ
+                ).normalize();
+                addCactusThorn(parent,
+                    px * size + localX * cosTilt - localY * sinTilt,
+                    py * size + localX * sinTilt + localY * cosTilt,
+                    pz * size + localZ, direction, size * 0.46);
+            }
+        }
+        function addColumnarCactusStem(parent, x, z, size, height, radius, material) {
+            const stem = new THREE.Mesh(new THREE.CylinderGeometry(radius * 0.84, radius, height, 12), material);
+            stem.position.set(x, height / 2, z);
+            stem.castShadow = true;
+            parent.add(stem);
+            const cap = new THREE.Mesh(new THREE.SphereGeometry(radius * 0.86, 14, 10), material);
+            cap.position.set(x, height - radius * 0.48, z);
+            cap.castShadow = true;
+            parent.add(cap);
+            addColumnarCactusSpines(parent, x, z, height, radius, size, 5, 10);
+        }
+        function addSaguaroArm(parent, x, size, side, height, material) {
+            const arm = new THREE.Group();
+            arm.position.set(side * 0.37 * size, height * size, 0);
+            const upright = new THREE.Mesh(new THREE.CylinderGeometry(0.12 * size, 0.15 * size, 0.82 * size, 10), material);
+            upright.position.y = 0.34 * size;
+            const roundedTop = new THREE.Mesh(new THREE.SphereGeometry(0.13 * size, 12, 8), material);
+            roundedTop.position.y = 0.69 * size;
+            const branch = new THREE.Mesh(new THREE.CylinderGeometry(0.13 * size, 0.16 * size, 0.5 * size, 10), material);
+            branch.position.set(-side * 0.25 * size, 0.05 * size, 0);
+            branch.rotation.z = Math.sign(-side) * Math.PI / 2;
+            const joint = new THREE.Mesh(new THREE.SphereGeometry(0.16 * size, 12, 8), material);
+            joint.position.set(-side * 0.25 * size, 0.05 * size, 0);
+            arm.add(upright, roundedTop, branch, joint);
+            addColumnarCactusSpines(arm, 0, 0, 0.82 * size, 0.13 * size, size, 3, 8);
+            arm.traverse(object => { if (object.isMesh) object.castShadow = true; });
+            parent.add(arm);
+            meadowMotion.push({ object: arm, phase: x + side, amount: 0.015 });
+        }
+
+        function addCactus(x, z, size, style) {
+            const cactus = new THREE.Group();
+            cactus.position.set(x, floorY + 0.012 + duneHeightAt(x, z), z);
+            if (style === 1) {
+                // Barrel cactus - enhanced
+                const barrel = new THREE.Mesh(new THREE.SphereGeometry(0.48 * size, 16, 13), desertMats.cactusPale);
+                barrel.position.y = 0.48 * size;
+                barrel.scale.set(1, 1.2, 0.9);
+                barrel.castShadow = true;
+                cactus.add(barrel);
+                // Flower on top
+                const topFlower = new THREE.Mesh(new THREE.SphereGeometry(0.12 * size, 8, 6), desertMats.desertFlowerYellow);
+                topFlower.position.y = 0.82 * size;
+                topFlower.scale.set(1.5, 0.5, 1.5);
+                topFlower.castShadow = true;
+                cactus.add(topFlower);
+                for (let row = 0; row < 4; row++) {
+                    for (let i = 0; i < 10; i++) {
+                        const angle = i * Math.PI / 5 + row * 0.18;
+                        const spine = new THREE.Mesh(new THREE.ConeGeometry(0.015 * size, 0.12 * size, 4), desertMats.spine);
+                        spine.position.set(Math.cos(angle) * 0.44 * size, (0.2 + row * 0.2) * size, Math.sin(angle) * 0.4 * size);
+                        spine.rotation.z = Math.cos(angle) * 0.8;
+                        spine.rotation.x = Math.sin(angle) * 0.8;
+                        spine.castShadow = true;
+                        cactus.add(spine);
+                    }
+                }
+            } else if (style === 2) {
+                // Prickly pear - enhanced with more pads
+                const padSpecs = [
+                    [0, 0.5, 0, 0.48, 0.72, 0],
+                    [-0.38, 1.05, 0.02, 0.38, 0.56, -0.12],
+                    [0.37, 1.12, -0.04, 0.4, 0.6, 0.12],
+                    [-0.06, 1.62, 0.02, 0.32, 0.47, 0.04],
+                    [0.32, 1.7, -0.06, 0.28, 0.42, -0.08]
+                ];
+                padSpecs.forEach(([px, py, pz, sx, sy, tilt], index) => {
+                    const pad = new THREE.Mesh(new THREE.SphereGeometry(0.52 * size, 14, 11), index % 2 ? desertMats.cactusLight : desertMats.cactus);
+                    pad.position.set(px * size, py * size, pz * size);
+                    pad.scale.set(sx * 1.6, sy * 1.4, 0.55);
+                    pad.rotation.z = tilt;
+                    pad.castShadow = true;
+                    cactus.add(pad);
+                    addPadCactusSpines(cactus, px, py, pz, size, sx, sy, tilt);
+                });
+                // Small flowers on pads
+                if (size > 1.0) {
+                    const pf = new THREE.Mesh(new THREE.SphereGeometry(0.06 * size, 8, 6), desertMats.desertFlower);
+                    pf.position.set(0.37 * size, 1.45 * size, 0.22 * size);
+                    cactus.add(pf);
+                }
+            } else if (style === 3) {
+                // Organ pipe cluster - enhanced
+                addColumnarCactusStem(cactus, 0, 0, size, 2.1 * size, 0.19 * size, desertMats.cactusDark);
+                addColumnarCactusStem(cactus, -0.32 * size, 0.04 * size, size * 0.7, 1.3 * size, 0.17 * size, desertMats.cactusLight);
+                addColumnarCactusStem(cactus, 0.34 * size, -0.03 * size, size * 0.82, 1.55 * size, 0.16 * size, desertMats.cactus);
+                addColumnarCactusStem(cactus, 0.18 * size, 0.28 * size, size * 0.55, 0.95 * size, 0.14 * size, desertMats.cactusPale);
+            } else {
+                // Saguaro - enhanced with more detail
+                addColumnarCactusStem(cactus, 0, 0, size, 2.0 * size, 0.22 * size, desertMats.cactus);
+                addSaguaroArm(cactus, x, size, -0.52, 0.62, desertMats.cactusLight);
+                addSaguaroArm(cactus, x, size, 0.43, 1.04, desertMats.cactus);
+                // Bird holes
+                const hole = new THREE.Mesh(new THREE.SphereGeometry(0.06 * size, 8, 6), new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 1, transparent: true, opacity: 0 }));
+                hole.position.set(0.18 * size, 1.5 * size, 0);
+                cactus.add(hole);
+                // Store reference so we can set its opacity
+                if (!desertMats._extraMats) desertMats._extraMats = [];
+                desertMats._extraMats.push(hole.material);
+            }
+            cactus.traverse(object => { if (object.isMesh) object.castShadow = true; });
+            sceneDecor.desert.add(cactus);
+        }
+
+        addCactus(-8, -8, 1.4, 0);
+        addCactus(9, -12, 1.1, 1);
+        addCactus(-19, 7, 1.05, 2);
+        addCactus(21, 5, 1.35, 3);
+        addCactus(-6, -4, 1.05, 1);
+        addCactus(7, -6, 1.2, 2);
+        addCactus(-5, 0, 1.2, 0);
+        addCactus(5, 0, 1.25, 3);
+        addCactus(-15, -18, 0.95, 1);
+        addCactus(16, -20, 1.1, 0);
+        addCactus(-28, -10, 1.3, 2);
+        addCactus(30, -5, 1.15, 3);
+
+        // Desert rocks - more clusters
+        const rockGeometry = new THREE.IcosahedronGeometry(0.45, 1);
+        function addDesertRocks(x, z, size, count) {
+            const cluster = new THREE.Group();
+            cluster.position.set(x, floorY + 0.012 + duneHeightAt(x, z), z);
+            for (let i = 0; i < count; i++) {
+                const mat = i % 4 === 0 ? desertMats.rockLight : i % 4 === 1 ? desertMats.rock : desertMats.rockRed;
+                const rock = new THREE.Mesh(rockGeometry, mat);
+                rock.position.set((i - (count - 1) / 2) * size * 0.34, size * (0.12 + (i % 2) * 0.03), (i % 2 ? 0.16 : -0.12) * size);
+                rock.scale.set(size * (0.65 + (i % 3) * 0.16), size * (0.5 + (i % 2) * 0.17), size * (0.55 + (i % 2) * 0.13));
+                rock.rotation.set(i * 0.19, i * 0.73, i * 0.31);
+                rock.castShadow = rock.receiveShadow = true;
+                cluster.add(rock);
+            }
+            sceneDecor.desert.add(cluster);
+        }
+        addDesertRocks(-24, -4, 1.25, 4);
+        addDesertRocks(25, -13, 1.1, 5);
+        addDesertRocks(-31, 12, 1.35, 4);
+        addDesertRocks(30, 8, 1.5, 5);
+        addDesertRocks(-4, -31, 1.2, 3);
+        addDesertRocks(-11, -12, 0.8, 3);
+        addDesertRocks(12, -16, 0.95, 4);
+        addDesertRocks(-18, -25, 1.0, 4);
+        addDesertRocks(20, -28, 1.15, 3);
+
+        // Desert shrubs
+        const dryBranchGeometry = new THREE.CylinderGeometry(0.018, 0.045, 1, 5);
+        function addDesertShrub(x, z, size) {
+            const shrub = new THREE.Group();
+            shrub.position.set(x, floorY + 0.012 + duneHeightAt(x, z), z);
+            for (let i = 0; i < 7; i++) {
+                const angle = i * Math.PI * 0.29 + x;
+                const twig = new THREE.Mesh(dryBranchGeometry, desertMats.dryBranch);
+                twig.scale.setScalar(size * (0.6 + (i % 3) * 0.18));
+                twig.position.set(Math.cos(angle) * size * 0.14, size * 0.3, Math.sin(angle) * size * 0.14);
+                twig.rotation.set(Math.sin(angle) * 0.5, 0, Math.cos(angle) * 0.65);
+                twig.castShadow = true;
+                shrub.add(twig);
+            }
+            sceneDecor.desert.add(shrub);
+        }
+        addDesertShrub(-14, -2, 0.9);
+        addDesertShrub(15, -3, 0.8);
+        addDesertShrub(-28, -19, 1.1);
+        addDesertShrub(28, 17, 0.95);
+        addDesertShrub(1, -39, 0.85);
+        addDesertShrub(-12, -15, 0.7);
+        addDesertShrub(13, -17, 0.75);
+        addDesertShrub(-22, 14, 0.85);
+        addDesertShrub(18, 12, 0.7);
+
+        // Dead grass patches in desert
+        function addDeadGrass(x, z, size) {
+            const patch = new THREE.Group();
+            patch.position.set(x, floorY + 0.012 + duneHeightAt(x, z), z);
+            for (let i = 0; i < 8; i++) {
+                const height = 0.15 + Math.abs(Math.sin(i * 2.7)) * 0.25;
+                const blade = new THREE.Mesh(new THREE.ConeGeometry(0.03, height * size, 3), desertMats.deadGrass);
+                const bAngle = i * Math.PI * 0.25 + z;
+                blade.position.set(Math.cos(bAngle) * 0.12 * size, height * size / 2, Math.sin(bAngle) * 0.12 * size);
+                blade.rotation.z = (Math.sin(i * 1.3) - 0.3) * 0.5;
+                blade.castShadow = true;
+                patch.add(blade);
+            }
+            sceneDecor.desert.add(patch);
+        }
+        for (let i = 0; i < 20; i++) {
+            const angle = i * 0.314 + 1.2;
+            const r = 5 + (i % 7) * 4;
+            addDeadGrass(Math.cos(angle) * r, Math.sin(angle) * r, 0.7 + (i % 3) * 0.2);
+        }
+
+        // Tumbleweeds
+        function addTumbleweed(x, z, size) {
+            const tw = new THREE.Mesh(new THREE.IcosahedronGeometry(size * 0.35, 1), desertMats.tumbleweed);
+            tw.position.set(x, floorY + size * 0.35 + duneHeightAt(x, z), z);
+            tw.castShadow = true;
+            sceneDecor.desert.add(tw);
+            tumbleweedMotion.push({ object: tw, startX: x, startZ: z, phase: x + z, speed: 0.3 + Math.abs(Math.sin(x)) * 0.4, size });
+        }
+        addTumbleweed(-10, 3, 0.8);
+        addTumbleweed(14, -8, 0.65);
+        addTumbleweed(-3, -20, 0.9);
+
+        // Desert flowers (blooming cacti area)
+        function addDesertFlower(x, z, size) {
+            const flowerGroup = new THREE.Group();
+            flowerGroup.position.set(x, floorY + 0.012 + duneHeightAt(x, z), z);
+            const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.015 * size, 0.025 * size, 0.18 * size, 5), desertMats.cactusLight);
+            stem.position.y = 0.09 * size;
+            stem.castShadow = true;
+            flowerGroup.add(stem);
+            const mat = Math.sin(x * z) > 0 ? desertMats.desertFlower : desertMats.desertFlowerYellow;
+            for (let p = 0; p < 5; p++) {
+                const pAngle = p * Math.PI * 2 / 5;
+                const petal = new THREE.Mesh(new THREE.SphereGeometry(0.04 * size, 6, 4), mat);
+                petal.position.set(Math.cos(pAngle) * 0.04 * size, 0.2 * size, Math.sin(pAngle) * 0.04 * size);
+                petal.scale.set(1.2, 0.5, 1.2);
+                petal.castShadow = true;
+                flowerGroup.add(petal);
+            }
+            sceneDecor.desert.add(flowerGroup);
+        }
+        for (let i = 0; i < 12; i++) {
+            const angle = i * 0.52 + 0.3;
+            const r = 6 + (i % 5) * 3.5;
+            addDesertFlower(Math.cos(angle) * r, Math.sin(angle) * r, 1.0 + (i % 3) * 0.3);
+        }
+
+        // Skull in desert
+        function addSkull(x, z, size) {
+            const skullGroup = new THREE.Group();
+            skullGroup.position.set(x, floorY + 0.012 + duneHeightAt(x, z), z);
+            const cranium = new THREE.Mesh(new THREE.SphereGeometry(0.18 * size, 10, 8), desertMats.skull);
+            cranium.position.y = 0.12 * size;
+            cranium.scale.set(1, 0.85, 1.1);
+            cranium.castShadow = true;
+            skullGroup.add(cranium);
+            const jaw = new THREE.Mesh(new THREE.SphereGeometry(0.1 * size, 8, 6), desertMats.skull);
+            jaw.position.set(0, 0.02 * size, 0.1 * size);
+            jaw.scale.set(0.8, 0.4, 0.6);
+            jaw.castShadow = true;
+            skullGroup.add(jaw);
+            // Eye sockets
+            [-1, 1].forEach(side => {
+                const eye = new THREE.Mesh(new THREE.SphereGeometry(0.04 * size, 6, 4), new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 1, transparent: true, opacity: 0 }));
+                eye.position.set(side * 0.07 * size, 0.15 * size, 0.14 * size);
+                skullGroup.add(eye);
+                if (!desertMats._extraMats) desertMats._extraMats = [];
+                desertMats._extraMats.push(eye.material);
+            });
+            skullGroup.rotation.y = x * 0.5;
+            skullGroup.rotation.z = -0.15;
+            sceneDecor.desert.add(skullGroup);
+        }
+        addSkull(4, -15, 1.2);
+        addSkull(-18, -6, 0.9);
+
+
+        // ====== EXTRA NATURAL DETAIL LAYER ======
+        // Meadow: fern rosettes, fallen timber, saplings and dense mixed ground cover.
+        function addFern(x, z, size, tint = 0) {
+            const fern = new THREE.Group();
+            fern.position.set(x, floorY + 0.018 + meadowHeightAt(x, z), z);
+            const mat = tint ? meadowMats.grassLight : meadowMats.grassDark;
+            for (let fr = 0; fr < 7; fr++) {
+                const a = fr * Math.PI * 2 / 7 + x * 0.17;
+                const length = size * (0.42 + (fr % 3) * 0.09);
+                const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.008 * size, 0.014 * size, length, 4), meadowMats.grass);
+                stem.position.set(Math.cos(a) * length * 0.28, length * 0.42, Math.sin(a) * length * 0.28);
+                stem.rotation.z = Math.cos(a) * 0.8;
+                stem.rotation.x = -Math.sin(a) * 0.8;
+                fern.add(stem);
+                for (let j = 1; j <= 5; j++) {
+                    const t = j / 6;
+                    const leaflet = new THREE.Mesh(new THREE.SphereGeometry(0.065 * size * (1 - t * 0.45), 7, 5), mat);
+                    leaflet.position.set(Math.cos(a) * length * (0.16 + t * 0.48), length * (0.25 + t * 0.52), Math.sin(a) * length * (0.16 + t * 0.48));
+                    leaflet.scale.set(1.8, 0.34, 0.72);
+                    leaflet.rotation.y = a;
+                    fern.add(leaflet);
+                }
+            }
+            sceneDecor.meadow.add(fern);
+            meadowMotion.push({ object: fern, phase: x + z, amount: 0.025 });
+        }
+        for (let i = 0; i < 32; i++) {
+            const a = i * 2.399963;
+            const r = 5.5 + (i % 9) * 2.25;
+            addFern(Math.cos(a) * r, Math.sin(a) * r, 0.75 + (i % 4) * 0.18, i % 3 === 0);
+        }
+
+        function addFallenLog(x, z, length, rot) {
+            const log = new THREE.Group();
+            log.position.set(x, floorY + 0.035 + meadowHeightAt(x, z), z);
+            log.rotation.y = rot;
+            const body = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.21, length, 9, 3), meadowMats.trunk);
+            body.rotation.z = Math.PI / 2;
+            body.position.y = 0.17;
+            body.castShadow = body.receiveShadow = true;
+            log.add(body);
+            for (const side of [-1, 1]) {
+                const end = new THREE.Mesh(new THREE.CircleGeometry(0.155, 12), meadowMats.trunkDark);
+                end.position.set(side * length * 0.5, 0.17, 0);
+                end.rotation.y = side < 0 ? -Math.PI / 2 : Math.PI / 2;
+                log.add(end);
+            }
+            for (let b = 0; b < 3; b++) {
+                const branch = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.055, 0.48, 5), meadowMats.trunkDark);
+                branch.position.set((b - 1) * length * 0.22, 0.27, 0.12);
+                branch.rotation.z = -0.7;
+                branch.rotation.x = 0.55;
+                log.add(branch);
+            }
+            sceneDecor.meadow.add(log);
+        }
+        addFallenLog(-13, -5, 2.8, 0.45);
+        addFallenLog(17, -22, 2.2, -0.72);
+        addFallenLog(-26, 8, 1.8, 0.2);
+
+        // Meadow tree variety: extra saplings and tall canopy silhouettes at the perimeter.
+        [[-23,-18,1.15,0], [24,-22,1.28,1], [-32,3,1.35,0], [33,-7,1.22,2], [-9,-38,1.05,3], [14,-42,1.2,4], [37,-29,1.35,1], [-38,-30,1.3,0]].forEach(v => addMeadowTree(v[0],v[1],v[2],v[3]));
+
+        // Desert: wind-scoured gravel, layered sandstone shelves, dry wash pebbles and yucca plants.
+        const desertAccentMat = new THREE.MeshStandardMaterial({ color: 0xc49a67, roughness: 1, transparent: true, opacity: 0 });
+        const desertCreaseMat = new THREE.MeshStandardMaterial({ color: 0x875735, roughness: 1, transparent: true, opacity: 0 });
+        function addSandstoneShelf(x, z, size, rotation) {
+            const shelf = new THREE.Group();
+            shelf.position.set(x, floorY + 0.025 + duneHeightAt(x, z), z);
+            shelf.rotation.y = rotation;
+            for (let layer = 0; layer < 3; layer++) {
+                const slab = new THREE.Mesh(new THREE.CylinderGeometry(size * (0.72 - layer * 0.08), size * (0.9 - layer * 0.07), 0.18 * size, 7, 1), layer === 1 ? desertMats.rockRed : desertMats.rockLight);
+                slab.position.y = layer * 0.13 * size + 0.08 * size;
+                slab.rotation.y = layer * 0.18;
+                slab.scale.set(1.35, 1, 0.82);
+                slab.castShadow = slab.receiveShadow = true;
+                shelf.add(slab);
+            }
+            sceneDecor.desert.add(shelf);
+        }
+        addSandstoneShelf(-34, -2, 1.5, 0.4);
+        addSandstoneShelf(35, -19, 1.25, -0.6);
+        addSandstoneShelf(-26, 22, 1.35, 0.9);
+        addSandstoneShelf(18, 27, 1.15, -0.2);
+
+        const gravelGeometries = [new THREE.IcosahedronGeometry(0.055, 0), new THREE.IcosahedronGeometry(0.085, 0), new THREE.IcosahedronGeometry(0.12, 1)];
+        for (let i = 0; i < 190; i++) {
+            const a = i * 2.399963;
+            const r = 7 + (i % 23) * 1.55;
+            const x = Math.cos(a) * r, z = Math.sin(a) * r;
+            const pebble = new THREE.Mesh(gravelGeometries[i % 3], i % 5 === 0 ? desertMats.rockRed : (i % 2 ? desertMats.rock : desertAccentMat));
+            pebble.position.set(x, floorY + 0.035 + duneHeightAt(x, z), z);
+            pebble.scale.set(1.2 + (i % 3) * 0.2, 0.55, 0.8 + (i % 4) * 0.1);
+            pebble.rotation.set(i * 0.21, i * 0.7, i * 0.13);
+            pebble.castShadow = true;
+            sceneDecor.desert.add(pebble);
+        }
+
+        function addYucca(x, z, size) {
+            const plant = new THREE.Group();
+            plant.position.set(x, floorY + 0.02 + duneHeightAt(x, z), z);
+            const core = new THREE.Mesh(new THREE.CylinderGeometry(0.09 * size, 0.14 * size, 0.38 * size, 7), desertMats.cactusDark);
+            core.position.y = 0.18 * size;
+            plant.add(core);
+            for (let leaf = 0; leaf < 13; leaf++) {
+                const a = leaf * Math.PI * 2 / 13 + x;
+                const len = size * (0.72 + (leaf % 4) * 0.12);
+                const blade = new THREE.Mesh(new THREE.ConeGeometry(0.075 * size, len, 5), leaf % 3 ? desertMats.cactusLight : desertMats.cactusPale);
+                blade.position.set(Math.cos(a) * len * 0.31, size * (0.25 + (leaf % 3) * 0.035), Math.sin(a) * len * 0.31);
+                blade.rotation.z = -Math.cos(a) * 1.05;
+                blade.rotation.x = Math.sin(a) * 1.05;
+                blade.castShadow = true;
+                plant.add(blade);
+            }
+            sceneDecor.desert.add(plant);
+        }
+        [[-30,-27,1.0],[29,-31,1.15],[-2,18,0.9],[36,1,1.0],[-36,16,1.1],[12,-36,0.85]].forEach(v => addYucca(v[0],v[1],v[2]));
+
+        // Small dry channels add erosion lines and visual scale to the dune floor.
+        for (let i = 0; i < 9; i++) {
+            const wash = new THREE.Mesh(new THREE.TorusGeometry(2.4 + (i % 3) * 0.7, 0.035, 4, 36, Math.PI * (0.65 + (i % 4) * 0.08)), desertCreaseMat);
+            const a = i * 2.17, r = 12 + (i % 4) * 5;
+            const x = Math.cos(a) * r, z = Math.sin(a) * r;
+            wash.position.set(x, floorY + 0.045 + duneHeightAt(x, z), z);
+            wash.rotation.x = Math.PI / 2;
+            wash.rotation.z = a;
+            wash.scale.set(1.3, 0.72, 1);
+            sceneDecor.desert.add(wash);
+        }
+
+        const decorMaterials = {};
+        Object.keys(sceneDecor).forEach(name => {
+            const list = [];
+            sceneDecor[name].traverse(object => {
+                if (object.isMesh && !list.includes(object.material)) list.push(object.material);
+            });
+            decorMaterials[name] = list;
+        });
+
+        // Contact shadows
+        function makeContactTexture() {
+            const c = document.createElement('canvas'); c.width = c.height = 256;
+            const ctx = c.getContext('2d');
+            const rr = (x, y, w, h, r) => { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); };
+            for (let i = 0; i < 30; i++) {
+                const inset = 4 + i * 3.6;
+                ctx.fillStyle = 'rgba(0,0,0,0.045)';
+                rr(inset, inset, 256 - 2 * inset, 256 - 2 * inset, 40 - i);
+                ctx.fill();
+            }
+            return new THREE.CanvasTexture(c);
+        }
+        const contactMat = new THREE.MeshBasicMaterial({ map: makeContactTexture(), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+        function createContactGroup() {
+            const shadow = new THREE.Mesh(new THREE.PlaneGeometry(boxWidth + 1.3, boxDepth + 1.3), contactMat);
+            shadow.rotation.x = -Math.PI / 2;
+            const group = new THREE.Group();
+            group.position.y = floorY + 0.001;
+            group.add(shadow);
+            layoutGroup.add(group);
+            return { group, shadow };
+        }
+        const primaryContact = createContactGroup();
+        const secondaryContact = createContactGroup();
+
+        // Interior panels
+        const panelMeshes = [];
+        masterGroup.traverse(o => { if (o.isMesh) panelMeshes.push(o); });
+        panelMeshes.forEach(mesh => {
+            const key = Object.keys(materials).find(k => materials[k] === mesh.material);
+            if (key && innerMaterials[key]) {
+                const inner = new THREE.Mesh(mesh.geometry, innerMaterials[key]);
+                mesh.add(inner);
+            }
+        });
+
+        masterGroup.traverse(o => {
+            if (o.isMesh) {
+                o.castShadow = true;
+                o.receiveShadow = true;
+                if (o.material) o.material.shadowSide = THREE.DoubleSide;
+            }
+        });
+        for (const k in materials) materials[k].shadowSide = THREE.DoubleSide;
+
+        const secondBoxGroup = masterGroup.clone(true);
+        const secondLidGroup = secondBoxGroup.getObjectByName('boxLid');
+        secondBoxGroup.visible = false;
+        layoutGroup.add(secondBoxGroup);
+        const boxGroups = [masterGroup, secondBoxGroup];
+        const lidGroups = [lidGroup, secondLidGroup];
+
+        // =============== SUN / MOON / SKY / DAY-NIGHT ===============
+        const env = {
+            time: START_TIME_HOURS,
+            isNight: false,
+            sunAngle: 110,
+            moonAngle: 90,
+            dayF: 1,
+            cycleOn: false,
+            cycleLen: CYCLE_DURATION_SECONDS
+        };
+        const smooth = (a, b, x) => THREE.MathUtils.smoothstep(x, a, b);
+        const ARC_Z = 0.55;
+        function arcDirection(angleDeg, out) {
+            const a = THREE.MathUtils.degToRad(angleDeg);
+            return out.set(-Math.cos(a), Math.sin(a), ARC_Z).normalize();
+        }
+        function colorFromStops(stops, v, out) {
+            if (v <= stops[0][0]) return out.setHex(stops[0][1]);
+            for (let i = 1; i < stops.length; i++) {
+                if (v <= stops[i][0]) {
+                    const t = (v - stops[i - 1][0]) / (stops[i][0] - stops[i - 1][0]);
+                    return out.setHex(stops[i - 1][1]).lerp(_tmpColor.setHex(stops[i][1]), t);
+                }
+            }
+            return out.setHex(stops[stops.length - 1][1]);
+        }
+        const _tmpColor = new THREE.Color();
+        const _dir = new THREE.Vector3();
+        const _skyDay = new THREE.Color(), _skyNight = new THREE.Color();
+        const NIGHT_AMBIENT = new THREE.Color(0x8190c8);
+        const WHITE = new THREE.Color(0xffffff);
+        const _bounceColor = new THREE.Color();
+
+        const sunDisc = new THREE.Mesh(new THREE.SphereGeometry(4, 24, 16), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, fog: false }));
+        const moonDisc = new THREE.Mesh(new THREE.SphereGeometry(3.2, 24, 16), new THREE.MeshBasicMaterial({ color: MOON_COLOR, transparent: true, fog: false }));
+        scene.add(sunDisc); scene.add(moonDisc);
+
+        const starCount = 700, starPos = new Float32Array(starCount * 3);
+        let seed = 12345;
+        const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+        for (let i = 0; i < starCount; i++) {
+            const th = rnd() * Math.PI * 2, y = 0.06 + rnd() * 0.94, r = Math.sqrt(1 - y * y);
+            starPos[i * 3] = 150 * r * Math.cos(th);
+            starPos[i * 3 + 1] = 150 * y;
+            starPos[i * 3 + 2] = 150 * r * Math.sin(th);
+        }
+        const starGeo = new THREE.BufferGeometry();
+        starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+        const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({
+            color: 0xffffff, size: 2, sizeAttenuation: false, transparent: true, opacity: 0, fog: false, depthWrite: false
+        }));
+        stars.frustumCulled = false;
+        scene.add(stars);
+
+        function makeGlowTexture() {
+            const c = document.createElement('canvas'); c.width = c.height = 256;
+            const ctx = c.getContext('2d');
+            const g = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
+            g.addColorStop(0, 'rgba(255,255,255,1)');
+            g.addColorStop(0.18, 'rgba(255,255,255,0.55)');
+            g.addColorStop(0.5, 'rgba(255,255,255,0.14)');
+            g.addColorStop(1, 'rgba(255,255,255,0)');
+            ctx.fillStyle = g; ctx.fillRect(0, 0, 256, 256);
+            return new THREE.CanvasTexture(c);
+        }
+        const glowTex = makeGlowTexture();
+        const glowMat = () => new THREE.SpriteMaterial({ map: glowTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false, opacity: 0 });
+        const sunHalo = new THREE.Sprite(glowMat()), moonHalo = new THREE.Sprite(glowMat());
+        scene.add(sunHalo); scene.add(moonHalo);
+
+        const DUST_COUNT = 110;
+        const dustBase = new Float32Array(DUST_COUNT * 4);
+        const dustPos = new Float32Array(DUST_COUNT * 3);
+        for (let i = 0; i < DUST_COUNT; i++) {
+            const a = rnd() * Math.PI * 2, rr = 0.9 + Math.sqrt(rnd()) * 3.4;
+            dustBase[i * 4] = Math.cos(a) * rr; dustBase[i * 4 + 1] = Math.sin(a) * rr;
+            dustBase[i * 4 + 2] = rnd(); dustBase[i * 4 + 3] = 0.012 + rnd() * 0.02;
+        }
+        const dustGeo = new THREE.BufferGeometry();
+        dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPos, 3));
+        const dust = new THREE.Points(dustGeo, new THREE.PointsMaterial({
+            map: glowTex, color: 0xffffff, size: 9, sizeAttenuation: false, transparent: true, opacity: 0,
+            blending: THREE.AdditiveBlending, depthWrite: false, fog: false
+        }));
+        dust.frustumCulled = false;
+        scene.add(dust);
+        let envTime = 0;
+        let dustOn = true;
+
+        // Clouds
+        function makeCloudTexture(variant) {
+            const w = 512, h = 256;
+            const c = document.createElement('canvas'); c.width = w; c.height = h;
+            const ctx = c.getContext('2d');
+            let sd = 1357 + variant * 7919;
+            const r01 = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+            for (let i = 0; i < 22; i++) {
+                const x = w * (0.1 + 0.8 * r01());
+                const edge = 1 - Math.abs(x / w - 0.5) * 1.5;
+                const rad = h * (0.13 + 0.2 * r01()) * Math.max(0.45, edge);
+                const y = h * 0.62 - rad * (0.2 + 0.9 * r01()) * edge;
+                const g = ctx.createRadialGradient(x, y, 0, x, y, rad);
+                g.addColorStop(0, 'rgba(255,255,255,0.92)');
+                g.addColorStop(0.5, 'rgba(255,255,255,0.5)');
+                g.addColorStop(1, 'rgba(255,255,255,0)');
+                ctx.fillStyle = g;
+                ctx.beginPath(); ctx.arc(x, y, rad, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.globalCompositeOperation = 'source-atop';
+            const sh = ctx.createLinearGradient(0, h * 0.42, 0, h * 0.78);
+            sh.addColorStop(0, 'rgba(180,195,220,0)');
+            sh.addColorStop(1, 'rgba(160,178,208,0.6)');
+            ctx.fillStyle = sh; ctx.fillRect(0, 0, w, h);
+            const tex = new THREE.CanvasTexture(c);
+            tex.encoding = THREE.sRGBEncoding;
+            return tex;
+        }
+        const cloudGroup = new THREE.Group();
+        const cloudMats = [0, 1, 2, 3].map(v => new THREE.SpriteMaterial({ map: makeCloudTexture(v), transparent: true, depthWrite: false, fog: false, opacity: 0 }));
+        {
+            let cs = 24680;
+            const cr = () => (cs = (cs * 16807) % 2147483647) / 2147483647;
+            for (let i = 0; i < CLOUD_COUNT; i++) {
+                const az = (i / CLOUD_COUNT + (cr() - 0.5) * 0.6 / CLOUD_COUNT) * Math.PI * 2;
+                const el = THREE.MathUtils.degToRad(6 + Math.pow(cr(), 1.3) * 40);
+                const dist = 112;
+                const sprite = new THREE.Sprite(cloudMats[i % cloudMats.length]);
+                sprite.position.set(dist * Math.cos(el) * Math.cos(az), dist * Math.sin(el), dist * Math.cos(el) * Math.sin(az));
+                const wdt = 80 + cr() * 80;
+                sprite.scale.set(wdt, wdt * 0.5, 1);
+                cloudGroup.add(sprite);
+            }
+        }
+        cloudGroup.visible = CLOUDS_ON;
+        scene.add(cloudGroup);
+
+        // Birds
+        const birdMaterial = new THREE.MeshBasicMaterial({ color: 0x2d3940, transparent: true, opacity: 0.88, side: THREE.DoubleSide, depthWrite: false, fog: false });
+        function makeBirdWingGeometry(direction) {
+            const shape = new THREE.Shape();
+            shape.moveTo(0, 0);
+            shape.quadraticCurveTo(direction * 0.12, 0.12, direction * 0.28, 0.15);
+            shape.quadraticCurveTo(direction * 0.2, 0.055, direction * 0.11, 0.025);
+            shape.quadraticCurveTo(direction * 0.04, 0.005, 0, 0);
+            return new THREE.ShapeGeometry(shape);
+        }
+        const birdLeftGeometry = makeBirdWingGeometry(-1);
+        const birdRightGeometry = makeBirdWingGeometry(1);
+        const birdBodyGeometry = new THREE.SphereGeometry(0.035, 8, 6);
+        const birdGroup = new THREE.Group();
+        scene.add(birdGroup);
+        const birdFlocks = [];
+        [
+            [-0.62, 0.025, 3.1], [0.05, 0.06, 2.8], [0.68, 0.035, 3]
+        ].forEach(([azimuth, elevation, size], flockIndex) => {
+            [[-0.018, 0], [0, 0.012], [0.018, 0.002]].forEach(([azimuthOffset, elevationOffset], birdIndex) => {
+                const bird = new THREE.Group();
+                const leftWing = new THREE.Group();
+                const rightWing = new THREE.Group();
+                leftWing.add(new THREE.Mesh(birdLeftGeometry, birdMaterial));
+                rightWing.add(new THREE.Mesh(birdRightGeometry, birdMaterial));
+                const body = new THREE.Mesh(birdBodyGeometry, birdMaterial);
+                body.scale.set(1.7, 0.42, 0.45);
+                bird.add(leftWing, rightWing, body);
+                bird.scale.setScalar(size);
+                birdGroup.add(bird);
+                birdFlocks.push({
+                    bird, leftWing, rightWing,
+                    azimuth: azimuth + azimuthOffset,
+                    elevation: elevation + elevationOffset,
+                    distance: 94, phase: flockIndex * 1.8 + birdIndex * 0.7,
+                    speed: 0.8 + flockIndex * 0.08
+                });
+            });
+        });
+
+        // ====== UI ======
+        const groundBtn = document.getElementById('groundBtn');
+        const groundDot = document.getElementById('groundDot');
+        const groundControl = document.getElementById('groundControl');
+        const palettePopup = document.getElementById('palettePopup');
+        const paletteGrid = document.getElementById('paletteGrid');
+        const boxPositionBtn = document.getElementById('boxPositionBtn');
+        const boxPositionPopup = document.getElementById('boxPositionPopup');
+        const sceneBtn = document.getElementById('sceneBtn');
+        const scenePopup = document.getElementById('scenePopup');
+        const sceneOptions = document.querySelectorAll('.scene-option');
+
+        // MEADOW is now the default scene
+        const sceneWeights = { classic: 0, meadow: 1, desert: 0 };
+        const sceneTargets = { classic: 0, meadow: 1, desert: 0 };
+        const sceneGroundColors = {
+            classic: new THREE.Color(GROUND_COLOR),
+            meadow: new THREE.Color(0x467c3e),
+            desert: new THREE.Color(0xd6a15f)
+        };
+        const sceneDaySkies = {
+            classic: new THREE.Color(SKY_COLOR),
+            meadow: new THREE.Color(0x8ec8e8),
+            desert: new THREE.Color(0xe8e4d7)
+        };
+        const sceneDawnSkies = {
+            classic: new THREE.Color(SUNRISE_SUNSET_SKY),
+            meadow: new THREE.Color(0xf0a77e),
+            desert: new THREE.Color(0xe5b995)
+        };
+        const sceneNightSkies = {
+            classic: new THREE.Color(NIGHT_SKY_COLOR),
+            meadow: new THREE.Color(0x101b2d),
+            desert: new THREE.Color(0x211c31)
+        };
+        const customGroundColor = new THREE.Color(GROUND_COLOR);
+        const sceneColorScratch = new THREE.Color();
+        const sceneDaySky = new THREE.Color();
+        const sceneDawnSky = new THREE.Color();
+        const sceneNightSky = new THREE.Color();
+
+        const GROUND_PRESETS = [
+            ['White', '#ffffff'], ['Snow', '#eef3f8'], ['Light grey', '#cfd2d6'], ['Concrete', '#9a9da1'], ['Asphalt', '#3b3d42'], ['Black', '#141414'],
+            ['Sand', '#e3d2a6'], ['Wood', '#a8743f'], ['Dark wood', '#5a3a21'], ['Grass', '#6fae4e'], ['Forest', '#2f6b3a'], ['Sky', '#8fc8ee']
+        ];
+        const paletteSwatches = [];
+        function setGroundColor(hex) {
+            customGroundColor.set(hex);
+            ground.material.color.copy(customGroundColor);
+            groundDot.style.background = hex;
+            paletteSwatches.forEach(sw => sw.classList.toggle('sel', sw.dataset.hex.toLowerCase() === hex.toLowerCase()));
+        }
+        GROUND_PRESETS.forEach(([name, hex]) => {
+            const sw = document.createElement('button');
+            sw.className = 'pal-swatch'; sw.title = name; sw.dataset.hex = hex; sw.style.background = hex;
+            sw.addEventListener('click', () => { setGroundColor(hex); setPopupOpen(popups[0], false); });
+            paletteGrid.appendChild(sw);
+            paletteSwatches.push(sw);
+        });
+        setGroundColor('#' + new THREE.Color(GROUND_COLOR).getHexString());
+
+        const barEl = document.getElementById('bottom-bar');
+        function placePopup(popup, btn) {
+            const r = btn.getBoundingClientRect();
+            const half = popup.offsetWidth / 2;
+            const cx = Math.min(Math.max(r.left + r.width / 2, half + 8), window.innerWidth - half - 8);
+            popup.style.left = cx + 'px';
+            popup.style.bottom = (window.innerHeight - barEl.getBoundingClientRect().top + 10) + 'px';
+        }
+        function placeOpenPopups() {
+            if (palettePopup.classList.contains('open')) placePopup(palettePopup, groundBtn);
+            if (controlsPopup.classList.contains('open')) placePopup(controlsPopup, controlsBtn);
+            if (boxPositionPopup.classList.contains('open')) placePopup(boxPositionPopup, boxPositionBtn);
+            if (scenePopup.classList.contains('open')) placePopup(scenePopup, sceneBtn);
+        }
+
+        // Clock
+        const clockSvg = document.getElementById('clockSvg');
+        const clockHand = document.getElementById('clockHand');
+        const clockText = document.getElementById('clockText');
+        function fmtTime(t) {
+            const hh = Math.floor(t) % 24, mm = Math.floor((t - Math.floor(t)) * 60);
+            return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+        }
+        let lastClockKey = -1;
+        function updateClockUI() {
+            const key = Math.round(env.time * 60);
+            if (key === lastClockKey) return;
+            lastClockKey = key;
+            clockHand.setAttribute('transform', `rotate(${(env.time - 12) * 15})`);
+            clockText.innerText = `${env.isNight ? '🌙' : '☀'} ${fmtTime(env.time)}`;
+        }
+        let draggingClock = false;
+        function setTimeFromPointer(ev) {
+            const r = clockSvg.getBoundingClientRect();
+            const dx = ev.clientX - (r.left + r.width / 2), dy = ev.clientY - (r.top + r.height / 2);
+            if (Math.hypot(dx, dy) < 4) return;
+            const deg = (Math.atan2(dx, -dy) * 180 / Math.PI + 360) % 360;
+            env.time = (12 + deg / 15) % 24;
+        }
+        clockSvg.addEventListener('pointerdown', (ev) => {
+            draggingClock = true;
+            clockSvg.setPointerCapture(ev.pointerId);
+            setTimeFromPointer(ev);
+            ev.preventDefault();
+        });
+        clockSvg.addEventListener('pointermove', (ev) => { if (draggingClock) setTimeFromPointer(ev); });
+        ['pointerup', 'pointercancel'].forEach(t => clockSvg.addEventListener(t, () => { draggingClock = false; }));
+
+        // Cycle
+        const cycleBtn = document.getElementById('cycleBtn');
+        const cycleReveal = document.getElementById('cycleReveal');
+        const cycleLenSlider = document.getElementById('cycleLenSlider');
+        const cycleLenVal = document.getElementById('cycleLenVal');
+        cycleBtn.addEventListener('click', () => {
+            env.cycleOn = !env.cycleOn;
+            cycleBtn.innerText = env.cycleOn ? '⏱ Cycle: ON' : '⏱ Cycle: OFF';
+            cycleBtn.classList.toggle('on', env.cycleOn);
+            cycleReveal.classList.toggle('open', env.cycleOn);
+        });
+        cycleLenSlider.value = CYCLE_DURATION_SECONDS;
+        cycleLenVal.innerText = CYCLE_DURATION_SECONDS;
+        cycleLenSlider.addEventListener('input', (e) => {
+            env.cycleLen = +e.target.value;
+            cycleLenVal.innerText = env.cycleLen;
+        });
+
+        const controlsBtn = document.getElementById('controlsBtn');
+        const controlsPopup = document.getElementById('controlsPopup');
+        const dustBtn = document.getElementById('dustBtn');
+        dustBtn.addEventListener('click', () => {
+            dustOn = !dustOn;
+            dustBtn.innerText = dustOn ? '✨ Dust: ON' : '✨ Dust: OFF';
+            dustBtn.classList.toggle('on', dustOn);
+        });
+
+        // HDR toggle
+        const hdrBtn = document.getElementById('hdrBtn');
+        hdrBtn.addEventListener('click', () => {
+            hdrEnabled = !hdrEnabled;
+            hdrBtn.innerText = hdrEnabled ? '🌅 HDR: ON' : '🌅 HDR: OFF';
+            hdrBtn.classList.toggle('on', hdrEnabled);
+            updatePostProcessing();
+        });
+
+        // Shaders toggle
+        const shadersBtn = document.getElementById('shadersBtn');
+        shadersBtn.addEventListener('click', () => {
+            shadersEnabled = !shadersEnabled;
+            shadersBtn.innerText = shadersEnabled ? '🎬 Shaders: ON' : '🎬 Shaders: OFF';
+            shadersBtn.classList.toggle('on', shadersEnabled);
+            updatePostProcessing();
+        });
+
+        // Snapshot
+        const snapshotBtn = document.getElementById('snapshotBtn');
+        snapshotBtn.addEventListener('click', () => {
+            renderer.render(scene, camera);
+            const url = renderer.domElement.toDataURL('image/png');
+            const d = new Date(), pad = (n) => String(n).padStart(2, '0');
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `roses-and-ashes-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}.png`;
+            document.body.appendChild(a); a.click(); a.remove();
+            snapshotBtn.innerText = '✔ Saved';
+            setTimeout(() => { snapshotBtn.innerText = '📷 Snapshot'; }, 1400);
+        });
+
+        const imagesBtn = document.getElementById('imagesBtn');
+        const imagesPanel = document.getElementById('imagesPanel');
+
+        const popups = [
+            { el: palettePopup,  btn: groundBtn,   floating: true },
+            { el: controlsPopup, btn: controlsBtn, floating: true },
+            { el: boxPositionPopup, btn: boxPositionBtn, floating: true },
+            { el: scenePopup, btn: sceneBtn, floating: true },
+            { el: imagesPanel,   btn: imagesBtn,   floating: false }
+        ];
+        function setPopupOpen(pop, open) {
+            pop.el.classList.toggle('open', open);
+            pop.btn.classList.toggle('on', open);
+            if (pop.el === scenePopup) sceneBtn.setAttribute('aria-expanded', String(open));
+            if (open && pop.floating) placePopup(pop.el, pop.btn);
+        }
+        popups.forEach(pop => pop.btn.addEventListener('click', () => setPopupOpen(pop, !pop.el.classList.contains('open'))));
+        document.addEventListener('pointerdown', (ev) => {
+            popups.forEach(pop => {
+                if (pop.el.classList.contains('open') && !pop.el.contains(ev.target) && !pop.btn.contains(ev.target)) setPopupOpen(pop, false);
+            });
+        }, true);
+        function closeImagesPanel() { setPopupOpen(popups.find(pop => pop.el === imagesPanel), false); }
+
+        function selectScene(name) {
+            if (!Object.prototype.hasOwnProperty.call(sceneTargets, name)) return;
+            Object.keys(sceneTargets).forEach(key => { sceneTargets[key] = key === name ? 1 : 0; });
+            groundControl.classList.toggle('scene-hidden', name !== 'classic');
+            sceneOptions.forEach(option => {
+                const selected = option.dataset.scene === name;
+                option.classList.toggle('selected', selected);
+                option.setAttribute('aria-pressed', String(selected));
+            });
+            sceneDecor.meadow.visible = true;
+            sceneDecor.desert.visible = true;
+            setPopupOpen(popups.find(pop => pop.el === scenePopup), false);
+        }
+        sceneOptions.forEach(option => option.addEventListener('click', () => selectScene(option.dataset.scene)));
+
+        // Initialize meadow scene on start
+        groundControl.classList.add('scene-hidden');
+
+        const positionOptions = document.querySelectorAll('.position-option');
+        let cameraLayoutScale = 1;
+        function setBoxPose(group, pose) {
+            group.position.set(pose.x, pose.y, pose.z);
+            group.rotation.set(pose.rx, pose.ry, pose.rz);
+        }
+        function setContactPose(contact, pose, scaleX, scaleZ) {
+            contact.group.position.set(pose.x, floorY + 0.001, pose.z);
+            contact.group.rotation.y = pose.ry;
+            contact.group.scale.set(scaleX, 1, scaleZ);
+        }
+        function selectBoxPosition(position) {
+            const upright = { x: 0, y: 0, z: 0, rx: 0, ry: 0, rz: 0 };
+            const lyingY = floorY + boxDepth / 2;
+            const lying = { x: 0, y: lyingY, z: 0, rx: -Math.PI / 2, ry: 0, rz: 0 };
+            const uprightContactScale = { x: 1, z: 1 };
+            const lyingContactScale = { x: 1, z: (boxHeight + 1.3) / (boxDepth + 1.3) };
+            let first = upright, second = upright, hasSecond = false;
+            let firstScale = uprightContactScale, secondScale = uprightContactScale;
+            let focusY = 0, focusZ = 0, cameraScale = 1;
+
+            if (position === 'lying') {
+                first = lying; firstScale = lyingContactScale; focusY = lyingY; cameraScale = 1.15;
+            } else if (position === 'leaning-pair') {
+                const tilt = THREE.MathUtils.degToRad(-18);
+                const extentX = (Math.abs(Math.cos(tilt)) * boxWidth + Math.abs(Math.sin(tilt)) * boxHeight) / 2;
+                const extentY = (Math.abs(Math.cos(tilt)) * boxHeight + Math.abs(Math.sin(tilt)) * boxWidth) / 2;
+                first = { x: 1.1, y: 0, z: 0, rx: 0, ry: 0, rz: 0 };
+                second = { x: first.x - boxWidth / 2 - extentX + 0.12, y: floorY + extentY, z: 0, rx: 0, ry: 0, rz: tilt };
+                secondScale = { x: extentX * 2 / (boxWidth + 1.3), z: 1 };
+                hasSecond = true; cameraScale = 1.55;
+            } else if (position === 'standing-next-to-lying') {
+                first = { x: -1.7, y: lyingY, z: 0, rx: -Math.PI / 2, ry: 0, rz: 0 };
+                second = { x: 1.6, y: 0, z: 0, rx: 0, ry: 0, rz: 0 };
+                firstScale = lyingContactScale;
+                hasSecond = true; cameraScale = 1.55;
+            } else if (position === 'leaning-on-lying') {
+                const tilt = THREE.MathUtils.degToRad(LEAN_TILT_DEG);
+                const sinT = Math.sin(tilt), cosT = Math.cos(tilt);
+                first = { x: -0.9, y: lyingY, z: 0, rx: -Math.PI / 2, ry: 0, rz: 0 };
+                const edgeZ = first.z + boxHeight / 2;
+                const lowCornerZ = edgeZ + boxDepth / Math.tan(tilt) + 0.02;
+                const centreY = (boxHeight * sinT + boxDepth * cosT) / 2;
+                const centreZ = lowCornerZ - (boxHeight / 2) * cosT + (boxDepth / 2) * sinT;
+                second = { x: first.x, y: floorY + centreY, z: centreZ, rx: -Math.PI / 2 + tilt, ry: 0, rz: 0 };
+                focusZ = (-boxHeight / 2 + lowCornerZ + boxDepth * sinT) / 2;
+                firstScale = lyingContactScale;
+                secondScale = { x: 1, z: (boxHeight * cosT + boxDepth * sinT) / (boxDepth + 1.3) };
+                hasSecond = true; focusY = lyingY; cameraScale = 1.45;
+            }
+
+            setBoxPose(masterGroup, first);
+            setBoxPose(secondBoxGroup, second);
+            secondBoxGroup.visible = hasSecond;
+            setContactPose(primaryContact, first, firstScale.x, firstScale.z);
+            setContactPose(secondaryContact, second, secondScale.x, secondScale.z);
+            const cameraOffset = camera.position.clone().sub(controls.target);
+            controls.target.set(0, focusY, focusZ);
+            camera.position.copy(controls.target).addScaledVector(cameraOffset, cameraScale / cameraLayoutScale);
+            cameraLayoutScale = cameraScale;
+            controls.update();
+            positionOptions.forEach(option => {
+                const selected = option.dataset.position === position;
+                option.classList.toggle('selected', selected);
+                option.setAttribute('aria-pressed', String(selected));
+            });
+        }
+        positionOptions.forEach(option => option.addEventListener('click', () => {
+            selectBoxPosition(option.dataset.position);
+            setPopupOpen(popups[2], false);
+        }));
+
+        function updateEnvironment(dt) {
+            const sceneBlend = 1 - Math.exp(-Math.min(dt, 0.1) * 2.8);
+            Object.keys(sceneWeights).forEach(name => {
+                sceneWeights[name] += (sceneTargets[name] - sceneWeights[name]) * sceneBlend;
+            });
+            const meadowOpacity = sceneWeights.meadow;
+            const desertOpacity = sceneWeights.desert;
+            sceneDecor.meadow.visible = meadowOpacity > 0.005;
+            sceneDecor.desert.visible = desertOpacity > 0.005;
+            decorMaterials.meadow.forEach(material => { material.opacity = meadowOpacity; });
+            decorMaterials.desert.forEach(material => { material.opacity = desertOpacity; });
+            if (desertMats._extraMats) desertMats._extraMats.forEach(m => { m.opacity = desertOpacity; });
+
+            meadowMotion.forEach(item => {
+                item.object.rotation.z = Math.sin(envTime * 1.4 + item.phase) * item.amount;
+            });
+            flyMotion.forEach(fly => {
+                const t = envTime * fly.speed + fly.phase;
+                fly.object.position.set(
+                    Math.cos(t) * fly.radius,
+                    0.1 + Math.sin(t * 1.7) * 0.16,
+                    Math.sin(t * 0.83) * fly.radius
+                );
+            });
+            // Tumbleweed rolling
+            tumbleweedMotion.forEach(tw => {
+                const t = envTime * tw.speed + tw.phase;
+                tw.object.position.x = tw.startX + Math.sin(t * 0.3) * 2;
+                tw.object.position.z = tw.startZ + Math.cos(t * 0.2) * 1.5;
+                tw.object.rotation.x = t * 1.2;
+                tw.object.rotation.z = t * 0.8;
+            });
+
+            if (env.cycleOn) env.time = (env.time + Math.min(dt, 0.1) * 24 / env.cycleLen) % 24;
+            const t = env.time;
+            env.isNight = !(t >= 6 && t < 18);
+            env.sunAngle = THREE.MathUtils.clamp((t - 6) / 12 * 180, 0, 180);
+            env.moonAngle = THREE.MathUtils.clamp((t >= 18 ? t - 18 : t + 6) / 12 * 180, 0, 180);
+            updateClockUI();
+
+            env.dayF += ((env.isNight ? 0 : 1) - env.dayF) * (1 - Math.exp(-Math.min(dt, 0.1) * 3));
+            const dayF = env.dayF, nightF = 1 - dayF;
+
+            const eSun = Math.min(env.sunAngle, 180 - env.sunAngle);
+            const eMoon = Math.min(env.moonAngle, 180 - env.moonAngle);
+
+            arcDirection(env.sunAngle, _dir);
+            sunLight.position.copy(_dir).multiplyScalar(20);
+            colorFromStops(SUN_COLOR_STOPS, eSun, sunLight.color);
+            sunLight.color.lerp(_tmpColor.setHex(0xffd49b), desertOpacity * 0.52);
+            sunLight.intensity = dayF * (0.12 + 0.68 * smooth(0, 30, eSun));
+            sunDisc.position.copy(_dir).multiplyScalar(130);
+            sunDisc.material.color.copy(sunLight.color);
+            sunDisc.material.opacity = dayF;
+            sunDisc.visible = dayF > 0.02;
+
+            arcDirection(env.moonAngle, _dir);
+            moonLight.position.copy(_dir).multiplyScalar(20);
+            moonLight.intensity = nightF * (0.08 + 0.32 * smooth(0, 30, eMoon));
+            moonDisc.position.copy(_dir).multiplyScalar(130);
+            moonDisc.material.opacity = nightF;
+            moonDisc.visible = nightF > 0.02;
+
+            // Ground bounce light - sunlight/moonlight reflected by ground onto the box
+            const activeLightColor = dayF > 0.5 ? sunLight.color : moonLight.color;
+            const activeLightIntensity = dayF > 0.5 ? sunLight.intensity : moonLight.intensity;
+            _bounceColor.copy(activeLightColor).multiply(ground.material.color);
+            groundBounceLight.color.copy(_bounceColor);
+            groundBounceLight.intensity = activeLightIntensity * (shadersEnabled ? 0.35 : 0.2);
+            groundBounceLight.position.set(0, floorY - 0.4, 1.5);
+            groundBouncePoint.color.copy(_bounceColor);
+            groundBouncePoint.intensity = activeLightIntensity * (shadersEnabled ? 1.25 : 0.72);
+            groundBouncePoint.position.set(0, floorY + 0.28, 0.35);
+
+            // Fill light intensity varies with shaders
+            fillLight.intensity = shadersEnabled ? 0.28 : 0.15;
+
+            const dayAmb = 0.34 + 0.18 * smooth(0, 30, eSun);
+            const nightAmb = 0.30 + 0.06 * smooth(0, 30, eMoon);
+            ambientLight.intensity = nightAmb + (dayAmb - nightAmb) * dayF;
+            ambientLight.color.copy(NIGHT_AMBIENT).lerp(WHITE, dayF);
+            backLight.intensity = 0.4 * dayF + 0.08 * nightF;
+
+            sceneDaySky.setRGB(0, 0, 0);
+            sceneDawnSky.setRGB(0, 0, 0);
+            sceneNightSky.setRGB(0, 0, 0);
+            Object.keys(sceneWeights).forEach(name => {
+                sceneDaySky.r += sceneDaySkies[name].r * sceneWeights[name];
+                sceneDaySky.g += sceneDaySkies[name].g * sceneWeights[name];
+                sceneDaySky.b += sceneDaySkies[name].b * sceneWeights[name];
+                sceneDawnSky.r += sceneDawnSkies[name].r * sceneWeights[name];
+                sceneDawnSky.g += sceneDawnSkies[name].g * sceneWeights[name];
+                sceneDawnSky.b += sceneDawnSkies[name].b * sceneWeights[name];
+                sceneNightSky.r += sceneNightSkies[name].r * sceneWeights[name];
+                sceneNightSky.g += sceneNightSkies[name].g * sceneWeights[name];
+                sceneNightSky.b += sceneNightSkies[name].b * sceneWeights[name];
+            });
+            _skyDay.copy(sceneDawnSky).lerp(sceneDaySky, smooth(0, 35, eSun));
+            _skyNight.copy(sceneDawnSky).lerp(sceneNightSky, smooth(0, 25, eMoon));
+            _skyDay.lerp(_skyNight, nightF);
+            scene.background.copy(_skyDay);
+            scene.fog.color.copy(_skyDay);
+
+            sceneColorScratch.setRGB(
+                customGroundColor.r * sceneWeights.classic + sceneGroundColors.meadow.r * meadowOpacity + sceneGroundColors.desert.r * desertOpacity,
+                customGroundColor.g * sceneWeights.classic + sceneGroundColors.meadow.g * meadowOpacity + sceneGroundColors.desert.g * desertOpacity,
+                customGroundColor.b * sceneWeights.classic + sceneGroundColors.meadow.b * meadowOpacity + sceneGroundColors.desert.b * desertOpacity
+            );
+            ground.material.color.copy(sceneColorScratch);
+
+            hemiLight.color.copy(_skyDay).lerp(WHITE, 0.55);
+            hemiLight.groundColor.copy(ground.material.color).multiplyScalar(0.85);
+            hemiLight.intensity = 0.22 * dayF * (0.4 + 0.6 * smooth(0, 30, eSun)) + 0.12 * nightF;
+
+            const useSun = dayF >= 0.5;
+            arcDirection(useSun ? env.sunAngle : env.moonAngle, _dir);
+            rimLight.position.set(-_dir.x, 0.3 + 0.3 * _dir.y, -_dir.z).normalize().multiplyScalar(20);
+            rimLight.color.copy(useSun ? sunLight.color : moonLight.color);
+            rimLight.intensity = 0.35 * sunLight.intensity + 0.9 * moonLight.intensity;
+
+            const horizonF = 1 - smooth(0, 40, eSun);
+            sunHalo.position.copy(sunDisc.position);
+            sunHalo.scale.setScalar(70 + 60 * horizonF);
+            sunHalo.material.color.copy(sunLight.color);
+            sunHalo.material.opacity = 0.65 * dayF * (0.6 + 0.4 * horizonF);
+            sunHalo.visible = dayF > 0.02;
+            moonHalo.position.copy(moonDisc.position);
+            moonHalo.scale.setScalar(48);
+            moonHalo.material.color.copy(moonLight.color);
+            moonHalo.material.opacity = 0.5 * nightF;
+            moonHalo.visible = nightF > 0.02;
+
+            envTime += Math.min(dt, 0.1);
+            birdGroup.rotation.y += THREE.MathUtils.degToRad(CLOUD_SPEED) * Math.min(dt, 0.1);
+            birdFlocks.forEach(bird => {
+                const t = envTime * bird.speed + bird.phase;
+                const azimuth = bird.azimuth + Math.sin(t * 0.18) * 0.035;
+                const elevation = bird.elevation + Math.sin(t * 0.8) * 0.012;
+                bird.bird.position.set(
+                    bird.distance * Math.cos(elevation) * Math.sin(azimuth),
+                    floorY + bird.distance * Math.sin(elevation),
+                    -bird.distance * Math.cos(elevation) * Math.cos(azimuth)
+                );
+                bird.bird.lookAt(0, 0, 0);
+                bird.bird.rotateZ(Math.sin(t * 0.18) * 0.002);
+                const flap = Math.sin(t * 5.2) * 0.24;
+                bird.leftWing.rotation.z = -flap;
+                bird.rightWing.rotation.z = flap;
+            });
+
+            const lightF = dayF * smooth(0, 25, eSun) + nightF * smooth(0, 25, eMoon);
+            dust.material.color.copy(sunLight.color).lerp(moonLight.color, nightF);
+            dust.material.opacity = 0.75 * lightF;
+            dust.visible = dustOn && lightF > 0.03;
+            if (dust.visible) {
+                const y0 = -boxHeight / 2, span = boxHeight + 1.4;
+                for (let i = 0; i < DUST_COUNT; i++) {
+                    const ph = dustBase[i * 4 + 2];
+                    dustPos[i * 3] = dustBase[i * 4] + Math.sin(envTime * 0.35 + ph * 20) * 0.35;
+                    dustPos[i * 3 + 1] = y0 + (((ph + envTime * dustBase[i * 4 + 3]) % 1) * span);
+                    dustPos[i * 3 + 2] = dustBase[i * 4 + 1] + Math.cos(envTime * 0.3 + ph * 17) * 0.35;
+                }
+                dustGeo.attributes.position.needsUpdate = true;
+            }
+
+            if (CLOUDS_ON) {
+                cloudGroup.rotation.y += THREE.MathUtils.degToRad(CLOUD_SPEED) * Math.min(dt, 0.1);
+                const warm = 0.5 * (1 - smooth(0, 40, eSun));
+                cloudMats.forEach(m => {
+                    m.color.copy(WHITE).lerp(sunLight.color, warm);
+                    m.opacity = 0.95 * dayF;
+                });
+                cloudGroup.visible = dayF > 0.02;
+            }
+
+            stars.material.opacity = 0.9 * nightF * smooth(0, 30, eMoon);
+            stars.visible = stars.material.opacity > 0.01;
+        }
+        updateClockUI();
+
+        // --- TURNTABLE ---
+        let turntableOn = TURNTABLE_ON_START;
+        const turntableBtn = document.getElementById('turntableBtn');
+        const turntableReveal = document.getElementById('turntableReveal');
+        const turntableSpeedSlider = document.getElementById('turntableSpeedSlider');
+        const turntableSpeedVal = document.getElementById('turntableSpeedVal');
+        let turntableSpeed = TURNTABLE_SPEED;
+        turntableSpeedSlider.value = TURNTABLE_SPEED;
+        turntableSpeedVal.innerText = TURNTABLE_SPEED;
+        turntableSpeedSlider.addEventListener('input', (e) => {
+            turntableSpeed = +e.target.value;
+            turntableSpeedVal.innerText = turntableSpeed;
+        });
+        function updateTurntableBtn() {
+            turntableBtn.innerText = turntableOn ? '⟳ Turntable: ON' : '⟳ Turntable: OFF';
+            turntableBtn.classList.toggle('on', turntableOn);
+            turntableReveal.classList.toggle('open', turntableOn);
+        }
+        turntableBtn.addEventListener('click', () => { turntableOn = !turntableOn; updateTurntableBtn(); });
+        updateTurntableBtn();
+        const clock = new THREE.Clock();
+
+        // --- LID CONTROLS ---
+        const targetOpens = [0, 0], currentOpens = [0, 0];
+        const lidSlider = document.getElementById('lidSlider');
+        const angleVal = document.getElementById('angleVal');
+        const lidReveal = document.getElementById('lidReveal');
+        function toggleLid(boxIndex) {
+            if (boxIndex === undefined) {
+                const nextOpen = targetOpens[0] > 0.5 ? 0 : 1;
+                targetOpens.forEach((_, index) => { targetOpens[index] = nextOpen; });
+                lidSlider.value = targetOpens[0] * 75;
+                lidReveal.classList.toggle('open', targetOpens[0] > 0.5);
+            } else {
+                targetOpens[boxIndex] = targetOpens[boxIndex] > 0.5 ? 0 : 1;
+            }
+        }
+        lidSlider.addEventListener('input', (e) => {
+            const openAmount = parseInt(e.target.value) / 75;
+            targetOpens.forEach((_, index) => { targetOpens[index] = openAmount; });
+        });
+        document.getElementById('toggleLidBtn').addEventListener('click', () => toggleLid());
+
+        // Click lid
+        const raycaster = new THREE.Raycaster();
+        const pointerNdc = new THREE.Vector2();
+        let downX = 0, downY = 0;
+        function clickedLidIndex(ev) {
+            const r = renderer.domElement.getBoundingClientRect();
+            pointerNdc.set(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1);
+            raycaster.setFromCamera(pointerNdc, camera);
+            const activeBoxGroups = boxGroups.filter(group => group.visible);
+            const hits = raycaster.intersectObjects(activeBoxGroups, true).filter(h => h.object.visible);
+            if (!hits.length) return -1;
+            let object = hits[0].object;
+            while (object) {
+                const lidIndex = lidGroups.indexOf(object);
+                if (lidIndex !== -1) return lidIndex;
+                object = object.parent;
+            }
+            return -1;
+        }
+        renderer.domElement.addEventListener('pointerdown', (ev) => { downX = ev.clientX; downY = ev.clientY; });
+        renderer.domElement.addEventListener('pointerup', (ev) => {
+            if (Math.hypot(ev.clientX - downX, ev.clientY - downY) > 5) return;
+            const lidIndex = clickedLidIndex(ev);
+            if (lidIndex !== -1) toggleLid(lidIndex);
+        });
+        renderer.domElement.addEventListener('pointermove', (ev) => {
+            if (ev.buttons) return;
+            renderer.domElement.style.cursor = clickedLidIndex(ev) !== -1 ? 'pointer' : 'default';
+        });
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const dt = clock.getDelta();
+            updateEnvironment(dt);
+            placeOpenPopups();
+            if (turntableOn) layoutGroup.rotation.y += THREE.MathUtils.degToRad(turntableSpeed) * dt;
+            contactMat.opacity = 0.55 * env.dayF + 0.38 * (1 - env.dayF);
+            currentOpens.forEach((currentOpen, index) => {
+                currentOpens[index] += (targetOpens[index] - currentOpen) * 0.1;
+                lidGroups[index].rotation.x = -currentOpens[index] * THREE.MathUtils.degToRad(65);
+            });
+            angleVal.innerText = Math.round(currentOpens[0] * 65);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // Reset
+        const resetBtn = document.getElementById('resetBtn');
+        function resetEverything() {
+            selectBoxPosition('upright');
+            camera.position.copy(defaultCameraPosition);
+            controls.target.copy(defaultControlsTarget);
+            controls.update();
+            layoutGroup.rotation.y = 0;
+
+            targetOpens.forEach((_, i) => { targetOpens[i] = 0; });
+            lidSlider.value = 0;
+            lidReveal.classList.remove('open');
+
+            turntableOn = false;
+            turntableSpeed = TURNTABLE_SPEED;
+            turntableSpeedSlider.value = TURNTABLE_SPEED;
+            turntableSpeedVal.innerText = TURNTABLE_SPEED;
+            updateTurntableBtn();
+
+            setGroundColor('#' + new THREE.Color(GROUND_COLOR).getHexString());
+            selectScene('meadow');
+
+            env.time = START_TIME_HOURS;
+            env.cycleOn = false;
+            env.cycleLen = CYCLE_DURATION_SECONDS;
+            cycleLenSlider.value = CYCLE_DURATION_SECONDS;
+            cycleLenVal.innerText = CYCLE_DURATION_SECONDS;
+            cycleBtn.innerText = '⏱ Cycle: OFF';
+            cycleBtn.classList.remove('on');
+            cycleReveal.classList.remove('open');
+
+            dustOn = true;
+            dustBtn.innerText = '✨ Dust: ON';
+            dustBtn.classList.add('on');
+
+            hdrEnabled = true;
+            hdrBtn.innerText = '🌅 HDR: ON';
+            hdrBtn.classList.add('on');
+
+            shadersEnabled = false;
+            shadersBtn.innerText = '🎬 Shaders: OFF';
+            shadersBtn.classList.remove('on');
+            updatePostProcessing();
+
+            popups.forEach(pop => setPopupOpen(pop, false));
+
+            resetBtn.innerText = '✔ Reset';
+            setTimeout(() => { resetBtn.innerText = '↺ Reset'; }, 1200);
+        }
+        resetBtn.addEventListener('click', resetEverything);
+
+        // Welcome dialog
+        const welcomeOverlay = document.getElementById('welcomeOverlay');
+        const welcomeDialog = document.getElementById('welcomeDialog');
+        function openWelcome() {
+            welcomeOverlay.classList.add('open');
+            welcomeDialog.classList.add('open');
+        }
+        function closeWelcome() {
+            welcomeOverlay.classList.remove('open');
+            welcomeDialog.classList.remove('open');
+        }
+        document.getElementById('welcomeAllBtn').addEventListener('click', () => document.getElementById('batchInput').click());
+        document.getElementById('batchInput').addEventListener('change', (e) => { if (e.target.files && e.target.files.length) closeWelcome(); });
+        document.getElementById('welcomeEachBtn').addEventListener('click', () => {
+            closeWelcome();
+            setPopupOpen(popups.find(pop => pop.el === imagesPanel), true);
+        });
+        welcomeOverlay.addEventListener('click', closeWelcome);
+        window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && welcomeDialog.classList.contains('open')) closeWelcome(); });
+        requestAnimationFrame(() => requestAnimationFrame(openWelcome));
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+
+</body>
+</html>
