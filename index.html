@@ -255,6 +255,11 @@
             .rv-inner { padding-left: 5px; gap: 4px; }
             .rv-inner .mini-slider { width: 60px; flex: 0 0 60px; }
             #clockSvg { width: 34px; height: 34px; }
+            /* phones only: Cycle and Controls sit to the left of the clock */
+            #bottom-bar .cycle-item { order: 1; }
+            #bottom-bar #controlsBtn { order: 2; }
+            #bottom-bar .clock-item { order: 3; }
+            #bottom-bar #soundBtn { order: 4; }
             #clockText { font-size: 10.5px; min-width: 48px; }
 
             .popup-glass { padding: 9px 11px; font-size: 10.5px; max-width: calc(100vw - 20px); }
@@ -445,7 +450,7 @@
             <div id="clockText">13:20</div>
         </div>
 
-        <div class="bar-item">
+        <div class="bar-item cycle-item">
             <button id="cycleBtn" title="Play a full day and night">⏱ Cycle: OFF</button>
             <div class="reveal" id="cycleReveal"><div class="rv-inner">
                 <input type="range" id="cycleLenSlider" class="mini-slider" min="10" max="120" value="40" step="5" title="Cycle length (seconds)">
