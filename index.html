@@ -321,7 +321,7 @@
 <body>
 
     <audio id="backgroundMusic" src="https://raw.githubusercontent.com/notaadihhh/Ashes-and-Roses/main/background-music.mp3" autoplay loop preload="auto" hidden></audio>
-    <script>document.getElementById('backgroundMusic').volume = 0.2;</script>
+    <script>document.getElementById('backgroundMusic').volume = 0.3;</script>
 
     <!-- Top-left title and independent current-time button -->
     <div id="title-card"><h1>Roses and Ashes</h1></div>
@@ -567,20 +567,20 @@
             <label for="musicSlider">Music</label>
             <div class="visual-slider-control">
                 <div class="visual-range-wrap">
-                    <span class="visual-default-marker" style="--default-position:20%"></span>
-                    <input id="musicSlider" type="range" min="0" max="100" value="20" step="1" aria-label="Background music volume">
+                    <span class="visual-default-marker" style="--default-position:30%"></span>
+                    <input id="musicSlider" type="range" min="0" max="100" value="30" step="1" aria-label="Background music volume">
                 </div>
-                <span id="musicValue" class="visual-value">20%</span>
+                <span id="musicValue" class="visual-value">30%</span>
             </div>
         </div>
         <div class="sound-row">
             <label for="sfxSlider">Sound effects</label>
             <div class="visual-slider-control">
                 <div class="visual-range-wrap">
-                    <span class="visual-default-marker" style="--default-position:25%"></span>
-                    <input id="sfxSlider" type="range" min="0" max="100" value="25" step="1" aria-label="Lid opening and closing sound volume">
+                    <span class="visual-default-marker" style="--default-position:5%"></span>
+                    <input id="sfxSlider" type="range" min="0" max="100" value="5" step="1" aria-label="Lid opening and closing sound volume">
                 </div>
-                <span id="sfxValue" class="visual-value">25%</span>
+                <span id="sfxValue" class="visual-value">5%</span>
             </div>
         </div>
     </div>
@@ -5020,7 +5020,7 @@
         const musicValue = document.getElementById('musicValue');
         const sfxValue = document.getElementById('sfxValue');
         let soundOn = true;
-        const MUSIC_LEVEL = 0.2, SFX_LEVEL = 0.25;
+        const MUSIC_LEVEL = 0.3, SFX_LEVEL = 0.05;
         let musicLevel = MUSIC_LEVEL, sfxLevel = SFX_LEVEL;
         const backgroundMusic = document.getElementById('backgroundMusic');
         const lidOpenAudio = new Audio(new URL('lid-open.mp3', PANEL_IMAGE_BASE_URL).href);
