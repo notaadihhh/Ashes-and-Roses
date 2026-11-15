@@ -24,7 +24,7 @@
         input[type="range"] { width: 100%; accent-color: #e50914; }
 
         /* liquid-glass look shared by the title, top buttons, panels and bottom bar */
-        #title-card, #imagesBtn, #visualsBtn, #bottom-bar, #imagesPanel, #visualsPanel, #bestViewHint, .popup-glass {
+        #title-card, #imagesBtn, #visualsBtn, #realtimeBtn, #bottom-bar, #imagesPanel, #visualsPanel, #bestViewHint, .popup-glass {
             background: linear-gradient(135deg, rgba(52, 58, 76, 0.46), rgba(18, 20, 28, 0.30));
             -webkit-backdrop-filter: blur(10px) saturate(170%);
             backdrop-filter: blur(10px) saturate(170%);
@@ -33,6 +33,21 @@
         }
         #title-card { position: absolute; top: 16px; left: 16px; z-index: 10; padding: 10px 18px; border-radius: 16px; }
         #title-card h1 { text-shadow: 0 1px 3px rgba(0,0,0,0.45); }
+        .realtime-control { position: absolute; top: 66px; left: 16px; z-index: 11; }
+        .realtime-control[hidden] { display: none; }
+        #realtimeBtn {
+            padding: 10px 16px; border-radius: 16px; font-size: 12px;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.45);
+        }
+        #realtimeBtn:hover { background: linear-gradient(135deg, rgba(80, 88, 110, 0.55), rgba(30, 33, 44, 0.40)); }
+        #realtimeTip {
+            position: absolute; top: calc(100% + 8px); left: 0; z-index: 12;
+            transform-origin: top left; transform: translateY(-8px) scale(0.94);
+        }
+        .realtime-control:hover #realtimeTip, .realtime-control:focus-within #realtimeTip {
+            opacity: 1; visibility: visible; pointer-events: auto; transform: none;
+            transition: opacity 0.3s ease, transform 0.42s cubic-bezier(.2,.9,.3,1.18), visibility 0s;
+        }
 
         /* top-right controls and popups */
         #imagesBtn { position: absolute; top: 16px; right: 16px; z-index: 11; padding: 10px 16px; border-radius: 16px; text-shadow: 0 1px 3px rgba(0,0,0,0.45); }
@@ -210,8 +225,12 @@
 </head>
 <body>
 
-    <!-- Top-left: title only -->
+    <!-- Top-left title and independent current-time button -->
     <div id="title-card"><h1>Roses and Ashes</h1></div>
+    <div class="realtime-control">
+        <button id="realtimeBtn" type="button" aria-label="Set the clock to the current India time"></button>
+        <div id="realtimeTip" class="popup-glass">Watch the View at Present Time</div>
+    </div>
 
     <!-- Top-right: panel image uploads -->
     <button id="imagesBtn">🖼 Panel Images</button>
@@ -362,10 +381,10 @@
         • <b>Click the lid</b> (or the lid button): open / close it, a hinge slider slides out<br>
         • <b>Turntable</b>: spins the box, a speed slider slides out<br>
         • <b>Drag the clock hand</b>: set the time (sun by day, moon by night)<br>
-        • <b>Cycle</b>: plays a full day, then a night; a length slider slides out<br>
+        • <b>Cycle</b>: plays a full day/night; on the Moon, one simulated solar day represents about 29.5 Earth days<br>
         • <b>Hover over panel buttons</b>: open a panel; move into it to keep it open, and away from both to close<br>
         • <b>Hover over lid, Turntable or Cycle</b>: reveal their sliders<br>
-        • <b>Scenes</b>: switch between meadows, desert dunes, and the classic background<br>
+        • <b>Scenes</b>: switch between meadows, desert dunes, the Moon, and the classic background<br>
         • <b>Ground</b>: pick the surface colour<br>
         • <b>Best View</b> (in Visuals): turns on HDR, Shaders, Magic particles and the day/night cycle<br>
         • <b>Visuals</b>: hover to open; holds HDR, Shaders (hover for Atmosphere, Gloss, Bounce and Cinematic Grain) and Magic particles<br>
@@ -424,6 +443,16 @@
                     <path d="M47 24l23-7v9l-23 7z" fill="#823f47"/><path d="M73 40l12-5v7l-12 5z" fill="#679b50"/>
                 </svg><span>Classic</span>
             </button>
+            <button class="scene-option" data-scene="moon" aria-pressed="false">
+                <svg class="scene-art" viewBox="0 0 120 66" aria-hidden="true">
+                    <rect width="120" height="66" fill="#101b2d"/>
+                    <g fill="#e7edff"><circle cx="12" cy="10" r="1"/><circle cx="38" cy="18" r="1.2"/><circle cx="68" cy="9" r="1"/><circle cx="106" cy="23" r="1.1"/><circle cx="88" cy="7" r=".8"/></g>
+                    <circle cx="91" cy="19" r="8" fill="#62a9db"/><path d="M0 49Q30 43 58 48T120 46V66H0Z" fill="#777b80"/>
+                    <circle cx="19" cy="56" r="4" fill="#555a60"/><circle cx="19" cy="55" r="2.2" fill="#858990"/>
+                    <circle cx="55" cy="51" r="3" fill="#555a60"/><circle cx="55" cy="50" r="1.5" fill="#858990"/>
+                    <circle cx="99" cy="57" r="5" fill="#555a60"/><circle cx="99" cy="56" r="2.8" fill="#858990"/>
+                </svg><span>Moon</span>
+            </button>
         </div>
     </div>
 
@@ -432,6 +461,7 @@
 
     <script>
     (async function bootstrapRosesAndAshes() {
+        const pageLoadDate = new Date();
         const container = document.getElementById('canvas-container');
 
         // Load the engine and its controls in order. Previously the fallback CDN was
@@ -523,7 +553,17 @@
         const NIGHT_SKY_COLOR = 0x070b1f;
         const SUNRISE_SUNSET_SKY = 0xf0916a;
         const MOON_COLOR = 0xb8c6ff;
-        const START_TIME_HOURS = 13.3;
+        function indiaTimeParts(date = new Date()) {
+            const parts = new Intl.DateTimeFormat('en-GB', {
+                timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
+            }).formatToParts(date);
+            return {
+                hours: Number(parts.find(part => part.type === 'hour').value),
+                minutes: Number(parts.find(part => part.type === 'minute').value)
+            };
+        }
+        const initialIndiaTime = indiaTimeParts(pageLoadDate);
+        const START_TIME_HOURS = initialIndiaTime.hours + initialIndiaTime.minutes / 60;
         const CYCLE_DURATION_SECONDS = 40;
         const SUN_COLOR_STOPS = [
             [0,  0xff4d1a], [6,  0xff7a2e], [15, 0xffb066],
@@ -1512,7 +1552,8 @@
 
         const sceneDecor = {
             meadow: new THREE.Group(),
-            desert: new THREE.Group()
+            desert: new THREE.Group(),
+            moon: new THREE.Group()
         };
         Object.values(sceneDecor).forEach(group => scene.add(group));
 
@@ -1571,6 +1612,258 @@
             skull: new THREE.MeshStandardMaterial({ color: 0xe8dcc8, roughness: 0.9, transparent: true, opacity: 0 }),
             tumbleweed: new THREE.MeshStandardMaterial({ color: 0x8b7340, roughness: 1, wireframe: true, transparent: true, opacity: 0 })
         };
+
+        function makeMoonSurfaceTexture() {
+            const size = 512;
+            const canvas = document.createElement('canvas');
+            canvas.width = canvas.height = size;
+            const context = canvas.getContext('2d');
+            const image = context.createImageData(size, size);
+            let seed = 24681357;
+            const random = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+            for (let y = 0; y < size; y++) {
+                for (let x = 0; x < size; x++) {
+                    const u = x / size, v = y / size;
+                    const broad = 8 * Math.sin(u * Math.PI * 6 + Math.sin(v * 7) * 0.8) * Math.cos(v * Math.PI * 4 - 0.6);
+                    const middle = 3 * Math.sin((u + v) * Math.PI * 10) + 2 * Math.cos((u - v) * Math.PI * 14);
+                    const shade = THREE.MathUtils.clamp(151 + broad + middle + (random() - 0.5) * 4, 0, 255);
+                    const i = (y * size + x) * 4;
+                    image.data[i] = shade;
+                    image.data[i + 1] = shade;
+                    image.data[i + 2] = shade;
+                    image.data[i + 3] = 255;
+                }
+            }
+            context.putImageData(image, 0, 0);
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(8, 8);
+            texture.encoding = THREE.sRGBEncoding;
+            return texture;
+        }
+        const moonSurfaceTexture = makeMoonSurfaceTexture();
+        function makeMoonBumpTexture() {
+            const size = 512;
+            const canvas = document.createElement('canvas');
+            canvas.width = canvas.height = size;
+            const context = canvas.getContext('2d');
+            const image = context.createImageData(size, size);
+            let seed = 127831;
+            const random = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+            function makeNoiseGrid(segments) {
+                return Array.from({ length: segments * segments }, random);
+            }
+            const grids = [
+                { size: 8, values: makeNoiseGrid(8) },
+                { size: 32, values: makeNoiseGrid(32) },
+                { size: 128, values: makeNoiseGrid(128) }
+            ];
+            function sampleGrid(grid, u, v) {
+                const x = u * grid.size, y = v * grid.size;
+                const ix = Math.floor(x), iy = Math.floor(y);
+                const tx0 = x - ix, ty0 = y - iy;
+                const tx = tx0 * tx0 * (3 - 2 * tx0), ty = ty0 * ty0 * (3 - 2 * ty0);
+                const x0 = ix % grid.size, y0 = iy % grid.size;
+                const x1 = (x0 + 1) % grid.size, y1 = (y0 + 1) % grid.size;
+                const at = (gx, gy) => grid.values[gy * grid.size + gx];
+                const top = THREE.MathUtils.lerp(at(x0, y0), at(x1, y0), tx);
+                const bottom = THREE.MathUtils.lerp(at(x0, y1), at(x1, y1), tx);
+                return THREE.MathUtils.lerp(top, bottom, ty);
+            }
+            for (let y = 0; y < size; y++) {
+                for (let x = 0; x < size; x++) {
+                    const u = x / size, v = y / size;
+                    const height = 128
+                        + (sampleGrid(grids[0], u, v) - 0.5) * 34
+                        + (sampleGrid(grids[1], u, v) - 0.5) * 58
+                        + (sampleGrid(grids[2], u, v) - 0.5) * 76
+                        + (random() - 0.5) * 34;
+                    const i = (y * size + x) * 4;
+                    image.data[i] = image.data[i + 1] = image.data[i + 2] = height;
+                    image.data[i + 3] = 255;
+                }
+            }
+            context.putImageData(image, 0, 0);
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(4, 4);
+            return texture;
+        }
+        const moonBumpTexture = makeMoonBumpTexture();
+        const moonGroundMaterial = new THREE.MeshStandardMaterial({
+            color: 0xffffff, roughness: 1, metalness: 0,
+            map: moonSurfaceTexture, bumpMap: moonBumpTexture, bumpScale: 0.42,
+            vertexColors: true, transparent: true, opacity: 0
+        });
+        const moonCraters = [];
+        {
+            let seed = 654321;
+            const random = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+            for (let i = 0; i < 44; i++) {
+                const angle = random() * Math.PI * 2;
+                const distance = 4 + Math.sqrt(random()) * 70;
+                moonCraters.push({
+                    x: Math.cos(angle) * distance,
+                    z: Math.sin(angle) * distance,
+                    radius: 1.8 + random() * 3.2,
+                    depth: 0.2 + random() * 0.42,
+                    rim: 0.075 + random() * 0.17
+                });
+            }
+            [
+                [-13, -7, 7, 1.35, 0.31], [15, -14, 8, 1.55, 0.34],
+                [-29, -23, 8, 1.55, 0.34], [31, -30, 9, 1.75, 0.37],
+                [-46, -12, 7, 1.25, 0.29], [48, -21, 8, 1.5, 0.33],
+                [-15, -48, 9, 1.7, 0.38], [18, -56, 8, 1.6, 0.35]
+            ].forEach(([x, z, radius, depth, rim]) => moonCraters.push({ x, z, radius, depth, rim }));
+        }
+        const moonPeaks = [];
+        {
+            let seed = 31415927;
+            const random = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+            for (let i = 0; i < 18; i++) {
+                const angle = random() * Math.PI * 2;
+                const distance = 18 + random() * 62;
+                moonPeaks.push({
+                    x: Math.cos(angle) * distance,
+                    z: Math.sin(angle) * distance,
+                    height: 1.6 + random() * 2.4,
+                    width: 3.5 + random() * 3.5,
+                    depth: 4 + random() * 4.5
+                });
+            }
+        }
+        function moonHeightAt(x, z) {
+            const distance = Math.hypot(x, z);
+            const farFactor = THREE.MathUtils.smoothstep(distance, 8, 42);
+            let height = 0.12 * Math.sin(x * 0.17 + z * 0.08) * Math.cos(z * 0.14 - x * 0.06)
+                + farFactor * (
+                    0.12 * Math.sin(x * 0.105 + Math.sin(z * 0.07) * 1.7)
+                    + 0.09 * Math.cos(z * 0.13 - x * 0.09)
+                    + 0.06 * Math.sin(x * 0.31 + z * 0.27) * Math.cos(z * 0.22 - x * 0.18)
+                );
+            for (const crater of moonCraters) {
+                const normalized = Math.hypot(x - crater.x, z - crater.z) / crater.radius;
+                if (normalized > 1.45) continue;
+                const bowl = 1 - THREE.MathUtils.smoothstep(normalized, 0.42, 1.02);
+                const rim = Math.exp(-Math.pow((normalized - 1.04) / 0.23, 2));
+                height += -crater.depth * bowl + crater.rim * rim;
+            }
+            for (const peak of moonPeaks) {
+                const dx = (x - peak.x) / peak.width;
+                const dz = (z - peak.z) / peak.depth;
+                const radiusSquared = dx * dx + dz * dz;
+                if (radiusSquared > 6) continue;
+                const ruggedness = 0.9 + 0.1 * Math.sin(x * 0.28 + z * 0.19) * Math.cos(z * 0.24 - x * 0.12);
+                height += peak.height * Math.exp(-radiusSquared * 1.5) * ruggedness;
+            }
+            return height;
+        }
+        const moonGroundGeometry = new THREE.PlaneGeometry(180, 180, 192, 192);
+        moonGroundGeometry.rotateX(-Math.PI / 2);
+        const moonGroundPositions = moonGroundGeometry.attributes.position;
+        const moonGroundColors = new Float32Array(moonGroundPositions.count * 3);
+        for (let i = 0; i < moonGroundPositions.count; i++) {
+            const x = moonGroundPositions.getX(i);
+            const z = moonGroundPositions.getZ(i);
+            moonGroundPositions.setY(i, 0.012 + moonHeightAt(x, z));
+            let albedo = 0.96 + 0.025 * Math.sin(x * 0.07 + z * 0.04) * Math.cos(z * 0.06 - x * 0.03);
+            for (const crater of moonCraters) {
+                const normalized = Math.hypot(x - crater.x, z - crater.z) / crater.radius;
+                if (normalized > 1.45) continue;
+                const bowl = 1 - THREE.MathUtils.smoothstep(normalized, 0.42, 1.02);
+                const rim = Math.exp(-Math.pow((normalized - 1.04) / 0.23, 2));
+                albedo -= bowl * 0.15;
+                albedo += rim * 0.075;
+            }
+            const shade = THREE.MathUtils.clamp(albedo, 0.72, 1.08);
+            moonGroundColors[i * 3] = shade;
+            moonGroundColors[i * 3 + 1] = shade;
+            moonGroundColors[i * 3 + 2] = shade;
+        }
+        moonGroundPositions.needsUpdate = true;
+        moonGroundGeometry.setAttribute('color', new THREE.BufferAttribute(moonGroundColors, 3));
+        moonGroundGeometry.computeVertexNormals();
+        const moonGround = new THREE.Mesh(moonGroundGeometry, moonGroundMaterial);
+        moonGround.position.set(0, floorY, 0);
+        moonGround.castShadow = true;
+        moonGround.receiveShadow = true;
+        sceneDecor.moon.add(moonGround);
+        function moonSurfaceHeightAt(x, z) {
+            const segments = moonGroundGeometry.parameters.widthSegments;
+            const stride = segments + 1;
+            const step = moonGroundGeometry.parameters.width / segments;
+            const gridX = THREE.MathUtils.clamp((x + 90) / step, 0, segments);
+            const gridZ = THREE.MathUtils.clamp((z + 90) / step, 0, segments);
+            const x0 = Math.floor(gridX), z0 = Math.floor(gridZ);
+            const x1 = Math.min(segments, x0 + 1), z1 = Math.min(segments, z0 + 1);
+            const tx = gridX - x0, tz = gridZ - z0;
+            const positions = moonGroundGeometry.attributes.position;
+            const h00 = positions.getY(z0 * stride + x0);
+            const h10 = positions.getY(z0 * stride + x1);
+            const h01 = positions.getY(z1 * stride + x0);
+            const h11 = positions.getY(z1 * stride + x1);
+            return THREE.MathUtils.lerp(
+                THREE.MathUtils.lerp(h00, h10, tx),
+                THREE.MathUtils.lerp(h01, h11, tx),
+                tz
+            );
+        }
+
+        const moonRockMaterials = [
+            0x92969a, 0xa2a6aa, 0x808489
+        ].map(color => new THREE.MeshStandardMaterial({
+            color, roughness: 1, metalness: 0, flatShading: true, transparent: true, opacity: 0
+        }));
+        const moonRockGeometry = new THREE.IcosahedronGeometry(0.68, 2);
+        {
+            const positions = moonRockGeometry.attributes.position;
+            let seed = 8675309;
+            const random = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+            for (let i = 0; i < positions.count; i++) {
+                const variation = 0.78 + random() * 0.42;
+                positions.setXYZ(i, positions.getX(i) * variation, positions.getY(i) * variation, positions.getZ(i) * variation);
+            }
+            positions.needsUpdate = true;
+            moonRockGeometry.computeVertexNormals();
+            moonRockGeometry.computeBoundingSphere();
+        }
+        const moonRockMatrices = [[], [], []];
+        {
+            let seed = 975318642;
+            const random = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+            const rockPosition = new THREE.Vector3();
+            const rockQuaternion = new THREE.Quaternion();
+            const rockScale = new THREE.Vector3();
+            const rockMatrix = new THREE.Matrix4();
+            for (let i = 0; i < 36; i++) {
+                const angle = random() * Math.PI * 2;
+                const distance = 4.5 + Math.sqrt(random()) * 64;
+                const clusterX = Math.cos(angle) * distance;
+                const clusterZ = Math.sin(angle) * distance;
+                const rockCount = 1 + Math.floor(random() * 2);
+                for (let rockIndex = 0; rockIndex < rockCount; rockIndex++) {
+                    const x = clusterX + (random() - 0.5) * 1.8;
+                    const z = clusterZ + (random() - 0.5) * 1.8;
+                    const scale = 0.3 + random() * 0.5;
+                    const scaleY = scale * (0.7 + random() * 0.4);
+                    rockPosition.set(
+                        x,
+                        floorY + moonSurfaceHeightAt(x, z) + moonRockGeometry.boundingSphere.radius * scaleY * 0.84,
+                        z
+                    );
+                    rockQuaternion.setFromEuler(new THREE.Euler((random() - 0.5) * 0.45, random() * Math.PI * 2, (random() - 0.5) * 0.45));
+                    rockScale.set(scale * (0.72 + random() * 0.45), scaleY, scale * (0.72 + random() * 0.45));
+                    rockPosition.y = floorY + moonSurfaceHeightAt(x, z)
+                        + moonRockGeometry.boundingSphere.radius * Math.max(rockScale.x, rockScale.y, rockScale.z) * 0.72;
+                    rockMatrix.compose(rockPosition, rockQuaternion, rockScale);
+                    moonRockMatrices[i % moonRockMaterials.length].push(rockMatrix.clone());
+                }
+            }
+        }
+        moonRockMaterials.forEach((material, index) => {
+            addStaticInstances(sceneDecor.moon, moonRockGeometry, material, moonRockMatrices[index], true, true);
+        });
 
         const meadowMotion = [];
         const flyMotion = [];
@@ -3112,10 +3405,10 @@
         // =============== SUN / MOON / SKY / DAY-NIGHT ===============
         const env = {
             time: START_TIME_HOURS,
-            isNight: false,
+            isNight: !(START_TIME_HOURS >= 6 && START_TIME_HOURS < 18),
             sunAngle: 110,
             moonAngle: 90,
-            dayF: 1,
+            dayF: START_TIME_HOURS >= 6 && START_TIME_HOURS < 18 ? 1 : 0,
             cycleOn: false,
             cycleLen: CYCLE_DURATION_SECONDS
         };
@@ -3151,6 +3444,42 @@
         const sunDisc = new THREE.Mesh(new THREE.SphereGeometry(4, 24, 16), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, fog: false }));
         const moonDisc = new THREE.Mesh(new THREE.SphereGeometry(3.2, 24, 16), new THREE.MeshBasicMaterial({ color: MOON_COLOR, transparent: true, fog: false }));
         scene.add(sunDisc); scene.add(moonDisc);
+
+        function makeEarthTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 256;
+            const context = canvas.getContext('2d');
+            context.fillStyle = '#2879bd';
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            context.fillStyle = '#4c9860';
+            [
+                [[44, 58], [70, 40], [99, 50], [112, 78], [96, 91], [89, 124], [68, 139], [57, 110], [45, 93]],
+                [[117, 137], [146, 132], [163, 154], [154, 183], [144, 215], [129, 195], [122, 164]],
+                [[232, 48], [260, 39], [289, 49], [311, 68], [341, 73], [356, 94], [338, 113], [309, 108], [294, 130], [267, 121], [250, 98], [229, 88]],
+                [[282, 123], [308, 129], [320, 154], [307, 184], [296, 211], [281, 189], [276, 156]],
+                [[365, 150], [389, 139], [416, 151], [426, 173], [408, 186], [385, 177]],
+                [[449, 74], [471, 66], [488, 80], [480, 99], [458, 96]]
+            ].forEach(points => {
+                context.beginPath();
+                points.forEach(([x, y], index) => index ? context.lineTo(x, y) : context.moveTo(x, y));
+                context.closePath();
+                context.fill();
+            });
+            context.fillStyle = 'rgba(230,239,244,0.82)';
+            context.fillRect(0, 0, 512, 16);
+            context.fillRect(0, 240, 512, 16);
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.encoding = THREE.sRGBEncoding;
+            return texture;
+        }
+        const earthMaterial = new THREE.MeshStandardMaterial({
+            map: makeEarthTexture(), roughness: 1, metalness: 0, fog: false
+        });
+        const earthDisc = new THREE.Mesh(new THREE.SphereGeometry(4.2, 32, 24), earthMaterial);
+        earthDisc.position.set(-23, 79, -100);
+        earthDisc.visible = false;
+        scene.add(earthDisc);
 
         const starCount = 700, starPos = new Float32Array(starCount * 3);
         let seed = 12345;
@@ -3305,28 +3634,32 @@
         const sceneOptions = document.querySelectorAll('.scene-option');
 
         // MEADOW is now the default scene
-        const sceneWeights = { classic: 0, meadow: 1, desert: 0 };
-        const sceneTargets = { classic: 0, meadow: 1, desert: 0 };
-        const SCENE_NAMES = ['classic', 'meadow', 'desert'];
+        const sceneWeights = { classic: 0, meadow: 1, desert: 0, moon: 0 };
+        const sceneTargets = { classic: 0, meadow: 1, desert: 0, moon: 0 };
+        const SCENE_NAMES = ['classic', 'meadow', 'desert', 'moon'];
         const sceneGroundColors = {
             classic: new THREE.Color(GROUND_COLOR),
             meadow: new THREE.Color(0x467c3e),
-            desert: new THREE.Color(0xd6a15f)
+            desert: new THREE.Color(0xd6a15f),
+            moon: new THREE.Color(0x9a9da1)
         };
         const sceneDaySkies = {
             classic: new THREE.Color(SKY_COLOR),
             meadow: new THREE.Color(0x8ec8e8),
-            desert: new THREE.Color(0xe8e4d7)
+            desert: new THREE.Color(0xe8e4d7),
+            moon: new THREE.Color(0x101b2d)
         };
         const sceneDawnSkies = {
             classic: new THREE.Color(SUNRISE_SUNSET_SKY),
             meadow: new THREE.Color(0xf0a77e),
-            desert: new THREE.Color(0xe5b995)
+            desert: new THREE.Color(0xe5b995),
+            moon: new THREE.Color(0x101b2d)
         };
         const sceneNightSkies = {
             classic: new THREE.Color(NIGHT_SKY_COLOR),
             meadow: new THREE.Color(0x101b2d),
-            desert: new THREE.Color(0x211c31)
+            desert: new THREE.Color(0x211c31),
+            moon: new THREE.Color(0x101b2d)
         };
         const customGroundColor = new THREE.Color(GROUND_COLOR);
         const sceneColorScratch = new THREE.Color();
@@ -3374,17 +3707,33 @@
         const clockSvg = document.getElementById('clockSvg');
         const clockHand = document.getElementById('clockHand');
         const clockText = document.getElementById('clockText');
+        const realtimeBtn = document.getElementById('realtimeBtn');
+        clockSvg.setAttribute('title', 'Drag to set the time');
         function fmtTime(t) {
             const hh = Math.floor(t) % 24, mm = Math.floor((t - Math.floor(t)) * 60);
             return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
         }
-        let lastClockKey = -1;
+        function refreshRealtimeButton() {
+            const current = indiaTimeParts();
+            const currentMinutes = current.hours * 60 + current.minutes;
+            const clockMinutes = ((Math.floor(env.time * 60 + 1e-7) % 1440) + 1440) % 1440;
+            const isClockScene = sceneTargets.meadow === 1 || sceneTargets.desert === 1;
+            realtimeBtn.textContent = `${String(current.hours).padStart(2, '0')}:${String(current.minutes).padStart(2, '0')}`;
+            const shouldShow = isClockScene && (env.cycleOn || clockMinutes !== currentMinutes);
+            realtimeBtn.hidden = !shouldShow;
+            realtimeBtn.parentElement.hidden = !shouldShow;
+        }
+        let lastClockKey = '';
         function updateClockUI() {
-            const key = Math.round(env.time * 60);
-            if (key === lastClockKey) return;
-            lastClockKey = key;
-            clockHand.setAttribute('transform', `rotate(${(env.time - 12) * 15})`);
-            clockText.innerText = `${env.isNight ? '🌙' : '☀'} ${fmtTime(env.time)}`;
+            const key = `${Math.floor(env.time * 60 + 1e-7)}:${env.isNight}:${sceneTargets.moon === 1}`;
+            if (key !== lastClockKey) {
+                lastClockKey = key;
+                clockHand.setAttribute('transform', `rotate(${(env.time - 12) * 15})`);
+                const clockIcon = env.isNight
+                    ? (sceneTargets.moon === 1 ? '🌍' : '🌙')
+                    : '☀';
+                clockText.innerText = `${clockIcon} ${fmtTime(env.time)}`;
+            }
         }
         let draggingClock = false;
         function setTimeFromPointer(ev) {
@@ -3393,6 +3742,7 @@
             if (Math.hypot(dx, dy) < 4) return;
             const deg = (Math.atan2(dx, -dy) * 180 / Math.PI + 360) % 360;
             env.time = (12 + deg / 15) % 24;
+            refreshRealtimeButton();
         }
         clockSvg.addEventListener('pointerdown', (ev) => {
             draggingClock = true;
@@ -3411,13 +3761,27 @@
         const cycleReveal = document.getElementById('cycleReveal');
         const cycleLenSlider = document.getElementById('cycleLenSlider');
         const cycleLenVal = document.getElementById('cycleLenVal');
-        cycleBtn.addEventListener('click', () => {
-            env.cycleOn = !env.cycleOn;
+        function setCycleEnabled(enabled) {
+            env.cycleOn = enabled;
             cycleBtn.innerText = env.cycleOn ? '⏱ Cycle: ON' : '⏱ Cycle: OFF';
             cycleBtn.classList.toggle('on', env.cycleOn);
             cycleReveal.classList.toggle('open', env.cycleOn);
+            refreshRealtimeButton();
+            invalidateReflections();
+        }
+        cycleBtn.addEventListener('click', () => {
+            setCycleEnabled(!env.cycleOn);
+        });
+        realtimeBtn.addEventListener('click', () => {
+            const current = indiaTimeParts();
+            env.time = current.hours + current.minutes / 60;
+            if (env.cycleOn) setCycleEnabled(false);
+            updateClockUI();
+            refreshRealtimeButton();
             invalidateReflections();
         });
+        refreshRealtimeButton();
+        window.setInterval(refreshRealtimeButton, 1000);
         cycleLenSlider.value = CYCLE_DURATION_SECONDS;
         cycleLenVal.innerText = CYCLE_DURATION_SECONDS;
         cycleLenSlider.addEventListener('input', (e) => {
@@ -3697,7 +4061,21 @@
             if (!Object.prototype.hasOwnProperty.call(sceneTargets, name)) return;
             SCENE_NAMES.forEach(key => { sceneTargets[key] = key === name ? 1 : 0; });
             sceneTransitionPending = true;
+            cycleBtn.title = name === 'moon'
+                ? 'Play a full lunar day; one complete solar cycle represents about 29.5 Earth days'
+                : 'Play a full day and night';
+            cycleLenSlider.title = name === 'moon'
+                ? 'Simulated cycle duration (one cycle represents a 29.5-Earth-day lunar day)'
+                : 'Cycle length (seconds)';
+            const clockDescription = name === 'moon'
+                ? 'Lunar local solar time; one full day/night cycle represents about 29.5 Earth days'
+                : 'Drag to set the time';
+            clockSvg.setAttribute('title', clockDescription);
+            clockSvg.setAttribute('aria-label', clockDescription);
+            lastClockKey = '';
+            updateClockUI();
             groundControl.classList.toggle('scene-hidden', name !== 'classic');
+            refreshRealtimeButton();
             sceneOptions.forEach(option => {
                 const selected = option.dataset.scene === name;
                 option.classList.toggle('selected', selected);
@@ -3705,6 +4083,7 @@
             });
             sceneDecor.meadow.visible = true;
             sceneDecor.desert.visible = true;
+            sceneDecor.moon.visible = true;
             setPopupOpen(popups.find(pop => pop.el === scenePopup), false);
         }
         sceneOptions.forEach(option => option.addEventListener('click', () => selectScene(option.dataset.scene)));
@@ -3816,12 +4195,17 @@
             }
             const meadowOpacity = sceneWeights.meadow;
             const desertOpacity = sceneWeights.desert;
+            const moonOpacity = sceneWeights.moon;
+            ground.visible = moonOpacity < 0.995;
             sceneDecor.meadow.visible = meadowOpacity > 0.005;
             sceneDecor.desert.visible = desertOpacity > 0.005;
+            sceneDecor.moon.visible = moonOpacity > 0.005;
             decorMaterials.meadow.forEach(material => { material.opacity = meadowOpacity; });
             decorMaterials.desert.forEach(material => { material.opacity = desertOpacity; });
+            decorMaterials.moon.forEach(material => { material.opacity = moonOpacity; });
             pondWaterMat.opacity = meadowOpacity * 0.82;
             if (desertMats._extraMats) desertMats._extraMats.forEach(m => { m.opacity = desertOpacity; });
+            birdGroup.visible = moonOpacity < 0.995;
 
             if (meadowOpacity > 0.005) {
                 meadowMotion.forEach(item => {
@@ -3916,12 +4300,14 @@
 
             arcDirection(env.moonAngle, _dir);
             moonLight.position.copy(_dir).multiplyScalar(20);
-            moonLight.intensity = nightF * (0.08 + 0.32 * smooth(0, 30, eMoon));
+            moonLight.intensity = nightF * (0.08 + 0.32 * smooth(0, 30, eMoon)) * (1 - moonOpacity * 0.45);
             sunLight.castShadow = sunLight.intensity >= moonLight.intensity;
             moonLight.castShadow = !sunLight.castShadow;
             moonDisc.position.copy(_dir).multiplyScalar(130);
-            moonDisc.material.opacity = nightF;
-            moonDisc.visible = nightF > 0.02;
+            moonDisc.material.opacity = nightF * (1 - moonOpacity);
+            moonDisc.visible = nightF > 0.02 && moonOpacity < 0.995;
+            earthDisc.rotation.y = t / 24 * Math.PI * 2 * 29.53;
+            earthDisc.visible = moonOpacity > 0.02;
 
             // Fill light intensity varies with shaders
             fillLight.intensity = shadersEnabled ? 0.36 : 0.22;
@@ -3956,13 +4342,13 @@
             const meadowMist = atmosphereStrength * atmosphereScale * meadowOpacity;
             const desertSand = atmosphereStrength * atmosphereScale * desertOpacity;
             scene.fog.color.copy(_skyDay).lerp(_atmosphereSandTint, desertSand * 0.32);
-            scene.fog.near = 25 - meadowMist * 11 - desertSand * 6;
-            scene.fog.far = 75 - meadowMist * 27 - desertSand * 18;
+            scene.fog.near = THREE.MathUtils.lerp(25 - meadowMist * 11 - desertSand * 6, 250, moonOpacity);
+            scene.fog.far = THREE.MathUtils.lerp(75 - meadowMist * 27 - desertSand * 18, 900, moonOpacity);
 
             sceneColorScratch.setRGB(
-                customGroundColor.r * sceneWeights.classic + sceneGroundColors.meadow.r * meadowOpacity + sceneGroundColors.desert.r * desertOpacity,
-                customGroundColor.g * sceneWeights.classic + sceneGroundColors.meadow.g * meadowOpacity + sceneGroundColors.desert.g * desertOpacity,
-                customGroundColor.b * sceneWeights.classic + sceneGroundColors.meadow.b * meadowOpacity + sceneGroundColors.desert.b * desertOpacity
+                customGroundColor.r * sceneWeights.classic + sceneGroundColors.meadow.r * meadowOpacity + sceneGroundColors.desert.r * desertOpacity + sceneGroundColors.moon.r * moonOpacity,
+                customGroundColor.g * sceneWeights.classic + sceneGroundColors.meadow.g * meadowOpacity + sceneGroundColors.desert.g * desertOpacity + sceneGroundColors.moon.g * moonOpacity,
+                customGroundColor.b * sceneWeights.classic + sceneGroundColors.meadow.b * meadowOpacity + sceneGroundColors.desert.b * desertOpacity + sceneGroundColors.moon.b * moonOpacity
             );
             ground.material.color.copy(sceneColorScratch);
 
@@ -4057,12 +4443,12 @@
                 const warm = 0.5 * (1 - smooth(0, 40, eSun));
                 cloudMats.forEach(m => {
                     m.color.copy(WHITE).lerp(sunLight.color, warm);
-                    m.opacity = 0.95 * dayF;
+                    m.opacity = 0.95 * dayF * (1 - moonOpacity);
                 });
-                cloudGroup.visible = dayF > 0.02;
+                cloudGroup.visible = dayF > 0.02 && moonOpacity < 0.995;
             }
 
-            stars.material.opacity = 0.9 * nightF * smooth(0, 30, eMoon);
+            stars.material.opacity = Math.max(0.9 * nightF * smooth(0, 30, eMoon), moonOpacity * 0.9);
             stars.visible = stars.material.opacity > 0.01;
         }
         updateClockUI();
@@ -4326,7 +4712,6 @@
         const resetBtn = document.getElementById('resetBtn');
         function resetEverything() {
             clearBestViewState();
-            selectBoxPosition('upright');
             camera.position.copy(defaultCameraPosition);
             controls.target.copy(defaultControlsTarget);
             controls.update();
@@ -4343,7 +4728,6 @@
             updateTurntableBtn();
 
             setGroundColor('#' + new THREE.Color(GROUND_COLOR).getHexString());
-            selectScene('meadow');
 
             env.time = START_TIME_HOURS;
             env.cycleOn = false;
@@ -4353,6 +4737,7 @@
             cycleBtn.innerText = '⏱ Cycle: OFF';
             cycleBtn.classList.remove('on');
             cycleReveal.classList.remove('open');
+            refreshRealtimeButton();
 
             setMagicParticlesEnabled(false);
 
@@ -4363,6 +4748,12 @@
             setShadersEnabled(false, true);
 
             popups.forEach(pop => setPopupOpen(pop, false));
+            selectScene('meadow');
+            selectBoxPosition('upright');
+            camera.position.copy(defaultCameraPosition);
+            controls.target.copy(defaultControlsTarget);
+            cameraLayoutScale = 1;
+            controls.update();
 
             resetBtn.innerText = '✔ Reset';
             setTimeout(() => { resetBtn.innerText = '↺ Reset'; }, 1200);
