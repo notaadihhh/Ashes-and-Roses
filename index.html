@@ -221,7 +221,7 @@
         #groundControl.scene-hidden { width: 0; opacity: 0; pointer-events: none; }
 
         /* ---------- tooltips never overflow the screen ---------- */
-        #snapshotTip, #resetTip, #realtimeTip { white-space: normal; max-width: min(260px, calc(100vw - 20px)); }
+        #realtimeTip { white-space: normal; max-width: min(260px, calc(100vw - 20px)); }
         #controlsPopup { box-sizing: border-box; max-height: calc(100vh - 150px); overflow-y: auto; }
         #realtimeBtn { white-space: nowrap; }
 
@@ -444,15 +444,11 @@
             </div></div>
         </div>
 
-        <button id="snapshotBtn" title="Save the current view as an image">📷 Snapshot</button>
-        <button id="resetBtn" title="Reset the view and settings (your images, theme and box position are kept)">↺ Reset</button>
         <button id="controlsBtn">ℹ Controls</button>
         <button id="soundBtn" class="on" title="Turn the background music and sound effects on / off">🔊 Sound: ON</button>
     </div>
 
     <!-- Glass popups -->
-    <div id="snapshotTip" class="popup-glass">Save the Current POV as Image</div>
-    <div id="resetTip" class="popup-glass">Resets visuals and settings (keeps theme and box position)</div>
     <div id="palettePopup" class="popup-glass">
         <label>Ground colour</label>
         <div id="paletteGrid"></div>
@@ -471,7 +467,6 @@
         • <b>Ground</b>: pick the surface colour<br>
         • <b>Best View</b> (in Visuals): turns on HDR, Shaders, Magic particles and the day/night cycle<br>
         • <b>Visuals</b>: hover or click to open; holds HDR, Shaders (hover for Atmosphere, Gloss, Bounce and Cinematic Grain) and Magic particles<br>
-        • <b>Snapshot</b>: downloads the current view as a PNG<br>
         • A panel opened with a click stays open until you click its button again<br>
         • <b>Sound</b>: toggles the background music and lid sound effects (autoplay may require interaction)
         </div>
@@ -486,7 +481,6 @@
         • <b>Panel buttons</b> (Panel Images, Visuals, Box Position, Scenes, Ground, Controls): tap to open, tap again or tap outside to close<br>
         • <b>Scenes</b>: meadows, desert dunes, the Moon, classic background<br>
         • <b>Best View</b> (in Visuals): turns on HDR, Shaders, Magic particles and the cycle<br>
-        • <b>Snapshot</b>: saves the current view as a PNG<br>
         • <b>Sound</b>: toggles the background music and lid sound effects (autoplay may require interaction)
         </div>
     </div>
@@ -4117,20 +4111,6 @@
         });
         updateCinematicGrain();
 
-        // Snapshot
-        const snapshotBtn = document.getElementById('snapshotBtn');
-        snapshotBtn.addEventListener('click', () => {
-            renderer.render(scene, camera);
-            const url = renderer.domElement.toDataURL('image/png');
-            const d = new Date(), pad = (n) => String(n).padStart(2, '0');
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `roses-and-ashes-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}.png`;
-            document.body.appendChild(a); a.click(); a.remove();
-            snapshotBtn.innerText = '✔ Saved';
-            setTimeout(() => { snapshotBtn.innerText = '📷 Snapshot'; }, 1400);
-        });
-
         const imagesBtn = document.getElementById('imagesBtn');
         const imagesPanel = document.getElementById('imagesPanel');
         const visualsBtn = document.getElementById('visualsBtn');
@@ -4142,9 +4122,7 @@
             { el: boxPositionPopup, btn: boxPositionBtn, floating: true },
             { el: scenePopup, btn: sceneBtn, floating: true },
             { el: imagesPanel, btn: imagesBtn, floating: false },
-            { el: visualsPanel, btn: visualsBtn, floating: false },
-            { el: document.getElementById('snapshotTip'), btn: snapshotBtn, floating: true, tip: true },
-            { el: document.getElementById('resetTip'), btn: document.getElementById('resetBtn'), floating: true, tip: true }
+            { el: visualsPanel, btn: visualsBtn, floating: false }
         ];
         // pop.pinned = the panel was opened with a click: it stays open (even when the pointer
         // leaves) until its button is clicked again. Hover alone only previews a panel.
@@ -4998,7 +4976,7 @@
         // =============== SOUND ===============
         const soundBtn = document.getElementById('soundBtn');
         let soundOn = true;
-        const MUSIC_LEVEL = 0.2, SFX_LEVEL = 0.5;
+        const MUSIC_LEVEL = 0.2, SFX_LEVEL = 0.25;
         const backgroundMusic = document.getElementById('backgroundMusic');
         const lidOpenAudio = new Audio(new URL('lid-open.mp3', PANEL_IMAGE_BASE_URL).href);
         const lidCloseAudio = new Audio(new URL('lid-close.mp3', PANEL_IMAGE_BASE_URL).href);
@@ -5054,56 +5032,6 @@
                 if (!pop.tip && pop.el.classList.contains('open') && !pop.el.contains(ev.target) && !pop.btn.contains(ev.target)) setPopupOpen(pop, false);
             });
         }, true);
-
-        // Reset
-        const resetBtn = document.getElementById('resetBtn');
-        function resetEverything() {
-            clearBestViewState();
-            camera.position.copy(defaultCameraPosition);
-            controls.target.copy(defaultControlsTarget);
-            controls.update();
-            layoutGroup.rotation.y = 0;
-
-            targetOpens.forEach((_, i) => { targetOpens[i] = 0; });
-
-            turntableOn = false;
-            turntableSpeed = TURNTABLE_SPEED;
-            turntableSpeedSlider.value = TURNTABLE_SPEED;
-            turntableSpeedVal.innerText = TURNTABLE_SPEED;
-            updateTurntableBtn();
-
-            setGroundColor('#' + new THREE.Color(GROUND_COLOR).getHexString());
-
-            env.time = START_TIME_HOURS;
-            env.cycleOn = false;
-            env.cycleLen = CYCLE_DURATION_SECONDS;
-            cycleLenSlider.value = CYCLE_DURATION_SECONDS;
-            cycleLenVal.innerText = CYCLE_DURATION_SECONDS;
-            cycleBtn.innerText = '⏱ Cycle: OFF';
-            cycleBtn.classList.remove('on');
-            cycleReveal.classList.remove('open');
-            refreshRealtimeButton();
-
-            setMagicParticlesEnabled(false);
-
-            hdrEnabled = false;
-            hdrBtn.innerText = '🌅 HDR: OFF';
-            hdrBtn.classList.remove('on');
-
-            setShadersEnabled(false, true);
-
-            popups.forEach(pop => setPopupOpen(pop, false));
-            // Keep the chosen theme (scene) and box position; only re-frame the camera for them.
-            camera.position.copy(defaultCameraPosition);
-            controls.target.copy(defaultControlsTarget);
-            cameraLayoutScale = 1;
-            zoomTargetDist = null; dtZoomBase = null;
-            selectBoxPosition(currentBoxPosition);
-
-            resetBtn.innerText = '✔ Reset';
-            setTimeout(() => { resetBtn.innerText = '↺ Reset'; }, 1200);
-        }
-        resetBtn.addEventListener('click', resetEverything);
 
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
