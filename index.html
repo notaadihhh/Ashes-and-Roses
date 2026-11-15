@@ -311,6 +311,9 @@
 </head>
 <body>
 
+    <audio id="backgroundMusic" src="https://raw.githubusercontent.com/notaadihhh/Ashes-and-Roses/main/background-music.mp3" autoplay loop preload="auto" hidden></audio>
+    <script>document.getElementById('backgroundMusic').volume = 0.2;</script>
+
     <!-- Top-left title and independent current-time button -->
     <div id="title-card"><h1>Roses and Ashes</h1></div>
     <div class="realtime-control">
@@ -401,14 +404,6 @@
     <!-- Bottom bar -->
     <div id="bottom-bar">
         <div class="bar-item">
-            <button id="toggleLidBtn">Open / Close Lid</button>
-            <div class="reveal" id="lidReveal"><div class="rv-inner">
-                <input type="range" id="lidSlider" class="mini-slider" min="0" max="75" value="0" step="1" title="Lid hinge angle">
-                <span class="rv-label"><span id="angleVal">0</span>°</span>
-            </div></div>
-        </div>
-
-        <div class="bar-item">
             <button id="turntableBtn">⟳ Turntable: OFF</button>
             <div class="reveal" id="turntableReveal"><div class="rv-inner">
                 <input type="range" id="turntableSpeedSlider" class="mini-slider" min="5" max="180" value="15" step="5" title="Turntable speed">
@@ -466,7 +461,7 @@
         <div class="desk-only">
         • <b>Left-click + drag</b>: rotate the view<br>
         • <b>Scroll</b>: zoom • <b>Right-click + drag</b>: pan<br>
-        • <b>Click the lid</b> (or the lid button): open / close it, a hinge slider slides out<br>
+        • <b>Click the lid</b>: open / close it<br>
         • <b>Turntable</b>: spins the box, a speed slider slides out<br>
         • <b>Drag the clock hand</b>: set the time (sun by day, moon by night)<br>
         • <b>Cycle</b>: plays a full day/night; on the Moon, one simulated solar day represents about 29.5 Earth days<br>
@@ -478,13 +473,13 @@
         • <b>Visuals</b>: hover or click to open; holds HDR, Shaders (hover for Atmosphere, Gloss, Bounce and Cinematic Grain) and Magic particles<br>
         • <b>Snapshot</b>: downloads the current view as a PNG<br>
         • A panel opened with a click stays open until you click its button again<br>
-        • <b>Sound</b>: toggles the background music and sound effects (the music starts after your first click)
+        • <b>Sound</b>: toggles the background music and lid sound effects (autoplay may require interaction)
         </div>
         <div class="mobile-only">
         • <b>One finger drag</b>: rotate the view<br>
         • <b>Pinch</b>: zoom • <b>Two-finger drag</b>: pan<br>
         • <b>Double-tap</b> anywhere: zoom in step by step; at maximum zoom, a double-tap zooms back out<br>
-        • <b>Tap the box lid</b> (or the lid button): open / close it, a hinge slider slides out<br>
+        • <b>Tap the box lid</b>: open / close it<br>
         • <b>Turntable</b>: spins the box, a speed slider slides out<br>
         • <b>Drag the clock hand</b>: set the time (sun by day, moon by night)<br>
         • <b>Cycle</b>: plays a full day/night; the <b>time button</b> (top-left) jumps to the present time and stops it<br>
@@ -492,7 +487,7 @@
         • <b>Scenes</b>: meadows, desert dunes, the Moon, classic background<br>
         • <b>Best View</b> (in Visuals): turns on HDR, Shaders, Magic particles and the cycle<br>
         • <b>Snapshot</b>: saves the current view as a PNG<br>
-        • <b>Sound</b>: toggles the background music and sound effects (the music starts after your first tap)
+        • <b>Sound</b>: toggles the background music and lid sound effects (autoplay may require interaction)
         </div>
     </div>
     <div id="boxPositionPopup" class="popup-glass">
@@ -4735,33 +4730,18 @@
         // --- LID CONTROLS ---
         const targetOpens = [0, 0], currentOpens = [0, 0];
         let lidReflectionPending = false;
-        const lidSlider = document.getElementById('lidSlider');
-        const angleVal = document.getElementById('angleVal');
-        const lidReveal = document.getElementById('lidReveal');
         function toggleLid(boxIndex) {
             lidReflectionPending = true;
-            if (boxIndex === undefined) {
-                const nextOpen = targetOpens[0] > 0.5 ? 0 : 1;
-                targetOpens.forEach((_, index) => { targetOpens[index] = nextOpen; });
-                lidSlider.value = targetOpens[0] * 75;
-                lidReveal.classList.toggle('open', targetOpens[0] > 0.5);
-            } else {
-                targetOpens[boxIndex] = targetOpens[boxIndex] > 0.5 ? 0 : 1;
-            }
+            const opening = targetOpens[boxIndex] <= 0.5;
+            targetOpens[boxIndex] = opening ? 1 : 0;
+            playLidSound(opening);
         }
-        lidSlider.addEventListener('input', (e) => {
-            const openAmount = parseInt(e.target.value) / 75;
-            targetOpens.forEach((_, index) => { targetOpens[index] = openAmount; });
-            lidReflectionPending = true;
-        });
-        document.getElementById('toggleLidBtn').addEventListener('click', () => toggleLid());
         function bindHoverReveal(button, reveal) {
             const wrapper = button.closest('.bar-item');
             wrapper.addEventListener('pointerenter', () => reveal.classList.add('open'));
             wrapper.addEventListener('pointerleave', () => reveal.classList.remove('open'));
         }
         bindHoverReveal(turntableBtn, turntableReveal);
-        bindHoverReveal(document.getElementById('toggleLidBtn'), lidReveal);
         bindHoverReveal(cycleBtn, cycleReveal);
 
         // Click lid
@@ -4927,7 +4907,6 @@
             updateEnvironment(dt);
             placeOpenPopups();
             updateMobileViewOffset(dt);
-            updateLidSound();
             updateDoubleTapZoom(dt);
             if (turntableOn) {
                 layoutGroup.rotation.y += THREE.MathUtils.degToRad(turntableSpeed) * dt;
@@ -4949,11 +4928,6 @@
             if (lidReflectionPending && !lidsAreMoving) {
                 lidReflectionPending = false;
                 invalidatePondReflection();
-            }
-            const displayedAngle = Math.round(currentOpens[0] * 65);
-            if (angleVal.dataset.angle !== String(displayedAngle)) {
-                angleVal.dataset.angle = String(displayedAngle);
-                angleVal.innerText = displayedAngle;
             }
             const controlsDamping = controls.dampingFactor;
             controls.dampingFactor = 1 - Math.pow(1 - controlsDamping, dt * 60);
@@ -5021,178 +4995,55 @@
         if (!document.hidden) animationFrameId = requestAnimationFrame(animate);
 
 
-        // =============== SOUND: gentle background tune + lid sound effect ===============
-        // Everything is synthesised with the Web Audio API (no audio files needed). Browsers only
-        // allow sound after a first tap / click, so the music starts on the first interaction.
+        // =============== SOUND ===============
         const soundBtn = document.getElementById('soundBtn');
-        const audio = { ctx: null, master: null, music: null, sfx: null, reverb: null, noise: null, timer: null, chordAt: 0, chordIndex: 0, bellAt: 0 };
         let soundOn = true;
         const MUSIC_LEVEL = 0.2, SFX_LEVEL = 0.9;
-        const CHORDS = [
-            [130.81, 196.00, 261.63, 329.63, 493.88],   // Cmaj7
-            [110.00, 164.81, 261.63, 329.63, 392.00],   // Am7
-            [87.31, 174.61, 261.63, 349.23, 440.00],    // Fmaj7
-            [98.00, 196.00, 293.66, 329.63, 493.88]     // G6/9
-        ];
-        const BELL_NOTES = [523.25, 587.33, 659.25, 783.99, 880.00, 1046.50, 1174.66];
-        function ensureAudio() {
-            if (!audio.ctx) {
-                const AC = window.AudioContext || window.webkitAudioContext;
-                if (!AC) return false;
-                const ctx = new AC();
-                audio.ctx = ctx;
-                audio.master = ctx.createGain();
-                audio.master.gain.value = soundOn ? 1 : 0;
-                audio.master.connect(ctx.destination);
-                audio.music = ctx.createGain(); audio.music.gain.value = MUSIC_LEVEL; audio.music.connect(audio.master);
-                audio.sfx = ctx.createGain(); audio.sfx.gain.value = SFX_LEVEL; audio.sfx.connect(audio.master);
-                // soft hall reverb from generated noise
-                const len = Math.floor(ctx.sampleRate * 3.2);
-                const impulse = ctx.createBuffer(2, len, ctx.sampleRate);
-                for (let c = 0; c < 2; c++) {
-                    const d = impulse.getChannelData(c);
-                    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.6);
-                }
-                audio.reverb = ctx.createConvolver();
-                audio.reverb.buffer = impulse;
-                const reverbGain = ctx.createGain(); reverbGain.gain.value = 0.55;
-                audio.reverb.connect(reverbGain); reverbGain.connect(audio.master);
-                const noiseLen = ctx.sampleRate;
-                audio.noise = ctx.createBuffer(1, noiseLen, ctx.sampleRate);
-                const nd = audio.noise.getChannelData(0);
-                for (let i = 0; i < noiseLen; i++) nd[i] = Math.random() * 2 - 1;
-                audio.chordAt = audio.bellAt = ctx.currentTime + 0.2;
-            }
-            if (audio.ctx.state === 'suspended') audio.ctx.resume();
-            return true;
-        }
-        function playTone(freq, start, duration, peak, attack, type, destination, sendToReverb) {
-            const ctx = audio.ctx;
-            const osc = ctx.createOscillator(), gain = ctx.createGain();
-            osc.type = type; osc.frequency.value = freq;
-            osc.detune.value = (Math.random() - 0.5) * 8;
-            gain.gain.setValueAtTime(0.0001, start);
-            gain.gain.linearRampToValueAtTime(peak, start + attack);
-            gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
-            osc.connect(gain); gain.connect(destination);
-            if (sendToReverb) gain.connect(audio.reverb);
-            osc.start(start); osc.stop(start + duration + 0.1);
-        }
-        function scheduleMusic() {
-            const ctx = audio.ctx;
-            if (!ctx || !soundOn || ctx.state !== 'running') return;
-            const horizon = ctx.currentTime + 2.5;
-            while (audio.chordAt < horizon) {
-                const chord = CHORDS[audio.chordIndex % CHORDS.length];
-                chord.forEach((freq, i) => {
-                    playTone(freq, audio.chordAt + i * 0.18, 9.5, i === 0 ? 0.16 : 0.09, 3.2, i < 2 ? 'sine' : 'triangle', audio.music, true);
-                });
-                audio.chordIndex++;
-                audio.chordAt += 8;
-            }
-            while (audio.bellAt < horizon) {
-                const freq = BELL_NOTES[Math.floor(Math.random() * BELL_NOTES.length)];
-                playTone(freq, audio.bellAt, 3.2, 0.07, 0.015, 'sine', audio.music, true);
-                playTone(freq * 2, audio.bellAt, 1.4, 0.015, 0.01, 'sine', audio.music, true);
-                audio.bellAt += 1.6 + Math.random() * 2.6;
-            }
+        const backgroundMusic = document.getElementById('backgroundMusic');
+        const lidOpenAudio = new Audio(new URL('lid-open.mp3', PANEL_IMAGE_BASE_URL).href);
+        const lidCloseAudio = new Audio(new URL('lid-close.mp3', PANEL_IMAGE_BASE_URL).href);
+        backgroundMusic.loop = true;
+        backgroundMusic.preload = 'auto';
+        backgroundMusic.volume = MUSIC_LEVEL;
+        lidOpenAudio.preload = lidCloseAudio.preload = 'auto';
+        function reportAudioError(error, label) {
+            if (error.name !== 'NotAllowedError') console.error(`${label} playback failed:`, error);
         }
         function startMusic() {
-            if (!soundOn || !ensureAudio()) return;
-            audio.chordAt = Math.max(audio.chordAt, audio.ctx.currentTime + 0.1);
-            audio.bellAt = Math.max(audio.bellAt, audio.ctx.currentTime + 1.0);
-            if (audio.timer === null) audio.timer = setInterval(scheduleMusic, 400);
-            scheduleMusic();
-        }
-        function stopMusicTimer() {
-            if (audio.timer !== null) { clearInterval(audio.timer); audio.timer = null; }
+            if (!soundOn) return;
+            const playback = backgroundMusic.play();
+            if (playback && typeof playback.then === 'function') {
+                playback.then(() => {
+                    ['pointerdown', 'keydown', 'touchend'].forEach(type => window.removeEventListener(type, unlockAudio, true));
+                }, error => reportAudioError(error, 'Background music'));
+            }
         }
         function setSoundEnabled(enabled) {
             soundOn = enabled;
             soundBtn.innerText = soundOn ? '🔊 Sound: ON' : '🔇 Sound: OFF';
             soundBtn.classList.toggle('on', soundOn);
             if (soundOn) {
-                if (audio.ctx) {
-                    audio.ctx.resume();
-                    audio.master.gain.cancelScheduledValues(audio.ctx.currentTime);
-                    audio.master.gain.setTargetAtTime(1, audio.ctx.currentTime, 0.15);
-                    audio.chordAt = audio.bellAt = audio.ctx.currentTime + 0.2;
-                }
                 startMusic();
             } else {
-                stopMusicTimer();
-                if (audio.ctx) {
-                    audio.master.gain.cancelScheduledValues(audio.ctx.currentTime);
-                    audio.master.gain.setTargetAtTime(0, audio.ctx.currentTime, 0.12);
-                    const ctx = audio.ctx;
-                    setTimeout(() => { if (!soundOn) ctx.suspend(); }, 700);
-                }
+                backgroundMusic.pause();
             }
         }
         soundBtn.addEventListener('click', () => setSoundEnabled(!soundOn));
-        // first tap / click anywhere unlocks audio and starts the tune
-        const unlockAudio = () => {
-            if (soundOn) startMusic();
-            ['pointerdown', 'keydown', 'touchend'].forEach(t => window.removeEventListener(t, unlockAudio, true));
-        };
-        ['pointerdown', 'keydown', 'touchend'].forEach(t => window.addEventListener(t, unlockAudio, true));
+        function unlockAudio() { if (soundOn) startMusic(); }
+        ['pointerdown', 'keydown', 'touchend'].forEach(type => window.addEventListener(type, unlockAudio, true));
+        startMusic();
         document.addEventListener('visibilitychange', () => {
-            if (!audio.ctx) return;
-            if (document.hidden) audio.ctx.suspend();
-            else if (soundOn) audio.ctx.resume();
+            if (document.hidden) backgroundMusic.pause();
+            else if (soundOn) startMusic();
         });
 
-        // Cardboard box lid: a papery swoosh, a crisp tick and a soft thump, plus a little
-        // chime when the box opens.
         function playLidSound(opening) {
-            if (!soundOn || !audio.ctx || audio.ctx.state !== 'running') return;
-            const ctx = audio.ctx, t = ctx.currentTime;
-            const swoosh = ctx.createBufferSource();
-            swoosh.buffer = audio.noise;
-            const band = ctx.createBiquadFilter();
-            band.type = 'bandpass'; band.Q.value = 1.1;
-            band.frequency.setValueAtTime(opening ? 650 : 2400, t);
-            band.frequency.exponentialRampToValueAtTime(opening ? 2400 : 650, t + 0.3);
-            const swooshGain = ctx.createGain();
-            swooshGain.gain.setValueAtTime(0.0001, t);
-            swooshGain.gain.linearRampToValueAtTime(opening ? 0.55 : 0.4, t + 0.07);
-            swooshGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.38);
-            swoosh.connect(band); band.connect(swooshGain); swooshGain.connect(audio.sfx); swooshGain.connect(audio.reverb);
-            swoosh.start(t); swoosh.stop(t + 0.45);
-
-            const tick = ctx.createBufferSource();
-            tick.buffer = audio.noise;
-            const high = ctx.createBiquadFilter(); high.type = 'highpass'; high.frequency.value = 3200;
-            const tickGain = ctx.createGain();
-            const tickAt = opening ? t : t + 0.26;
-            tickGain.gain.setValueAtTime(0.0001, tickAt);
-            tickGain.gain.linearRampToValueAtTime(0.5, tickAt + 0.004);
-            tickGain.gain.exponentialRampToValueAtTime(0.0001, tickAt + 0.05);
-            tick.connect(high); high.connect(tickGain); tickGain.connect(audio.sfx);
-            tick.start(tickAt); tick.stop(tickAt + 0.08);
-
-            const thump = ctx.createOscillator(), thumpGain = ctx.createGain();
-            const thumpAt = t + (opening ? 0.3 : 0.28);
-            thump.type = 'sine';
-            thump.frequency.setValueAtTime(170, thumpAt);
-            thump.frequency.exponentialRampToValueAtTime(55, thumpAt + 0.14);
-            thumpGain.gain.setValueAtTime(0.0001, thumpAt);
-            thumpGain.gain.linearRampToValueAtTime(0.55, thumpAt + 0.01);
-            thumpGain.gain.exponentialRampToValueAtTime(0.0001, thumpAt + 0.2);
-            thump.connect(thumpGain); thumpGain.connect(audio.sfx);
-            thump.start(thumpAt); thump.stop(thumpAt + 0.25);
-
-            if (opening) {
-                playTone(1046.5, t + 0.32, 1.6, 0.08, 0.01, 'sine', audio.sfx, true);
-                playTone(1568.0, t + 0.42, 1.8, 0.05, 0.01, 'sine', audio.sfx, true);
-            }
-        }
-        let lidSoundOpen = false;
-        function updateLidSound() {
-            const openNow = targetOpens.some(v => v > 0.02);
-            if (openNow !== lidSoundOpen) {
-                lidSoundOpen = openNow;
-                playLidSound(openNow);
+            if (!soundOn) return;
+            const sound = (opening ? lidOpenAudio : lidCloseAudio).cloneNode();
+            sound.volume = SFX_LEVEL;
+            const playback = sound.play();
+            if (playback && typeof playback.catch === 'function') {
+                playback.catch(error => reportAudioError(error, opening ? 'Lid opening sound' : 'Lid closing sound'));
             }
         }
 
@@ -5214,8 +5065,6 @@
             layoutGroup.rotation.y = 0;
 
             targetOpens.forEach((_, i) => { targetOpens[i] = 0; });
-            lidSlider.value = 0;
-            lidReveal.classList.remove('open');
 
             turntableOn = false;
             turntableSpeed = TURNTABLE_SPEED;
