@@ -8,7 +8,7 @@ An interactive 3D WebGL packaging showcase built with **Three.js**, featuring cu
 
 ### 📦 Physical Box Dieline & Usage
 * **Personal Use Only:** *Roses and Ashes* is designed for personal, non-commercial use[span_4](start_span)[span_4](end_span). Anyone is welcome to use or print it for personal projects[span_5](start_span)[span_5](end_span).
-* **Printable SVG Dieline:** [Download the physical box layout SVG from Google Drive](https://drive.google.com/file/d/1ozj063kF2020g40J-vGW5iCEEKfbfswB/view?usp=sharing) *(Note: the SVG layout is complete, though final updates are still pending)*[span_6](start_span)[span_6](end_span).
+* **Printable SVG Dieline:** [Download the physical box layout SVG from Google Drive](https://drive.google.com/file/d/1JevMfkpew75J-mlk-yOovi1nfrP1iS4J/view?usp=sharing) *(Note: the SVG layout is complete, though final updates are still pending)*[span_6](start_span)[span_6](end_span).
 
 ---
 
